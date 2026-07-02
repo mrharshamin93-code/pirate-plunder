@@ -6,8 +6,8 @@ export const GAME = {
   monsterRadius: 26,
   dubloonRadius: 11,
   mineRadius: 14,
-  /** how quickly the sub eases toward the finger target (0..1 per frame @60fps) */
-  subFollow: 0.16,
+  /** sub speed in px/sec when driven by directional (arrow) input */
+  subDirSpeed: 240,
   /** base monster chase speed in px/sec */
   monsterBaseSpeed: 70,
   /** monster speed added per second survived */
@@ -89,22 +89,15 @@ export function makeMine(w: number, h: number, avoid: Vec2, speed: number): Enti
   };
 }
 
-/** Ease a value toward a target by factor t, frame-rate normalized. */
-export function damp(current: number, target: number, t: number, dt: number): number {
-  const factor = 1 - Math.pow(1 - t, dt * 60);
-  return current + (target - current) * factor;
-}
-
-export function moveSubToward(sub: Sub, target: Vec2, dt: number): void {
-  const nx = damp(sub.x, target.x, GAME.subFollow, dt);
-  const ny = damp(sub.y, target.y, GAME.subFollow, dt);
-  const dx = nx - sub.x;
-  const dy = ny - sub.y;
-  if (Math.abs(dx) > 0.05 || Math.abs(dy) > 0.05) {
-    sub.angle = Math.atan2(dy, dx);
-  }
-  sub.x = nx;
-  sub.y = ny;
+/** Move the sub by a directional input vector (arrow keys / D-pad). dir is unnormalized. */
+export function moveSubByDir(sub: Sub, dir: Vec2, dt: number): void {
+  const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y);
+  if (len < 0.0001) return;
+  const ux = dir.x / len;
+  const uy = dir.y / len;
+  sub.x += ux * GAME.subDirSpeed * dt;
+  sub.y += uy * GAME.subDirSpeed * dt;
+  sub.angle = Math.atan2(uy, ux);
 }
 
 /** Monster chases the sub; speed scales with elapsed time. */
