@@ -38,6 +38,7 @@
     "expo/no-dynamic-env-var": "error",
     "react-native/no-unused-styles": "warn",
     "react-native/no-single-element-style-arrays": "warn",
+    "react/style-prop-object": ["warn", { "allow": ["StatusBar"] }],
     "react/react-in-jsx-scope": "off",
     "react/display-name": "off",
     "react/no-unescaped-entities": "warn",

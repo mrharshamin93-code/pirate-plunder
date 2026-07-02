@@ -163,3 +163,38 @@
 */
 
 @source './node_modules/heroui-native/lib';
+
+/* Deep-sea arcade palette */
+@layer theme {
+  :root {
+    --background: oklch(0.28 0.09 245);
+    --foreground: oklch(0.97 0.02 220);
+    --surface: oklch(0.34 0.09 244);
+    --surface-foreground: oklch(0.97 0.02 220);
+    --overlay: oklch(0.32 0.09 244);
+    --overlay-foreground: oklch(0.97 0.02 220);
+    --muted: oklch(0.72 0.05 230);
+    --default: oklch(0.4 0.08 244);
+    --default-foreground: oklch(0.97 0.02 220);
+    --accent: oklch(0.78 0.16 90);
+    --accent-foreground: oklch(0.24 0.06 250);
+    --border: oklch(0.42 0.08 244);
+    --separator: oklch(0.42 0.08 244);
+  }
+
+  /* Game palette utilities */
+  :root {
+    --color-sea-deep: oklch(0.2 0.08 250);
+    --color-sea-mid: oklch(0.34 0.1 244);
+    --color-sea-light: oklch(0.48 0.11 235);
+    --color-dubloon: oklch(0.82 0.16 88);
+    --color-dubloon-edge: oklch(0.68 0.15 70);
+    --color-mine: oklch(0.45 0.06 30);
+    --color-mine-spike: oklch(0.3 0.04 30);
+    --color-sub: oklch(0.75 0.14 55);
+    --color-sub-dark: oklch(0.58 0.13 45);
+    --color-monster: oklch(0.55 0.2 150);
+    --color-monster-dark: oklch(0.42 0.18 150);
+    --color-danger: oklch(0.65 0.23 26);
+  }
+}
