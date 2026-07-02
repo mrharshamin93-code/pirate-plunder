@@ -36,7 +36,7 @@ export function GameOverOverlay({
             <Text className="text-foreground text-3xl font-bold">{score.toLocaleString()}</Text>
           </View>
           <View className="items-center">
-            <Text className="text-foreground/60 text-xs tracking-widest uppercase">Dubloons</Text>
+            <Text className="text-foreground/60 text-xs tracking-widest uppercase">Coins</Text>
             <Text className="text-foreground text-3xl font-bold">{dubloons}</Text>
           </View>
         </View>
@@ -52,7 +52,7 @@ export function GameOverOverlay({
               <Text className="text-foreground/80 text-sm">
                 {i + 1}. {h.score.toLocaleString()}
               </Text>
-              <Text className="text-foreground/50 text-xs">{h.dubloons} dubloons</Text>
+              <Text className="text-foreground/50 text-xs">{h.dubloons} coins</Text>
             </View>
           ))}
           {highScores.length === 0 ? (

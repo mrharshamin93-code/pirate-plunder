@@ -17,7 +17,7 @@ export function Hud({ score, dubloons }: HudProps) {
       </View>
       <View className="items-end">
         <Text className="text-foreground/70 text-xs font-semibold tracking-widest uppercase">
-          Dubloons
+          Coins
         </Text>
         <View className="flex-row items-center gap-2">
           <View className="bg-dubloon border-dubloon-edge h-4 w-4 rounded-full border" />
