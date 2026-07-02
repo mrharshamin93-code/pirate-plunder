@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, View } from 'react-native';
-import { runOnJS, useFrameCallback } from 'react-native-reanimated';
-import Svg, { Defs, Path, RadialGradient, Rect, Stop } from 'react-native-svg';
+import { Platform, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useFrameCallback,
+  useSharedValue,
+} from 'react-native-reanimated';
+import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import * as Haptics from 'expo-haptics';
 
 import { DubloonSprite, MineSprite, MonsterSprite, SubSprite } from '@/components/game/Sprites';
@@ -74,8 +80,6 @@ function haptic(kind: 'light' | 'heavy') {
   else void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
 }
 
-type Dir = 'up' | 'down' | 'left' | 'right';
-
 export function GameCanvas({
   width,
   height,
@@ -86,44 +90,15 @@ export function GameCanvas({
   const world = useRef<WorldState>(createWorld(width, height));
   const [, forceRender] = useState(0);
   const lastTime = useRef(0);
-  // which directional keys are currently held
-  const held = useRef<Record<Dir, boolean>>({
-    up: false,
-    down: false,
-    left: false,
-    right: false,
-  });
 
   const deep = PALETTE.seaDeep;
   const mid = PALETTE.seaMid;
 
-  const recomputeDir = useCallback(() => {
-    const h = held.current;
-    let x = 0;
-    let y = 0;
-    if (h.up) y -= 1;
-    if (h.down) y += 1;
-    if (h.left) x -= 1;
-    if (h.right) x += 1;
+  // called from the joystick worklet with a normalized direction vector
+  const setDir = useCallback((x: number, y: number) => {
     world.current.dir.x = x;
     world.current.dir.y = y;
   }, []);
-
-  const press = useCallback(
-    (d: Dir) => {
-      held.current[d] = true;
-      recomputeDir();
-    },
-    [recomputeDir],
-  );
-
-  const release = useCallback(
-    (d: Dir) => {
-      held.current[d] = false;
-      recomputeDir();
-    },
-    [recomputeDir],
-  );
 
   const tick = useCallback(
     (dt: number) => {
@@ -252,73 +227,100 @@ export function GameCanvas({
         <MonsterSprite x={w.monster.x} y={w.monster.y} angle={w.monster.angle} r={w.monster.r} />
       </Svg>
 
-      <DPad onPress={press} onRelease={release} />
+      <Joystick onChange={setDir} />
     </View>
   );
 }
 
-const ARROW: Record<Dir, string> = {
-  // arrow glyphs drawn in a 44x44 viewBox, pointing in each direction
-  up: 'M22 12 L34 30 L22 24 L10 30 Z',
-  down: 'M22 32 L10 14 L22 20 L34 14 Z',
-  left: 'M12 22 L30 10 L24 22 L30 34 Z',
-  right: 'M32 22 L14 34 L20 22 L14 10 Z',
-};
+const JOYSTICK_SIZE = 132;
+const KNOB_SIZE = 58;
+const MAX_OFFSET = (JOYSTICK_SIZE - KNOB_SIZE) / 2;
 
-function ArrowButton({
-  dir,
-  onPress,
-  onRelease,
-}: {
-  dir: Dir;
-  onPress: (d: Dir) => void;
-  onRelease: (d: Dir) => void;
-}) {
-  const [active, setActive] = useState(false);
-  return (
-    <Pressable
-      onPressIn={() => {
-        setActive(true);
-        onPress(dir);
-      }}
-      onPressOut={() => {
-        setActive(false);
-        onRelease(dir);
-      }}
-      style={{
-        width: 64,
-        height: 64,
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderRadius: 18,
-        backgroundColor: active ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.08)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.25)',
-      }}
-    >
-      <Svg width={44} height={44} viewBox="0 0 44 44">
-        <Path d={ARROW[dir]} fill="rgba(255,255,255,0.9)" />
-      </Svg>
-    </Pressable>
-  );
-}
+/**
+ * Analog joystick anchored bottom-right. Drag the knob in any direction to
+ * steer at that angle; distance from center is clamped to the base radius.
+ * Emits a normalized direction vector (magnitude 0..1) to `onChange`.
+ */
+function Joystick({ onChange }: { onChange: (x: number, y: number) => void }) {
+  const dx = useSharedValue(0);
+  const dy = useSharedValue(0);
 
-function DPad({ onPress, onRelease }: { onPress: (d: Dir) => void; onRelease: (d: Dir) => void }) {
-  const gap = 8;
+  const pan = Gesture.Pan()
+    .onBegin((e) => {
+      'worklet';
+      const cx = JOYSTICK_SIZE / 2;
+      const cy = JOYSTICK_SIZE / 2;
+      let ox = e.x - cx;
+      let oy = e.y - cy;
+      const len = Math.sqrt(ox * ox + oy * oy);
+      if (len > MAX_OFFSET) {
+        ox = (ox / len) * MAX_OFFSET;
+        oy = (oy / len) * MAX_OFFSET;
+      }
+      dx.value = ox;
+      dy.value = oy;
+      runOnJS(onChange)(ox / MAX_OFFSET, oy / MAX_OFFSET);
+    })
+    .onUpdate((e) => {
+      'worklet';
+      const cx = JOYSTICK_SIZE / 2;
+      const cy = JOYSTICK_SIZE / 2;
+      let ox = e.x - cx;
+      let oy = e.y - cy;
+      const len = Math.sqrt(ox * ox + oy * oy);
+      if (len > MAX_OFFSET) {
+        ox = (ox / len) * MAX_OFFSET;
+        oy = (oy / len) * MAX_OFFSET;
+      }
+      dx.value = ox;
+      dy.value = oy;
+      runOnJS(onChange)(ox / MAX_OFFSET, oy / MAX_OFFSET);
+    })
+    .onFinalize(() => {
+      'worklet';
+      dx.value = 0;
+      dy.value = 0;
+      runOnJS(onChange)(0, 0);
+    });
+
+  const knobStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: dx.value }, { translateY: dy.value }],
+  }));
+
   return (
     <View
       pointerEvents="box-none"
-      style={{ position: 'absolute', left: 20, bottom: 40 }}
+      style={{ position: 'absolute', right: 24, bottom: 40 }}
       className="pb-safe"
     >
-      <View style={{ alignItems: 'center' }}>
-        <ArrowButton dir="up" onPress={onPress} onRelease={onRelease} />
-        <View style={{ flexDirection: 'row', gap: gap + 56, marginVertical: gap }}>
-          <ArrowButton dir="left" onPress={onPress} onRelease={onRelease} />
-          <ArrowButton dir="right" onPress={onPress} onRelease={onRelease} />
+      <GestureDetector gesture={pan}>
+        <View
+          style={{
+            width: JOYSTICK_SIZE,
+            height: JOYSTICK_SIZE,
+            borderRadius: JOYSTICK_SIZE / 2,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(255,255,255,0.06)',
+            borderWidth: 1,
+            borderColor: 'rgba(255,255,255,0.2)',
+          }}
+        >
+          <Animated.View
+            style={[
+              {
+                width: KNOB_SIZE,
+                height: KNOB_SIZE,
+                borderRadius: KNOB_SIZE / 2,
+                backgroundColor: 'rgba(255,255,255,0.28)',
+                borderWidth: 1,
+                borderColor: 'rgba(255,255,255,0.5)',
+              },
+              knobStyle,
+            ]}
+          />
         </View>
-        <ArrowButton dir="down" onPress={onPress} onRelease={onRelease} />
-      </View>
+      </GestureDetector>
     </View>
   );
 }
