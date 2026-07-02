@@ -44,7 +44,7 @@ export default function Home() {
 
   return (
     <View className="bg-sea-deep flex-1">
-      <Stack.Screen options={{ title: 'Dubloon Disaster' }} />
+      <Stack.Screen options={{ title: 'Coin Cascade' }} />
       <StatusBar style="light" />
 
       {phase === 'playing' ? (
