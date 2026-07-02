@@ -3,21 +3,25 @@ import { Circle, Ellipse, G, Line, Path, Polygon, Rect } from 'react-native-svg'
 
 /** All artwork here is original vector art authored for this game. */
 
-/** Resolved game palette — mirrors the --color-* tokens in global.css. */
+/**
+ * Resolved game palette — mirrors the --color-* tokens in global.css.
+ * NOTE: react-native-svg (iOS/Android) cannot parse CSS `oklch()` color
+ * functions, so these are pre-resolved to hex. Do not use oklch() in SVG props.
+ */
 const PALETTE = {
-  seaLight: 'oklch(0.48 0.11 235)',
-  seaDeep: 'oklch(0.2 0.08 250)',
-  sub: 'oklch(0.75 0.14 55)',
-  subDark: 'oklch(0.58 0.13 45)',
-  monster: 'oklch(0.55 0.2 150)',
-  monsterDark: 'oklch(0.42 0.18 150)',
-  dubloon: 'oklch(0.82 0.16 88)',
-  dubloonEdge: 'oklch(0.68 0.15 70)',
-  mine: 'oklch(0.45 0.06 30)',
-  mineSpike: 'oklch(0.3 0.04 30)',
-  danger: 'oklch(0.65 0.23 26)',
-  foreground: 'oklch(0.97 0.02 220)',
-  background: 'oklch(0.28 0.09 245)',
+  seaLight: '#1f74a8',
+  seaDeep: '#152036',
+  sub: '#e6a15a',
+  subDark: '#c07d3b',
+  monster: '#3fae6a',
+  monsterDark: '#2c8350',
+  dubloon: '#e9c04a',
+  dubloonEdge: '#c99a34',
+  mine: '#8a5a4a',
+  mineSpike: '#4a332b',
+  danger: '#e04a3a',
+  foreground: '#f2f6fb',
+  background: '#2a3a56',
 } as const;
 
 interface SpriteProps {

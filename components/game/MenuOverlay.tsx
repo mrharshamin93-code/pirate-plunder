@@ -20,9 +20,7 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
           <SubSprite x={92} y={48} r={20} angle={0} />
           <MonsterSprite x={150} y={40} r={22} angle={3.14} />
         </Svg>
-        <Text className="text-foreground mt-2 text-center text-4xl font-bold">
-          Coin Cascade
-        </Text>
+        <Text className="text-foreground mt-2 text-center text-4xl font-bold">Coin Cascade</Text>
         <Text className="text-foreground/70 mt-2 text-center text-base leading-6">
           Drag to pilot your sub. Grab the gold, dodge the mines, and outrun the deep-sea beast.
         </Text>

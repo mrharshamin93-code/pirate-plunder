@@ -17,10 +17,13 @@ import {
 } from '@/lib/game/engine';
 import type { Entity, Monster, Sub } from '@/lib/game/types';
 
-/** Resolved game palette — mirrors the --color-* tokens in global.css. */
+/**
+ * Resolved game palette — mirrors the --color-* tokens in global.css.
+ * NOTE: react-native-svg cannot parse CSS `oklch()`, so use hex here.
+ */
 const PALETTE = {
-  seaDeep: 'oklch(0.2 0.08 250)',
-  seaMid: 'oklch(0.34 0.1 244)',
+  seaDeep: '#152036',
+  seaMid: '#22456b',
 } as const;
 
 interface GameCanvasProps {
