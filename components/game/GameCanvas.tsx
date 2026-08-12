@@ -403,51 +403,106 @@ const MonsterView = memo(function MonsterView({ x, y, angle }: ActorProps) {
 const JOYSTICK_SIZE = 132;
 const KNOB_SIZE = 58;
 const MAX_OFFSET = (JOYSTICK_SIZE - KNOB_SIZE) / 2;
+/** finger travel from the pad origin that already counts as full deflection */
+const ACTIVE_RADIUS = 32;
+/** offsets under this are treated as "no input" */
+const DEAD_ZONE = 4;
+/** finger travel opposing the current heading that snaps the pad origin */
+const FLICK_REVERSE = 4;
 
 /**
- * Analog joystick anchored bottom-right. Drag the knob in any direction to
- * steer at that angle; distance from center is clamped to the base radius.
- * Writes the normalized direction straight into the simulation's shared
- * values, so steering never crosses onto the JS thread.
+ * Analog joystick anchored bottom-right. Steering is instantaneous: the pad has
+ * a floating origin that trails the finger, so the heading is always read from
+ * a short offset instead of the finger's absolute distance from the base. Any
+ * movement that opposes the current heading (dot product < 0) re-anchors the
+ * origin behind the finger, which makes a flick the other way reverse the sub
+ * on the very next frame. Direction is written straight into the simulation's
+ * shared values, so steering never crosses onto the JS thread.
  */
 function Joystick({ dirX, dirY }: { dirX: SharedValue<number>; dirY: SharedValue<number> }) {
   const knobX = useSharedValue(0);
   const knobY = useSharedValue(0);
+  const originX = useSharedValue(JOYSTICK_SIZE / 2);
+  const originY = useSharedValue(JOYSTICK_SIZE / 2);
+  const lastX = useSharedValue(JOYSTICK_SIZE / 2);
+  const lastY = useSharedValue(JOYSTICK_SIZE / 2);
 
   const pan = useMemo(() => {
-    const apply = (ex: number, ey: number) => {
+    /** Publish an offset (already relative to the pad origin) as a heading. */
+    const commit = (ox: number, oy: number) => {
       'worklet';
-      const center = JOYSTICK_SIZE / 2;
-      let ox = ex - center;
-      let oy = ey - center;
       const len = Math.sqrt(ox * ox + oy * oy);
-      if (len > MAX_OFFSET) {
-        ox = (ox / len) * MAX_OFFSET;
-        oy = (oy / len) * MAX_OFFSET;
-      }
-      knobX.value = ox;
-      knobY.value = oy;
-      dirX.value = ox / MAX_OFFSET;
-      dirY.value = oy / MAX_OFFSET;
-    };
-
-    return Gesture.Pan()
-      .onBegin((e) => {
-        'worklet';
-        apply(e.x, e.y);
-      })
-      .onUpdate((e) => {
-        'worklet';
-        apply(e.x, e.y);
-      })
-      .onFinalize(() => {
-        'worklet';
+      if (len < DEAD_ZONE) {
         knobX.value = 0;
         knobY.value = 0;
         dirX.value = 0;
         dirY.value = 0;
-      });
-  }, [dirX, dirY, knobX, knobY]);
+        return;
+      }
+      const ux = ox / len;
+      const uy = oy / len;
+      dirX.value = ux;
+      dirY.value = uy;
+      const pull = Math.min(1, len / ACTIVE_RADIUS) * MAX_OFFSET;
+      knobX.value = ux * pull;
+      knobY.value = uy * pull;
+    };
+
+    /** Clamp the finger offset, dragging the origin along when it overshoots. */
+    const track = (ex: number, ey: number) => {
+      'worklet';
+      let ox = ex - originX.value;
+      let oy = ey - originY.value;
+      const len = Math.sqrt(ox * ox + oy * oy);
+      if (len > ACTIVE_RADIUS) {
+        const over = len - ACTIVE_RADIUS;
+        originX.value += (ox / len) * over;
+        originY.value += (oy / len) * over;
+        ox = (ox / len) * ACTIVE_RADIUS;
+        oy = (oy / len) * ACTIVE_RADIUS;
+      }
+      commit(ox, oy);
+    };
+
+    return (
+      Gesture.Pan()
+        // no activation threshold: the first move already steers
+        .minDistance(0)
+        .maxPointers(1)
+        .onBegin((e) => {
+          'worklet';
+          originX.value = JOYSTICK_SIZE / 2;
+          originY.value = JOYSTICK_SIZE / 2;
+          lastX.value = e.x;
+          lastY.value = e.y;
+          track(e.x, e.y);
+        })
+        .onUpdate((e) => {
+          'worklet';
+          const mvx = e.x - lastX.value;
+          const mvy = e.y - lastY.value;
+          lastX.value = e.x;
+          lastY.value = e.y;
+          const move = Math.sqrt(mvx * mvx + mvy * mvy);
+          if (move > FLICK_REVERSE && mvx * dirX.value + mvy * dirY.value < 0) {
+            // finger turned back on itself: re-anchor so this frame already
+            // points at full deflection down the new heading
+            originX.value = e.x - (mvx / move) * ACTIVE_RADIUS;
+            originY.value = e.y - (mvy / move) * ACTIVE_RADIUS;
+          }
+          track(e.x, e.y);
+        })
+        .onFinalize(() => {
+          'worklet';
+          originX.value = JOYSTICK_SIZE / 2;
+          originY.value = JOYSTICK_SIZE / 2;
+          knobX.value = 0;
+          knobY.value = 0;
+          dirX.value = 0;
+          dirY.value = 0;
+        })
+    );
+  }, [dirX, dirY, knobX, knobY, lastX, lastY, originX, originY]);
 
   const knobStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: knobX.value }, { translateY: knobY.value }],
