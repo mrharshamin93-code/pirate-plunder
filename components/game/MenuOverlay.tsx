@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { Button, Text } from 'heroui-native';
 
-import { DubloonArt, MonsterArt, SPRITE_BOX, SubArt } from '@/components/game/Sprites';
+import { DubloonArt, MineArt, MonsterArt, SPRITE_BOX, SubArt } from '@/components/game/Sprites';
 import type { HighScore } from '@/lib/game/types';
 
 interface MenuOverlayProps {
@@ -12,14 +12,14 @@ interface MenuOverlayProps {
 export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
   const best = highScores.length > 0 ? highScores[0].score : 0;
   return (
-    <View className="absolute inset-0 items-center justify-center px-8">
+    <View className="bg-sea-deep/45 absolute inset-0 items-center justify-center px-8">
       <View className="mb-8 items-center">
-        <View style={{ width: 220, height: 110 }}>
+        <View style={{ width: 264, height: 140 }}>
           <View
             style={{
               position: 'absolute',
-              left: 46 - SPRITE_BOX.dubloon / 2,
-              top: 44 - SPRITE_BOX.dubloon / 2,
+              left: 44 - SPRITE_BOX.dubloon / 2,
+              top: 52 - SPRITE_BOX.dubloon / 2,
             }}
           >
             <DubloonArt />
@@ -27,8 +27,17 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
           <View
             style={{
               position: 'absolute',
-              left: 112 - SPRITE_BOX.sub / 2,
-              top: 60 - SPRITE_BOX.sub / 2,
+              left: 74 - SPRITE_BOX.mine / 2,
+              top: 106 - SPRITE_BOX.mine / 2,
+            }}
+          >
+            <MineArt />
+          </View>
+          <View
+            style={{
+              position: 'absolute',
+              left: 124 - SPRITE_BOX.sub / 2,
+              top: 62 - SPRITE_BOX.sub / 2,
             }}
           >
             <SubArt />
@@ -36,16 +45,26 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
           <View
             style={{
               position: 'absolute',
-              left: 166 - SPRITE_BOX.monster / 2,
-              top: 56 - SPRITE_BOX.monster / 2,
+              left: 200 - SPRITE_BOX.monster / 2,
+              top: 60 - SPRITE_BOX.monster / 2,
             }}
           >
             <MonsterArt />
           </View>
         </View>
-        <Text className="text-foreground mt-2 text-center text-4xl font-bold">Coin Cascade</Text>
+        <Text
+          className="text-foreground mt-2 text-center text-4xl font-bold"
+          style={{
+            textShadowColor: 'rgba(10,51,88,0.9)',
+            textShadowOffset: { width: 0, height: 3 },
+            textShadowRadius: 6,
+          }}
+        >
+          Coin Cascade
+        </Text>
         <Text className="text-foreground/70 mt-2 text-center text-base leading-6">
-          Steer with the joystick. Grab the gold, dodge the mines, and outrun the deep-sea beast.
+          Steer with the joystick. Scoop up dubloons, dodge the grumpy urchins, and outswim the
+          hungry sea beast.
         </Text>
       </View>
 

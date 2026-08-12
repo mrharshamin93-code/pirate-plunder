@@ -11,16 +11,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import {
-  DubloonArt,
-  MINE_CORE_COLOR,
-  MINE_CORE_SIZE,
-  MineArt,
-  MonsterArt,
-  SPRITE_BOX,
-  SubArt,
-  WaterBackground,
-} from '@/components/game/Sprites';
+import { DubloonArt, MineArt, MonsterArt, SPRITE_BOX, SubArt } from '@/components/game/Sprites';
 import { circlesHit, GAME, spawnPoint } from '@/lib/game/engine';
 
 /**
@@ -299,8 +290,6 @@ export const GameCanvas = memo(function GameCanvas({
 
   return (
     <View style={{ width, height, overflow: 'hidden' }}>
-      <WaterBackground width={width} height={height} />
-
       {dubloons.map((d) => (
         <DubloonView key={d.id} entity={d} />
       ))}
@@ -349,28 +338,17 @@ const MineView = memo(function MineView({ entity }: { entity: PoolEntity }) {
   const half = SPRITE_BOX.mine / 2;
   const style = useAnimatedStyle(() => ({
     opacity: entity.active.value,
-    transform: [{ translateX: entity.x.value - half }, { translateY: entity.y.value - half }],
-  }));
-  const coreStyle = useAnimatedStyle(() => ({
-    opacity: 0.6 + 0.4 * ((Math.sin(entity.phase.value) + 1) / 2),
+    transform: [
+      { translateX: entity.x.value - half },
+      { translateY: entity.y.value - half },
+      // slow breathing pulse so the hazard reads as alive
+      { scale: 1 + 0.07 * Math.sin(entity.phase.value) },
+      { rotate: `${Math.sin(entity.phase.value * 0.5) * 0.12}rad` },
+    ],
   }));
   return (
     <Animated.View pointerEvents="none" style={[spriteBox(SPRITE_BOX.mine), style]}>
       <MineArt />
-      <Animated.View
-        style={[
-          {
-            position: 'absolute',
-            left: half - MINE_CORE_SIZE / 2,
-            top: half - MINE_CORE_SIZE / 2,
-            width: MINE_CORE_SIZE,
-            height: MINE_CORE_SIZE,
-            borderRadius: MINE_CORE_SIZE / 2,
-            backgroundColor: MINE_CORE_COLOR,
-          },
-          coreStyle,
-        ]}
-      />
     </Animated.View>
   );
 });
@@ -383,13 +361,18 @@ interface ActorProps {
 
 const SubView = memo(function SubView({ x, y, angle }: ActorProps) {
   const half = SPRITE_BOX.sub / 2;
-  const style = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: x.value - half },
-      { translateY: y.value - half },
-      { rotate: `${angle.value}rad` },
-    ],
-  }));
+  const style = useAnimatedStyle(() => {
+    const a = angle.value;
+    return {
+      transform: [
+        { translateX: x.value - half },
+        { translateY: y.value - half },
+        { rotate: `${a}rad` },
+        // mirror instead of turning the face upside-down when heading left
+        { scaleY: Math.cos(a) < 0 ? -1 : 1 },
+      ],
+    };
+  });
   return (
     <Animated.View pointerEvents="none" style={[spriteBox(SPRITE_BOX.sub), style]}>
       <SubArt />
@@ -399,13 +382,17 @@ const SubView = memo(function SubView({ x, y, angle }: ActorProps) {
 
 const MonsterView = memo(function MonsterView({ x, y, angle }: ActorProps) {
   const half = SPRITE_BOX.monster / 2;
-  const style = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: x.value - half },
-      { translateY: y.value - half },
-      { rotate: `${angle.value}rad` },
-    ],
-  }));
+  const style = useAnimatedStyle(() => {
+    const a = angle.value;
+    return {
+      transform: [
+        { translateX: x.value - half },
+        { translateY: y.value - half },
+        { rotate: `${a}rad` },
+        { scaleY: Math.cos(a) < 0 ? -1 : 1 },
+      ],
+    };
+  });
   return (
     <Animated.View pointerEvents="none" style={[spriteBox(SPRITE_BOX.monster), style]}>
       <MonsterArt />
@@ -480,9 +467,9 @@ function Joystick({ dirX, dirY }: { dirX: SharedValue<number>; dirY: SharedValue
             borderRadius: JOYSTICK_SIZE / 2,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: 'rgba(255,255,255,0.06)',
-            borderWidth: 1,
-            borderColor: 'rgba(255,255,255,0.2)',
+            backgroundColor: 'rgba(255,255,255,0.1)',
+            borderWidth: 3,
+            borderColor: 'rgba(255,255,255,0.32)',
           }}
         >
           <Animated.View
@@ -491,13 +478,26 @@ function Joystick({ dirX, dirY }: { dirX: SharedValue<number>; dirY: SharedValue
                 width: KNOB_SIZE,
                 height: KNOB_SIZE,
                 borderRadius: KNOB_SIZE / 2,
-                backgroundColor: 'rgba(255,255,255,0.28)',
-                borderWidth: 1,
-                borderColor: 'rgba(255,255,255,0.5)',
+                backgroundColor: 'rgba(255,255,255,0.34)',
+                borderWidth: 3,
+                borderColor: 'rgba(255,255,255,0.62)',
+                alignItems: 'center',
+                justifyContent: 'center',
               },
               knobStyle,
             ]}
-          />
+          >
+            <View
+              style={{
+                width: KNOB_SIZE * 0.3,
+                height: KNOB_SIZE * 0.3,
+                borderRadius: KNOB_SIZE * 0.15,
+                backgroundColor: 'rgba(255,255,255,0.55)',
+                marginBottom: KNOB_SIZE * 0.18,
+                marginRight: KNOB_SIZE * 0.18,
+              }}
+            />
+          </Animated.View>
         </View>
       </GestureDetector>
     </View>

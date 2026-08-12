@@ -21,7 +21,7 @@ export function GameOverOverlay({
 }: GameOverOverlayProps) {
   const newBest = isNewBest(score, highScores);
   return (
-    <View className="absolute inset-0 items-center justify-center px-8">
+    <View className="bg-sea-deep/50 absolute inset-0 items-center justify-center px-8">
       <View className="bg-surface/85 border-border w-full max-w-sm rounded-3xl border px-7 py-7">
         <Text className="text-danger text-center text-3xl font-bold">Caught!</Text>
         {newBest ? (

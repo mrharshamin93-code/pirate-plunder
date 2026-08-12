@@ -7,6 +7,7 @@ import { GameCanvas } from '@/components/game/GameCanvas';
 import { GameOverOverlay } from '@/components/game/GameOverOverlay';
 import { Hud } from '@/components/game/Hud';
 import { MenuOverlay } from '@/components/game/MenuOverlay';
+import { WaterBackground } from '@/components/game/Sprites';
 import { useGameStore } from '@/lib/game/store';
 
 export default function Home() {
@@ -46,6 +47,8 @@ export default function Home() {
     <View className="bg-sea-deep flex-1">
       <Stack.Screen options={{ title: 'Coin Cascade' }} />
       <StatusBar style="light" />
+
+      <WaterBackground width={width} height={height} />
 
       {phase === 'playing' ? (
         <GameCanvas
