@@ -1,8 +1,7 @@
 import { View } from 'react-native';
 import { Button, Text } from 'heroui-native';
-import Svg from 'react-native-svg';
 
-import { DubloonSprite, MonsterSprite, SubSprite } from '@/components/game/Sprites';
+import { DubloonArt, MonsterArt, SPRITE_BOX, SubArt } from '@/components/game/Sprites';
 import type { HighScore } from '@/lib/game/types';
 
 interface MenuOverlayProps {
@@ -15,14 +14,38 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
   return (
     <View className="absolute inset-0 items-center justify-center px-8">
       <View className="mb-8 items-center">
-        <Svg width={180} height={90}>
-          <DubloonSprite x={34} y={30} r={13} bob={0.4} angle={0} />
-          <SubSprite x={92} y={48} r={20} angle={0} />
-          <MonsterSprite x={150} y={40} r={22} angle={3.14} />
-        </Svg>
+        <View style={{ width: 220, height: 110 }}>
+          <View
+            style={{
+              position: 'absolute',
+              left: 46 - SPRITE_BOX.dubloon / 2,
+              top: 44 - SPRITE_BOX.dubloon / 2,
+            }}
+          >
+            <DubloonArt />
+          </View>
+          <View
+            style={{
+              position: 'absolute',
+              left: 112 - SPRITE_BOX.sub / 2,
+              top: 60 - SPRITE_BOX.sub / 2,
+            }}
+          >
+            <SubArt />
+          </View>
+          <View
+            style={{
+              position: 'absolute',
+              left: 166 - SPRITE_BOX.monster / 2,
+              top: 56 - SPRITE_BOX.monster / 2,
+            }}
+          >
+            <MonsterArt />
+          </View>
+        </View>
         <Text className="text-foreground mt-2 text-center text-4xl font-bold">Coin Cascade</Text>
         <Text className="text-foreground/70 mt-2 text-center text-base leading-6">
-          Drag to pilot your sub. Grab the gold, dodge the mines, and outrun the deep-sea beast.
+          Steer with the joystick. Grab the gold, dodge the mines, and outrun the deep-sea beast.
         </Text>
       </View>
 
