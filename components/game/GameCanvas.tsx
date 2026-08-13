@@ -15,7 +15,7 @@ import * as Haptics from 'expo-haptics';
 import { Joystick, JOYSTICK, type JoystickInput } from '@/components/game/Joystick';
 import {
   BoatArt,
-  DubloonArt,
+  CoinArt,
   ExplosionArt,
   MineArt,
   SPRITE_BOX,
@@ -24,9 +24,9 @@ import {
 import {
   angleDelta,
   circlesHit,
-  DUBLOON_TIER_COUNT,
+  COIN_TIER_COUNT,
   GAME,
-  pickDubloonTier,
+  pickCoinTier,
   spawnPoint,
   TIER_POINTS,
 } from '@/lib/game/engine';
@@ -48,7 +48,7 @@ const FIELD_INSET = { top: 106, bottom: 158, side: 8 } as const;
 /** how often live stats are pushed to the HUD, in seconds */
 const STATS_INTERVAL = 0.12;
 
-const TIER_INDEXES = Array.from({ length: DUBLOON_TIER_COUNT }, (_, i) => i);
+const TIER_INDEXES = Array.from({ length: COIN_TIER_COUNT }, (_, i) => i);
 
 interface MineEntity {
   /** stable identity of this pool slot, for use as a React list key */
@@ -182,14 +182,14 @@ function useJoystickInput(): JoystickInput {
 
 export interface GameStats {
   score: number;
-  dubloons: number;
+  coins: number;
   mines: number;
 }
 
 interface GameCanvasProps {
   width: number;
   height: number;
-  onGameOver: (score: number, dubloons: number) => void;
+  onGameOver: (score: number, coins: number) => void;
   onStats: (stats: GameStats) => void;
   onPickup: (points: number, x: number, y: number) => void;
 }
@@ -217,11 +217,11 @@ export const GameCanvas = memo(function GameCanvas({
 
   const stick = useJoystickInput();
 
-  const dubX = useSharedValue(0);
-  const dubY = useSharedValue(0);
-  const dubTier = useSharedValue(0);
-  const dubPhase = useSharedValue(0);
-  const dubActive = useSharedValue(0);
+  const coinX = useSharedValue(0);
+  const coinY = useSharedValue(0);
+  const coinTier = useSharedValue(0);
+  const coinPhase = useSharedValue(0);
+  const coinActive = useSharedValue(0);
 
   const whirlX = useSharedValue(0);
   const whirlY = useSharedValue(0);
@@ -240,14 +240,14 @@ export const GameCanvas = memo(function GameCanvas({
   const boatAlive = useSharedValue(1);
 
   const finishRun = useCallback(
-    (finalScore: number, finalDubloons: number) => {
-      onGameOver(finalScore, finalDubloons);
+    (finalScore: number, finalCoins: number) => {
+      onGameOver(finalScore, finalCoins);
     },
     [onGameOver],
   );
 
-  /** Puts the next dubloon on the water, well clear of the boat. */
-  const placeDubloon = useCallback(() => {
+  /** Puts the next coin on the water, well clear of the boat. */
+  const placeCoin = useCallback(() => {
     'worklet';
     const p = spawnPoint(
       left + 28,
@@ -256,13 +256,13 @@ export const GameCanvas = memo(function GameCanvas({
       bottom - 28,
       boatX.value,
       boatY.value,
-      GAME.dubloonMinDistance,
+      GAME.coinMinDistance,
     );
-    dubX.value = p.x;
-    dubY.value = p.y;
-    dubTier.value = pickDubloonTier();
-    dubActive.value = 1;
-  }, [left, top, right, bottom, boatX, boatY, dubX, dubY, dubTier, dubActive]);
+    coinX.value = p.x;
+    coinY.value = p.y;
+    coinTier.value = pickCoinTier();
+    coinActive.value = 1;
+  }, [left, top, right, bottom, boatX, boatY, coinX, coinY, coinTier, coinActive]);
 
   /**
    * Fires one more mine from the Pawkeet. Landing spots are near-random, just
@@ -355,8 +355,8 @@ export const GameCanvas = memo(function GameCanvas({
       boatVX.value = 0;
       boatVY.value = 0;
       boatAlive.value = 1;
-      // the original opens with a single dubloon and no mines at all
-      placeDubloon();
+      // the original opens with a single coin and no mines at all
+      placeCoin();
       return;
     }
 
@@ -535,20 +535,20 @@ export const GameCanvas = memo(function GameCanvas({
       }
     }
 
-    /* --- the dubloon ---------------------------------------------------- */
-    dubPhase.value += dt * 3;
+    /* --- the coin ---------------------------------------------------- */
+    coinPhase.value += dt * 3;
     if (
-      dubActive.value === 1 &&
-      circlesHit(bx, by, r, dubX.value, dubY.value, GAME.dubloonRadius)
+      coinActive.value === 1 &&
+      circlesHit(bx, by, r, coinX.value, coinY.value, GAME.coinRadius)
     ) {
-      const points = TIER_POINTS[dubTier.value];
+      const points = TIER_POINTS[coinTier.value];
       score.value += points;
       collected.value += 1;
-      runOnJS(onPickup)(points, dubX.value, dubY.value);
+      runOnJS(onPickup)(points, coinX.value, coinY.value);
       runOnJS(haptic)('light');
 
-      placeDubloon();
-      // every dubloon salvaged means one more mine in the water
+      placeCoin();
+      // every coin salvaged means one more mine in the water
       if (liveMines < GAME.maxMines) {
         fireMine();
         liveMines += 1;
@@ -575,7 +575,7 @@ export const GameCanvas = memo(function GameCanvas({
       statsTimer.value = 0;
       runOnJS(onStats)({
         score: Math.floor(score.value),
-        dubloons: collected.value,
+        coins: collected.value,
         mines: liveMines,
       });
     }
@@ -584,12 +584,12 @@ export const GameCanvas = memo(function GameCanvas({
       over.value = 1;
       deathTimer.value = 0;
       boatAlive.value = 0;
-      dubActive.value = 0;
+      coinActive.value = 0;
       blast(bx, by);
       runOnJS(haptic)('heavy');
       runOnJS(onStats)({
         score: Math.floor(score.value),
-        dubloons: collected.value,
+        coins: collected.value,
         mines: liveMines,
       });
     }
@@ -614,7 +614,7 @@ export const GameCanvas = memo(function GameCanvas({
 
       <WhirlpoolView x={whirlX} y={whirlY} life={whirlLife} spin={whirlSpin} active={whirlActive} />
 
-      <DubloonView x={dubX} y={dubY} tier={dubTier} phase={dubPhase} active={dubActive} />
+      <CoinView x={coinX} y={coinY} tier={coinTier} phase={coinPhase} active={coinActive} />
 
       {mines.map((m) => (
         <MineView key={m.id} entity={m} />
@@ -675,7 +675,7 @@ const BoatView = memo(function BoatView({
  * All seven denominations are mounted at once and cross-faded by index, so the
  * coin's face value can change on the UI thread without a React render.
  */
-const DubloonView = memo(function DubloonView({
+const CoinView = memo(function CoinView({
   x,
   y,
   tier,
@@ -688,7 +688,7 @@ const DubloonView = memo(function DubloonView({
   phase: SharedValue<number>;
   active: SharedValue<number>;
 }) {
-  const half = SPRITE_BOX.dubloon / 2;
+  const half = SPRITE_BOX.coin / 2;
   const style = useAnimatedStyle(() => ({
     opacity: active.value,
     transform: [
@@ -698,15 +698,15 @@ const DubloonView = memo(function DubloonView({
     ],
   }));
   return (
-    <Animated.View pointerEvents="none" style={[spriteBox(SPRITE_BOX.dubloon), style]}>
+    <Animated.View pointerEvents="none" style={[spriteBox(SPRITE_BOX.coin), style]}>
       {TIER_INDEXES.map((index) => (
-        <DubloonFace key={index} index={index} tier={tier} />
+        <CoinFace key={index} index={index} tier={tier} />
       ))}
     </Animated.View>
   );
 });
 
-const DubloonFace = memo(function DubloonFace({
+const CoinFace = memo(function CoinFace({
   index,
   tier,
 }: {
@@ -716,7 +716,7 @@ const DubloonFace = memo(function DubloonFace({
   const style = useAnimatedStyle(() => ({ opacity: tier.value === index ? 1 : 0 }));
   return (
     <Animated.View style={[{ position: 'absolute', left: 0, top: 0 }, style]}>
-      <DubloonArt tier={index} />
+      <CoinArt tier={index} />
     </Animated.View>
   );
 });
