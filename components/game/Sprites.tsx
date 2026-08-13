@@ -193,7 +193,7 @@ export const PawkeetArt = memo(function PawkeetArt() {
 });
 
 /* ------------------------------------------------------------------------- */
-/* Dorak's rowboat — top-down, bow pointing right                            */
+/* Captain Marlow's rowboat — top-down, bow pointing right                            */
 /* ------------------------------------------------------------------------- */
 
 const HULL_PATH =
@@ -274,7 +274,7 @@ export const BoatArt = memo(function BoatArt() {
         opacity={0.85}
       />
 
-      {/* Dorak, an enterprising young Krawk, seen from above */}
+      {/* Captain Marlow, a fearless treasure hunter, seen from above */}
       <G>
         {/* shoulders */}
         <Ellipse cx={-8} cy={0} rx={7} ry={8} fill={PALETTE.krawkDark} />
@@ -487,89 +487,85 @@ export const CoinArt = memo(function CoinArt({ tier }: { tier: number }) {
 /* Whirlpool                                                                 */
 /* ------------------------------------------------------------------------- */
 
-const ARM_COUNT = 5;
+const VORTEX_ARMS = 4;
 
 export const WhirlpoolArt = memo(function WhirlpoolArt() {
   const box = SPRITE_BOX.whirlpool;
   const half = box / 2;
-  /** taken straight from the rules, so the drag you feel is the water you see */
   const reach = GAME.whirlpoolRange;
   const eye = GAME.whirlpoolCore;
-  const outer = reach * 0.83;
 
   return (
     <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
       <Defs>
-        <RadialGradient id="vortex" cx="50%" cy="50%" r="50%">
-          <Stop offset="0%" stopColor="#03151d" stopOpacity={0.95} />
-          <Stop offset="42%" stopColor={PALETTE.seaDeep} stopOpacity={0.72} />
-          <Stop offset="100%" stopColor={PALETTE.seaDeep} stopOpacity={0} />
+        <RadialGradient id="deepSeaVortex" cx="50%" cy="50%" r="50%">
+          <Stop offset="0%" stopColor="#000207" stopOpacity={1} />
+          <Stop offset="20%" stopColor="#020b18" stopOpacity={0.98} />
+          <Stop offset="48%" stopColor="#07354a" stopOpacity={0.94} />
+          <Stop offset="78%" stopColor="#087b91" stopOpacity={0.72} />
+          <Stop offset="100%" stopColor="#1bb4c6" stopOpacity={0.08} />
         </RadialGradient>
       </Defs>
 
-      <Circle cx={0} cy={0} r={reach} fill="url(#vortex)" />
+      <Circle cx={0} cy={0} r={reach} fill="url(#deepSeaVortex)" />
 
-      {/* foam arms spiralling into the eye */}
-      {Array.from({ length: ARM_COUNT }, (_, i) => {
-        const a = (i / ARM_COUNT) * Math.PI * 2;
-        const deg = (a * 180) / Math.PI;
+      {/* Four high-contrast turquoise currents curl into the black eye. */}
+      {Array.from({ length: VORTEX_ARMS }, (_, index) => {
+        const rotation = index * (360 / VORTEX_ARMS);
         return (
           <Path
-            key={i}
-            d={`M ${outer - 4} 0 C ${outer * 0.6} ${outer * 0.42} ${outer * 0.2} ${
-              outer * 0.4
-            } ${eye * 0.6} 3`}
-            stroke={PALETTE.foam}
-            strokeOpacity={0.5}
-            strokeWidth={3}
-            strokeLinecap="round"
+            key={index}
+            d={`M ${reach - 5} 0 C ${reach * 0.72} ${reach * 0.42} ${reach * 0.35} ${reach * 0.5} ${eye * 0.72} ${eye * 0.2}`}
             fill="none"
-            transform={`rotate(${deg})`}
+            stroke={index % 2 === 0 ? '#32d5d2' : '#16a9bd'}
+            strokeWidth={index % 2 === 0 ? 6 : 4.5}
+            strokeLinecap="round"
+            strokeOpacity={0.82}
+            transform={`rotate(${rotation})`}
           />
         );
       })}
 
-      {/* the outer ripple marks exactly where the water starts to take hold */}
+      {/* Concentric rings make the depth readable even at gameplay scale. */}
+      {[0.82, 0.61, 0.42].map((scale, index) => (
+        <Circle
+          key={scale}
+          cx={0}
+          cy={0}
+          r={reach * scale}
+          fill="none"
+          stroke={index === 0 ? '#42ddd8' : '#159eb3'}
+          strokeWidth={index === 0 ? 3.2 : 2.4}
+          strokeOpacity={0.5 - index * 0.08}
+          strokeDasharray={index === 0 ? '14 7' : '10 8'}
+        />
+      ))}
+
+      {/* Broken white foam marks the outer pull boundary. */}
       <Circle
         cx={0}
         cy={0}
         r={reach - 2}
         fill="none"
-        stroke={PALETTE.foam}
-        strokeOpacity={0.22}
-        strokeWidth={2}
-      />
-      <Circle
-        cx={0}
-        cy={0}
-        r={outer - 3}
-        fill="none"
-        stroke={PALETTE.crest}
-        strokeOpacity={0.35}
-        strokeWidth={2}
-      />
-      <Circle
-        cx={0}
-        cy={0}
-        r={outer * 0.62}
-        fill="none"
-        stroke={PALETTE.crest}
-        strokeOpacity={0.28}
-        strokeWidth={1.8}
+        stroke="#f4fdff"
+        strokeWidth={4.5}
+        strokeOpacity={0.9}
+        strokeLinecap="round"
+        strokeDasharray="13 6 4 7"
       />
 
-      {/* the eye */}
-      <Circle cx={0} cy={0} r={eye} fill="#02121a" />
-      <Circle
-        cx={0}
-        cy={0}
-        r={eye}
-        fill="none"
-        stroke={PALETTE.foam}
-        strokeOpacity={0.6}
-        strokeWidth={2}
-      />
-      <Circle cx={0} cy={0} r={eye * 0.46} fill="#000000" opacity={0.85} />
+      {/* Small wood fragments caught in the current. */}
+      <G transform="rotate(18)">
+        <Rect x={reach * 0.55} y={-4} width={15} height={6} rx={2} fill="#8d562c" />
+        <Rect x={reach * 0.31} y={reach * 0.3} width={11} height={5} rx={1.5} fill="#bb7a3e" transform="rotate(48)" />
+        <Polygon points={`${-reach * 0.52},-6 ${-reach * 0.4},-2 ${-reach * 0.49},4`} fill="#9f6736" />
+        <Rect x={-8} y={-reach * 0.62} width={13} height={5} rx={1} fill="#704221" transform="rotate(-22)" />
+      </G>
+
+      {/* Deep navy-to-black center. */}
+      <Circle cx={0} cy={0} r={eye * 1.35} fill="#020812" />
+      <Circle cx={0} cy={0} r={eye * 0.78} fill="#000104" />
+      <Circle cx={-eye * 0.2} cy={-eye * 0.2} r={eye * 0.28} fill="#081527" opacity={0.7} />
     </Svg>
   );
 });
