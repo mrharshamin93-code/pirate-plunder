@@ -1,8 +1,8 @@
 import { ScrollView, View } from 'react-native';
 import { Button, Text } from 'heroui-native';
 
-import { BoatArt, DubloonArt, MineArt, PawkeetArt, SPRITE_BOX } from '@/components/game/Sprites';
-import { DUBLOON_TIERS } from '@/lib/game/engine';
+import { BoatArt, CoinArt, MineArt, PawkeetArt, SPRITE_BOX } from '@/components/game/Sprites';
+import { COIN_TIERS } from '@/lib/game/engine';
 import type { HighScore } from '@/lib/game/types';
 
 interface MenuOverlayProps {
@@ -33,11 +33,11 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
         <View style={at(210, 70, SPRITE_BOX.pawkeet)}>
           <PawkeetArt />
         </View>
-        <View style={at(58, 58, SPRITE_BOX.dubloon)}>
-          <DubloonArt tier={6} />
+        <View style={at(58, 58, SPRITE_BOX.coin)}>
+          <CoinArt tier={6} />
         </View>
-        <View style={at(120, 52, SPRITE_BOX.dubloon)}>
-          <DubloonArt tier={2} />
+        <View style={at(120, 52, SPRITE_BOX.coin)}>
+          <CoinArt tier={2} />
         </View>
         <View style={at(150, 118, SPRITE_BOX.mine)}>
           <MineArt />
@@ -48,7 +48,7 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
       </View>
 
       <Text className="text-foreground mt-1 text-center text-4xl font-bold" style={TITLE_SHADOW}>
-        Dubloon Disaster
+        Pirate's Plunder
       </Text>
       <Text className="text-foreground/75 mt-2 text-center text-sm leading-5">
         You are Dorak, rowing the wreckage of Krawk Harbour. Salvage the treasure and stay clear of
@@ -57,12 +57,12 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
 
       <View className="bg-surface/70 border-border mt-5 w-full max-w-sm rounded-2xl border px-4 py-3">
         <Text className="text-foreground/60 mb-2 text-center text-xs tracking-widest uppercase">
-          Dubloon Values
+          Coin Values
         </Text>
         <View className="flex-row flex-wrap items-start justify-center gap-x-3 gap-y-1">
-          {DUBLOON_TIERS.map((tier, index) => (
+          {COIN_TIERS.map((tier, index) => (
             <View key={tier.value} className="items-center">
-              <DubloonArt tier={index} />
+              <CoinArt tier={index} />
               <Text className="text-foreground/70 text-xs font-semibold">
                 {tier.points.toLocaleString()}
               </Text>
@@ -73,7 +73,7 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
 
       <Text className="text-foreground/60 mt-4 text-center text-xs leading-5">
         Push the thumbstick to point her where you want to go — she holds her line and answers the
-        helm quickly. Every dubloon you take sends another mine after you.
+        helm quickly. Every coin you take sends another mine after you.
       </Text>
 
       {best > 0 ? (
