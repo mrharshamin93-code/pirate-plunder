@@ -2,9 +2,9 @@
  * Dubloon Disaster — rules, constants and worklet-safe helpers.
  *
  * Faithful to the original Neopets game (g772):
- *  - You row Dorak's boat with tank controls: turn left/right, accelerate,
- *    reverse. The boat carries momentum, so it is quick in a straight line and
- *    deliberately slow to come about.
+ *  - You steer Dorak's boat with a thumbstick: she heads where the stick points
+ *    and rows harder the further you push. The boat still carries momentum, so
+ *    she drifts through turns instead of stopping dead.
  *  - Exactly ONE dubloon is on the water at a time. Denominations are worth
  *    5x their face value in points, and the valuable ones are rare.
  *  - Every dubloon collected fires one more homing mine from the Black Pawkeet,
@@ -21,15 +21,15 @@
 
 export const GAME = {
   /* --- boat ------------------------------------------------------------- */
-  boatRadius: 15,
-  /** how fast the boat comes about, in radians/sec */
-  turnRate: 2.8,
+  boatRadius: 8,
+  /** the boat sprite is drawn at half scale, matching the smaller hull */
+  boatScale: 0.5,
+  /** how fast the boat swings onto the stick heading, in radians/sec */
+  turnRate: 9,
   /** turning is this much slower at full speed than at rest */
-  turnAtSpeed: 0.45,
-  /** forward thrust in px/sec^2 */
+  turnAtSpeed: 0.28,
+  /** forward thrust in px/sec^2 at full stick deflection */
   thrust: 380,
-  /** reverse thrust in px/sec^2 */
-  reverseThrust: 210,
   /** water drag, applied as an exponential decay coefficient per second */
   drag: 2.1,
   /** hard cap on boat speed in px/sec (drag settles her a little below this) */
@@ -152,8 +152,19 @@ export function spawnPoint(
   return { x, y };
 }
 
-/** Circle overlap test without a square root. */
-export function circlesHit(
+/**
+ * Shortest signed angle from `from` to `to`, wrapped into [-PI, PI], so the
+ * boat always swings the short way round onto the stick heading.
+ */
+export function angleDelta(from: number, to: number): number {
+  'worklet';
+  let d = (to - from) % (Math.PI * 2);
+  if (d > Math.PI) d -= Math.PI * 2;
+  if (d < -Math.PI) d += Math.PI * 2;
+  return d;
+}
+
+/** Circle overlap test without a square root. */ export function circlesHit(
   ax: number,
   ay: number,
   ar: number,

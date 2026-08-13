@@ -7,15 +7,12 @@ import Animated, {
   useAnimatedStyle,
   useFrameCallback,
   useSharedValue,
+  withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import {
-  ControlPad,
-  type ControlButtonInput,
-  type ControlInputs,
-} from '@/components/game/ControlPad';
+import { Joystick, JOYSTICK, type JoystickInput } from '@/components/game/Joystick';
 import {
   BoatArt,
   DubloonArt,
@@ -25,6 +22,7 @@ import {
   WhirlpoolArt,
 } from '@/components/game/Sprites';
 import {
+  angleDelta,
   circlesHit,
   DUBLOON_TIER_COUNT,
   GAME,
@@ -45,7 +43,7 @@ import {
  */
 
 /** Screen insets that carve the arena out of the full-bleed ocean. */
-const FIELD_INSET = { top: 106, bottom: 130, side: 8 } as const;
+const FIELD_INSET = { top: 106, bottom: 158, side: 8 } as const;
 
 /** how often live stats are pushed to the HUD, in seconds */
 const STATS_INTERVAL = 0.12;
@@ -119,29 +117,67 @@ function haptic(kind: 'light' | 'medium' | 'heavy') {
 }
 
 /**
- * One hold-to-press control: a 0/1 shared value plus the gesture that flips it.
- * Both are created together here so the component that owns the shared value is
- * also the one that writes to it; ControlPad only ever reads it for styling.
+ * The thumbstick: the direction and strength it is pushed in, plus the gesture
+ * that writes to it. Created here so the component that owns the shared values
+ * is also the only one that mutates them; the Joystick view only reads them.
  */
-function useHoldInput(): ControlButtonInput {
-  const pressed = useSharedValue(0);
-  const gesture = useMemo(
-    () =>
+function useJoystickInput(): JoystickInput {
+  const dirX = useSharedValue(1);
+  const dirY = useSharedValue(0);
+  const magnitude = useSharedValue(0);
+  const knobX = useSharedValue(0);
+  const knobY = useSharedValue(0);
+
+  const gesture = useMemo(() => {
+    const centre = JOYSTICK.base / 2;
+
+    const apply = (px: number, py: number) => {
+      'worklet';
+      const dx = px - centre;
+      const dy = py - centre;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < JOYSTICK.deadZone) {
+        magnitude.value = 0;
+        knobX.value = dx;
+        knobY.value = dy;
+        return;
+      }
+
+      dirX.value = dx / dist;
+      dirY.value = dy / dist;
+      magnitude.value = Math.min(1, dist / JOYSTICK.throw);
+      const clamped = Math.min(dist, JOYSTICK.throw);
+      knobX.value = (dx / dist) * clamped;
+      knobY.value = (dy / dist) * clamped;
+    };
+
+    return (
       Gesture.Pan()
-        // no activation threshold, so the very first touch already counts
+        // no activation threshold, so the first touch already steers
         .minDistance(0)
-        .shouldCancelWhenOutside(true)
-        .onBegin(() => {
+        .maxPointers(1)
+        .onBegin((e) => {
           'worklet';
-          pressed.value = 1;
+          apply(e.x, e.y);
+        })
+        .onUpdate((e) => {
+          'worklet';
+          apply(e.x, e.y);
         })
         .onFinalize(() => {
           'worklet';
-          pressed.value = 0;
-        }),
-    [pressed],
+          magnitude.value = 0;
+          knobX.value = withTiming(0, { duration: 140 });
+          knobY.value = withTiming(0, { duration: 140 });
+        })
+    );
+  }, [dirX, dirY, magnitude, knobX, knobY]);
+
+  return useMemo(
+    () => ({ dirX, dirY, magnitude, knobX, knobY, gesture }),
+    [dirX, dirY, magnitude, knobX, knobY, gesture],
   );
-  return useMemo(() => ({ pressed, gesture }), [pressed, gesture]);
 }
 
 export interface GameStats {
@@ -179,15 +215,7 @@ export const GameCanvas = memo(function GameCanvas({
   const boatVX = useSharedValue(0);
   const boatVY = useSharedValue(0);
 
-  const turnLeft = useHoldInput();
-  const turnRight = useHoldInput();
-  const forward = useHoldInput();
-  const reverse = useHoldInput();
-
-  const inputs: ControlInputs = useMemo(
-    () => ({ turnLeft, turnRight, forward, reverse }),
-    [turnLeft, turnRight, forward, reverse],
-  );
+  const stick = useJoystickInput();
 
   const dubX = useSharedValue(0);
   const dubY = useSharedValue(0);
@@ -341,20 +369,21 @@ export const GameCanvas = memo(function GameCanvas({
     const speed = Math.sqrt(vx * vx + vy * vy);
     const speedFrac = Math.min(1, speed / GAME.maxSpeed);
 
-    const turn = turnRight.pressed.value - turnLeft.pressed.value;
-    if (turn !== 0) {
-      // she is heavy in the water: the faster she runs, the wider she turns
-      boatAngle.value += turn * GAME.turnRate * (1 - GAME.turnAtSpeed * speedFrac) * dt;
+    const turn = stick.magnitude.value;
+    if (turn > 0) {
+      // she heads where the stick points, swinging the short way round; the
+      // faster she runs, the wider that swing is
+      const target = Math.atan2(stick.dirY.value, stick.dirX.value);
+      const diff = angleDelta(boatAngle.value, target);
+      const rate = GAME.turnRate * (1 - GAME.turnAtSpeed * speedFrac) * dt;
+      boatAngle.value += Math.abs(diff) <= rate ? diff : Math.sign(diff) * rate;
     }
 
     const heading = boatAngle.value;
-    const throttle = forward.pressed.value - reverse.pressed.value;
-    if (throttle > 0) {
-      vx += Math.cos(heading) * GAME.thrust * dt;
-      vy += Math.sin(heading) * GAME.thrust * dt;
-    } else if (throttle < 0) {
-      vx -= Math.cos(heading) * GAME.reverseThrust * dt;
-      vy -= Math.sin(heading) * GAME.reverseThrust * dt;
+    if (turn > 0) {
+      // rowing effort follows how far the stick is pushed
+      vx += Math.cos(heading) * GAME.thrust * turn * dt;
+      vy += Math.sin(heading) * GAME.thrust * turn * dt;
     }
 
     let caughtInEye = false;
@@ -569,7 +598,7 @@ export const GameCanvas = memo(function GameCanvas({
         <BlastView key={b.id} entity={b} />
       ))}
 
-      <ControlPad inputs={inputs} />
+      <Joystick input={stick} />
     </View>
   );
 });
@@ -603,6 +632,8 @@ const BoatView = memo(function BoatView({
       { translateX: x.value - half },
       { translateY: y.value - half },
       { rotate: `${angle.value}rad` },
+      // the hull is drawn at half scale, about the sprite's own centre
+      { scale: GAME.boatScale },
     ],
   }));
   return (
