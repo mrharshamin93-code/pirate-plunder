@@ -10,36 +10,53 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
+
+    // App identity
     name: "Pirate's Plunder",
     slug: 'pirate-plunder',
-    newArchEnabled: true,
     version: process.env.BILT_APP_VERSION ?? '1.0.0',
+    scheme: 'pirate-plunder',
+
+    // App settings
+    newArchEnabled: true,
     orientation: 'portrait',
     userInterfaceStyle: 'automatic',
-    scheme: 'coin-cascade',
+
     runtimeVersion: {
       policy: 'appVersion',
     },
+
     assetBundlePatterns: ['**/*'],
+
+    // iOS
     ios: {
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
       },
       supportsTablet: true,
-      bundleIdentifier: process.env.BILT_IOS_BUNDLE_ID ?? 'com.yourcompany.yourapp',
+      bundleIdentifier:
+        process.env.BILT_IOS_BUNDLE_ID ?? 'com.harshamin.piratesplunder',
     },
+
+    // Android
+    android: {
+      package:
+        process.env.BILT_ANDROID_PACKAGE ?? 'com.harshamin.piratesplunder',
+    },
+
+    // Web
     web: {
       bundler: 'metro',
       output: 'single',
       favicon: './public/icons/icon-192.png',
     },
-    android: {
-      package: process.env.BILT_ANDROID_PACKAGE ?? 'com.yourcompany.yourapp',
-    },
+
     extra: {
       appStoreAppId: process.env.BILT_APP_STORE_APP_ID,
     },
+
     plugins: ['expo-router', 'expo-font', ...nativePlugins],
+
     experiments: {
       typedRoutes: true,
       reactCompiler: true,
