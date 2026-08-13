@@ -13,13 +13,13 @@ import Svg, {
   Text as SvgText,
 } from 'react-native-svg';
 
-import { DUBLOON_TIERS, GAME } from '@/lib/game/engine';
+import { COIN_TIERS, GAME } from '@/lib/game/engine';
 
 /**
  * All artwork here is original vector art authored for this game, drawn to
- * match the look of the original Dubloon Disaster: a top-down view of open
+ * match the look of the original Pirate's Plunder: a top-down view of open
  * ocean in dark teal, a wooden rowboat seen from above, spiked black naval
- * mines and gold dubloon coins.
+ * mines and gold coin coins.
  *
  * Each sprite is a STATIC svg drawn once and never re-rendered: position,
  * rotation and pulsing are applied by the Reanimated wrappers in GameCanvas.
@@ -64,7 +64,7 @@ const PALETTE = {
 export const SPRITE_BOX = {
   boat: 84,
   mine: 56,
-  dubloon: 36,
+  coin: 36,
   whirlpool: 170,
   explosion: 120,
   pawkeet: 132,
@@ -404,7 +404,7 @@ export const MineArt = memo(function MineArt() {
 });
 
 /* ------------------------------------------------------------------------- */
-/* Dubloon coins — one static sprite per denomination                        */
+/* Coin coins — one static sprite per denomination                        */
 /* ------------------------------------------------------------------------- */
 
 /** Coppers for the common coins, silver in the middle, gold for the jackpots. */
@@ -420,12 +420,12 @@ const COIN_METALS = [
 
 const NOTCH_COUNT = 16;
 
-export const DubloonArt = memo(function DubloonArt({ tier }: { tier: number }) {
-  const box = SPRITE_BOX.dubloon;
+export const CoinArt = memo(function CoinArt({ tier }: { tier: number }) {
+  const box = SPRITE_BOX.coin;
   const half = box / 2;
-  const index = Math.max(0, Math.min(DUBLOON_TIERS.length - 1, tier));
+  const index = Math.max(0, Math.min(COIN_TIERS.length - 1, tier));
   const metal = COIN_METALS[index];
-  const value = DUBLOON_TIERS[index].value;
+  const value = COIN_TIERS[index].value;
   const r = 13;
 
   return (
