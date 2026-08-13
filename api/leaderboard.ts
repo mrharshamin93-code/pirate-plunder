@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 0.8 seconds
-Output:
 import { neon } from '@neondatabase/serverless';
 
 const PLAYER_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -92,4 +89,3 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     response.status(500).json({ error: 'Leaderboard request failed' });
   }
 }
-
