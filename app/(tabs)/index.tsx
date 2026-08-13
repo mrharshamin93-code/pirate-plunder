@@ -33,7 +33,7 @@ export default function Home() {
   const [popups, setPopups] = useState<Popup[]>([]);
   const popupId = useRef(0);
 
-  useBackgroundMusic(!musicMuted);
+  useBackgroundMusic(phase === 'playing' && !musicMuted);
 
   useEffect(() => {
     void loadScores();
