@@ -82,7 +82,7 @@ export const GAME = {
   /** chance a coin pickup also summons a whirlpool */
   whirlpoolChance: 0.13,
   /** radius of influence in px */
-  whirlpoolRange: 74,
+  whirlpoolRange: 84,
   /** the eye — fatal to the boat, destroys mines */
   whirlpoolCore: 12,
   /** pull on the boat at the very centre, in px/sec^2 */
