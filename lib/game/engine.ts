@@ -2,7 +2,7 @@
  * Pirate's Plunder — rules, constants and worklet-safe helpers.
  *
  * Faithful to the original Neopets game (g772):
- *  - You steer Dorak's boat with a thumbstick: she heads where the stick points
+ *  - You steer Captain Marlow's boat with a thumbstick: she heads where the stick points
  *    and rows harder the further you push. She keeps a little momentum, but the
  *    keel bites, so she tracks her bow instead of skidding broadside.
  *  - Exactly ONE coin is on the water at a time. Denominations are worth
