@@ -13,14 +13,14 @@ import { OceanBackground } from '@/components/game/Sprites';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 import { useGameStore } from '@/lib/game/store';
 
-const EMPTY_STATS: GameStats = { score: 0, dubloons: 0, mines: 0 };
+const EMPTY_STATS: GameStats = { score: 0, coins: 0, mines: 0 };
 
 export default function Home() {
   const { width, height } = useWindowDimensions();
   const phase = useGameStore((s) => s.phase);
   const highScores = useGameStore((s) => s.highScores);
   const lastScore = useGameStore((s) => s.lastScore);
-  const lastDubloons = useGameStore((s) => s.lastDubloons);
+  const lastCoins = useGameStore((s) => s.lastCoins);
   const startGame = useGameStore((s) => s.startGame);
   const endGame = useGameStore((s) => s.endGame);
   const goToMenu = useGameStore((s) => s.goToMenu);
@@ -47,8 +47,8 @@ export default function Home() {
   }, [startGame]);
 
   const handleGameOver = useCallback(
-    (score: number, dubloons: number) => {
-      void endGame(score, dubloons);
+    (score: number, coins: number) => {
+      void endGame(score, coins);
     },
     [endGame],
   );
@@ -65,7 +65,7 @@ export default function Home() {
 
   return (
     <View className="bg-sea-deep flex-1">
-      <Stack.Screen options={{ title: 'Dubloon Disaster' }} />
+      <Stack.Screen options={{ title: "Pirate's Plunder" }} />
       <StatusBar style="light" />
 
       <OceanBackground width={width} height={height} />
@@ -82,7 +82,7 @@ export default function Home() {
       ) : null}
 
       {phase === 'playing' ? (
-        <Hud score={stats.score} dubloons={stats.dubloons} mines={stats.mines} />
+        <Hud score={stats.score} coins={stats.coins} mines={stats.mines} />
       ) : null}
 
       {popups.map((p) => (
@@ -94,7 +94,7 @@ export default function Home() {
       {phase === 'gameover' ? (
         <GameOverOverlay
           score={lastScore}
-          dubloons={lastDubloons}
+          coins={lastCoins}
           highScores={highScores}
           onRetry={handleStart}
           onMenu={goToMenu}
