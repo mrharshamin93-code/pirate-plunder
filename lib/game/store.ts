@@ -3,20 +3,20 @@ import { create } from 'zustand';
 
 import type { GamePhase, HighScore } from './types';
 
-const STORAGE_KEY = 'dubloon.highscores.v2';
-const MUSIC_KEY = 'dubloon.music.muted.v1';
+const STORAGE_KEY = 'piratesplunder.highscores.v2';
+const MUSIC_KEY = 'piratesplunder.music.muted.v1';
 const MAX_SCORES = 5;
 
 interface GameStore {
   phase: GamePhase;
   lastScore: number;
-  lastDubloons: number;
+  lastCoins: number;
   highScores: HighScore[];
   loaded: boolean;
   musicMuted: boolean;
   loadScores: () => Promise<void>;
   startGame: () => void;
-  endGame: (score: number, dubloons: number) => Promise<void>;
+  endGame: (score: number, coins: number) => Promise<void>;
   goToMenu: () => void;
   toggleMusic: () => void;
 }
@@ -35,7 +35,7 @@ function isHighScoreArray(value: unknown): value is HighScore[] {
   return value.every((item: unknown) => {
     if (typeof item !== 'object' || item === null) return false;
     return (
-      hasNumberProp(item, 'score') && hasNumberProp(item, 'dubloons') && hasNumberProp(item, 'date')
+      hasNumberProp(item, 'score') && hasNumberProp(item, 'coins') && hasNumberProp(item, 'date')
     );
   });
 }
@@ -43,7 +43,7 @@ function isHighScoreArray(value: unknown): value is HighScore[] {
 export const useGameStore = create<GameStore>((set, get) => ({
   phase: 'menu',
   lastScore: 0,
-  lastDubloons: 0,
+  lastCoins: 0,
   highScores: [],
   loaded: false,
   musicMuted: false,
@@ -62,12 +62,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
     }
   },
 
-  startGame: () => set({ phase: 'playing', lastScore: 0, lastDubloons: 0 }),
+  startGame: () => set({ phase: 'playing', lastScore: 0, lastCoins: 0 }),
 
-  endGame: async (score, dubloons) => {
-    const entry: HighScore = { score, dubloons, date: Date.now() };
+  endGame: async (score, coins) => {
+    const entry: HighScore = { score, coins, date: Date.now() };
     const next = sortScores([...get().highScores, entry]);
-    set({ phase: 'gameover', lastScore: score, lastDubloons: dubloons, highScores: next });
+    set({ phase: 'gameover', lastScore: score, lastCoins: coins, highScores: next });
     try {
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     } catch {
