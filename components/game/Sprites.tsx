@@ -492,8 +492,10 @@ const VORTEX_ARMS = 4;
 export const WhirlpoolArt = memo(function WhirlpoolArt() {
   const box = SPRITE_BOX.whirlpool;
   const half = box / 2;
-  const reach = GAME.whirlpoolRange;
-  const eye = GAME.whirlpoolCore;
+  // The current reaches beyond the visible funnel, as a real vortex does.
+  const pullRadius = GAME.whirlpoolRange;
+  const visualRadius = pullRadius * 0.68;
+  const eye = GAME.whirlpoolCore * 0.88;
 
   return (
     <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
@@ -507,7 +509,7 @@ export const WhirlpoolArt = memo(function WhirlpoolArt() {
         </RadialGradient>
       </Defs>
 
-      <Circle cx={0} cy={0} r={reach} fill="url(#deepSeaVortex)" />
+      <Circle cx={0} cy={0} r={visualRadius} fill="url(#deepSeaVortex)" />
 
       {/* Four high-contrast turquoise currents curl into the black eye. */}
       {Array.from({ length: VORTEX_ARMS }, (_, index) => {
@@ -515,7 +517,7 @@ export const WhirlpoolArt = memo(function WhirlpoolArt() {
         return (
           <Path
             key={index}
-            d={`M ${reach - 5} 0 C ${reach * 0.72} ${reach * 0.42} ${reach * 0.35} ${reach * 0.5} ${eye * 0.72} ${eye * 0.2}`}
+            d={`M ${visualRadius - 4} 0 C ${visualRadius * 0.72} ${visualRadius * 0.42} ${visualRadius * 0.35} ${visualRadius * 0.5} ${eye * 0.72} ${eye * 0.2}`}
             fill="none"
             stroke={index % 2 === 0 ? '#32d5d2' : '#16a9bd'}
             strokeWidth={index % 2 === 0 ? 6 : 4.5}
@@ -532,7 +534,7 @@ export const WhirlpoolArt = memo(function WhirlpoolArt() {
           key={scale}
           cx={0}
           cy={0}
-          r={reach * scale}
+          r={visualRadius * scale}
           fill="none"
           stroke={index === 0 ? '#42ddd8' : '#159eb3'}
           strokeWidth={index === 0 ? 3.2 : 2.4}
@@ -545,7 +547,7 @@ export const WhirlpoolArt = memo(function WhirlpoolArt() {
       <Circle
         cx={0}
         cy={0}
-        r={reach - 2}
+        r={visualRadius - 2}
         fill="none"
         stroke="#f4fdff"
         strokeWidth={4.5}
@@ -556,10 +558,10 @@ export const WhirlpoolArt = memo(function WhirlpoolArt() {
 
       {/* Small wood fragments caught in the current. */}
       <G transform="rotate(18)">
-        <Rect x={reach * 0.55} y={-4} width={15} height={6} rx={2} fill="#8d562c" />
-        <Rect x={reach * 0.31} y={reach * 0.3} width={11} height={5} rx={1.5} fill="#bb7a3e" transform="rotate(48)" />
-        <Polygon points={`${-reach * 0.52},-6 ${-reach * 0.4},-2 ${-reach * 0.49},4`} fill="#9f6736" />
-        <Rect x={-8} y={-reach * 0.62} width={13} height={5} rx={1} fill="#704221" transform="rotate(-22)" />
+        <Rect x={visualRadius * 0.55} y={-4} width={15} height={6} rx={2} fill="#8d562c" />
+        <Rect x={visualRadius * 0.31} y={visualRadius * 0.3} width={11} height={5} rx={1.5} fill="#bb7a3e" transform="rotate(48)" />
+        <Polygon points={`${-visualRadius * 0.52},-6 ${-visualRadius * 0.4},-2 ${-visualRadius * 0.49},4`} fill="#9f6736" />
+        <Rect x={-8} y={-visualRadius * 0.62} width={13} height={5} rx={1} fill="#704221" transform="rotate(-22)" />
       </G>
 
       {/* Deep navy-to-black center. */}
