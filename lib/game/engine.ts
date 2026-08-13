@@ -64,7 +64,7 @@ export const GAME = {
   /** minimum chase speed while the boat is far away */
   mineFarSpeed: 22,
   /** maximum chase speed once the mine is close to the boat */
-  mineNearSpeed: 130,
+  mineNearSpeed: 100,
   /** distance where the mine begins accelerating toward the boat */
   mineFarRange: 400,
   /** distance where the mine reaches maximum chase speed */
