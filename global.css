@@ -210,8 +210,8 @@
     --color-sea-mid: oklch(0.44 0.06 213);
     --color-sea-light: oklch(0.56 0.07 213);
     --color-foam: oklch(0.95 0.03 210);
-    --color-dubloon: oklch(0.87 0.16 90);
-    --color-dubloon-edge: oklch(0.63 0.13 82);
+    --color-coin: oklch(0.87 0.16 90);
+    --color-coin-edge: oklch(0.63 0.13 82);
     --color-mine: oklch(0.27 0.012 250);
     --color-wood: oklch(0.53 0.09 60);
     --color-wood-dark: oklch(0.4 0.08 55);
