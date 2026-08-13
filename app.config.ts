@@ -10,8 +10,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    name: 'Dubloon Disaster',
-    slug: 'coin-cascade',
+    name: "Pirate's Plunder",
+    slug: 'pirate-plunder',
     newArchEnabled: true,
     version: process.env.BILT_APP_VERSION ?? '1.0.0',
     orientation: 'portrait',
