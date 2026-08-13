@@ -51,7 +51,7 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
         Pirate's Plunder
       </Text>
       <Text className="text-foreground/75 mt-2 text-center text-sm leading-5">
-        You are Dorak, rowing the wreckage of Krawk Harbour. Salvage the treasure and stay clear of
+        You are Captain Marlow, rowing the wreckage of Blackwake Harbor. Salvage the treasure and stay clear of
         the homing mines fired from the Black Pawkeet.
       </Text>
 
