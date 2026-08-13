@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import type { GamePhase, HighScore } from './types';
 
 const STORAGE_KEY = 'dubloon.highscores.v2';
+const MUSIC_KEY = 'dubloon.music.muted.v1';
 const MAX_SCORES = 5;
 
 interface GameStore {
@@ -12,10 +13,12 @@ interface GameStore {
   lastDubloons: number;
   highScores: HighScore[];
   loaded: boolean;
+  musicMuted: boolean;
   loadScores: () => Promise<void>;
   startGame: () => void;
   endGame: (score: number, dubloons: number) => Promise<void>;
   goToMenu: () => void;
+  toggleMusic: () => void;
 }
 
 function sortScores(scores: HighScore[]): HighScore[] {
@@ -43,13 +46,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
   lastDubloons: 0,
   highScores: [],
   loaded: false,
+  musicMuted: false,
 
   loadScores: async () => {
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      const [raw, muted] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEY),
+        AsyncStorage.getItem(MUSIC_KEY),
+      ]);
       const json: unknown = raw ? JSON.parse(raw) : [];
       const parsed = isHighScoreArray(json) ? json : [];
-      set({ highScores: sortScores(parsed), loaded: true });
+      set({ highScores: sortScores(parsed), loaded: true, musicMuted: muted === '1' });
     } catch {
       set({ highScores: [], loaded: true });
     }
@@ -69,6 +76,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   goToMenu: () => set({ phase: 'menu' }),
+
+  toggleMusic: () => {
+    const muted = !get().musicMuted;
+    set({ musicMuted: muted });
+    void AsyncStorage.setItem(MUSIC_KEY, muted ? '1' : '0').catch(() => {
+      // ignore persistence failure; the choice still holds for this session
+    });
+  },
 }));
 
 export function isNewBest(score: number, scores: HighScore[]): boolean {

@@ -13,7 +13,7 @@ import Svg, {
   Text as SvgText,
 } from 'react-native-svg';
 
-import { DUBLOON_TIERS } from '@/lib/game/engine';
+import { DUBLOON_TIERS, GAME } from '@/lib/game/engine';
 
 /**
  * All artwork here is original vector art authored for this game, drawn to
@@ -65,7 +65,7 @@ export const SPRITE_BOX = {
   boat: 84,
   mine: 56,
   dubloon: 36,
-  whirlpool: 300,
+  whirlpool: 170,
   explosion: 120,
   pawkeet: 132,
 } as const;
@@ -492,9 +492,10 @@ const ARM_COUNT = 5;
 export const WhirlpoolArt = memo(function WhirlpoolArt() {
   const box = SPRITE_BOX.whirlpool;
   const half = box / 2;
-  /** matches GAME.whirlpoolRange, so the drag you feel is the water you see */
-  const reach = 140;
-  const outer = 116;
+  /** taken straight from the rules, so the drag you feel is the water you see */
+  const reach = GAME.whirlpoolRange;
+  const eye = GAME.whirlpoolCore;
+  const outer = reach * 0.83;
 
   return (
     <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
@@ -515,10 +516,12 @@ export const WhirlpoolArt = memo(function WhirlpoolArt() {
         return (
           <Path
             key={i}
-            d={`M ${outer - 6} 0 C ${outer * 0.6} ${outer * 0.42} ${outer * 0.2} ${outer * 0.4} 14 6`}
+            d={`M ${outer - 4} 0 C ${outer * 0.6} ${outer * 0.42} ${outer * 0.2} ${
+              outer * 0.4
+            } ${eye * 0.6} 3`}
             stroke={PALETTE.foam}
             strokeOpacity={0.5}
-            strokeWidth={5}
+            strokeWidth={3}
             strokeLinecap="round"
             fill="none"
             transform={`rotate(${deg})`}
@@ -530,20 +533,20 @@ export const WhirlpoolArt = memo(function WhirlpoolArt() {
       <Circle
         cx={0}
         cy={0}
-        r={reach - 3}
+        r={reach - 2}
         fill="none"
         stroke={PALETTE.foam}
         strokeOpacity={0.22}
-        strokeWidth={2.5}
+        strokeWidth={2}
       />
       <Circle
         cx={0}
         cy={0}
-        r={outer - 4}
+        r={outer - 3}
         fill="none"
         stroke={PALETTE.crest}
         strokeOpacity={0.35}
-        strokeWidth={3}
+        strokeWidth={2}
       />
       <Circle
         cx={0}
@@ -552,21 +555,21 @@ export const WhirlpoolArt = memo(function WhirlpoolArt() {
         fill="none"
         stroke={PALETTE.crest}
         strokeOpacity={0.28}
-        strokeWidth={2.5}
+        strokeWidth={1.8}
       />
 
       {/* the eye */}
-      <Circle cx={0} cy={0} r={24} fill="#02121a" />
+      <Circle cx={0} cy={0} r={eye} fill="#02121a" />
       <Circle
         cx={0}
         cy={0}
-        r={24}
+        r={eye}
         fill="none"
         stroke={PALETTE.foam}
         strokeOpacity={0.6}
-        strokeWidth={3}
+        strokeWidth={2}
       />
-      <Circle cx={0} cy={0} r={11} fill="#000000" opacity={0.85} />
+      <Circle cx={0} cy={0} r={eye * 0.46} fill="#000000" opacity={0.85} />
     </Svg>
   );
 });

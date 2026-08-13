@@ -3,8 +3,8 @@
  *
  * Faithful to the original Neopets game (g772):
  *  - You steer Dorak's boat with a thumbstick: she heads where the stick points
- *    and rows harder the further you push. The boat still carries momentum, so
- *    she drifts through turns instead of stopping dead.
+ *    and rows harder the further you push. She keeps a little momentum, but the
+ *    keel bites, so she tracks her bow instead of skidding broadside.
  *  - Exactly ONE dubloon is on the water at a time. Denominations are worth
  *    5x their face value in points, and the valuable ones are rare.
  *  - Every dubloon collected fires one more homing mine from the Black Pawkeet,
@@ -29,9 +29,18 @@ export const GAME = {
   /** turning is this much slower at full speed than at rest */
   turnAtSpeed: 0.28,
   /** forward thrust in px/sec^2 at full stick deflection */
-  thrust: 380,
-  /** water drag, applied as an exponential decay coefficient per second */
-  drag: 2.1,
+  thrust: 620,
+  /**
+   * Drag along the hull's own heading, as an exponential decay coefficient per
+   * second. Terminal speed is roughly thrust / drag.
+   */
+  drag: 3.6,
+  /**
+   * Drag on the SIDEWAYS part of her velocity — the keel biting the water.
+   * Much higher than `drag`, so she follows her bow instead of skating
+   * broadside through turns.
+   */
+  lateralGrip: 11,
   /** hard cap on boat speed in px/sec (drag settles her a little below this) */
   maxSpeed: 190,
 
@@ -41,7 +50,15 @@ export const GAME = {
   dubloonMinDistance: 90,
 
   /* --- mines ------------------------------------------------------------ */
-  mineRadius: 13,
+  /** collision radius — matched to the boat so a mine is the same size as her */
+  mineRadius: 8,
+  /**
+   * How far the spike tips reach on the drawn sprite. Two mines detonate when
+   * their spikes touch, not when the casings meet.
+   */
+  mineSpikeRadius: 11,
+  /** the mine sprite is drawn at this scale, matching boatScale */
+  mineScale: 0.5,
   /** hard cap on simultaneous mines, exactly as in the original */
   maxMines: 9,
   /** cruising chase speed in px/sec — always slower than the boat */
@@ -63,17 +80,17 @@ export const GAME = {
   /** chance a dubloon pickup also summons a whirlpool */
   whirlpoolChance: 0.13,
   /** radius of influence in px */
-  whirlpoolRange: 140,
+  whirlpoolRange: 74,
   /** the eye — fatal to the boat, destroys mines */
-  whirlpoolCore: 24,
+  whirlpoolCore: 12,
   /** pull on the boat at the very centre, in px/sec^2 */
-  whirlpoolPull: 230,
+  whirlpoolPull: 260,
   /** mines are dragged in far harder than the boat */
   whirlpoolMinePull: 2.6,
   /** seconds a whirlpool lasts, including spin-up and fade */
   whirlpoolLife: 6.5,
   /** a whirlpool never opens closer than this to the boat */
-  whirlpoolMinDistance: 150,
+  whirlpoolMinDistance: 110,
 
   /* --- explosions ------------------------------------------------------- */
   /** render pool size for mine explosions — a pair of mines uses two slots */

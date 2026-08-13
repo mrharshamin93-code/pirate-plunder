@@ -295,10 +295,10 @@ export const GameCanvas = memo(function GameCanvas({
   const openWhirlpool = useCallback(() => {
     'worklet';
     const p = spawnPoint(
-      left + 60,
-      top + 60,
-      right - 60,
-      bottom - 60,
+      left + 40,
+      top + 40,
+      right - 40,
+      bottom - 40,
       boatX.value,
       boatY.value,
       GAME.whirlpoolMinDistance,
@@ -387,6 +387,8 @@ export const GameCanvas = memo(function GameCanvas({
     }
 
     let caughtInEye = false;
+    let suckX = 0;
+    let suckY = 0;
     if (whirlActive.value === 1) {
       const wx = whirlX.value - boatX.value;
       const wy = whirlY.value - boatY.value;
@@ -394,17 +396,27 @@ export const GameCanvas = memo(function GameCanvas({
       if (wd < GAME.whirlpoolCore) caughtInEye = true;
       else if (wd < GAME.whirlpoolRange) {
         const pull = (1 - wd / GAME.whirlpoolRange) * GAME.whirlpoolPull * dt;
-        vx += (wx / wd) * pull;
-        vy += (wy / wd) * pull;
-        // a touch of spin so the water visibly turns the boat
-        vx += (-wy / wd) * pull * 0.45;
-        vy += (wx / wd) * pull * 0.45;
+        suckX = (wx / wd) * pull + (-wy / wd) * pull * 0.45;
+        suckY = (wy / wd) * pull + (wx / wd) * pull * 0.45;
       }
     }
 
     const damp = Math.exp(-GAME.drag * dt);
-    vx *= damp;
-    vy *= damp;
+    const grip = Math.exp(-GAME.lateralGrip * dt);
+    // Split her way into "along the bow" and "sideways", then bleed the
+    // sideways part off hard — that is the keel, and it kills the skating.
+    const fx = Math.cos(heading);
+    const fy = Math.sin(heading);
+    const along = vx * fx + vy * fy;
+    const sideX = vx - along * fx;
+    const sideY = vy - along * fy;
+    vx = along * damp * fx + sideX * grip;
+    vy = along * damp * fy + sideY * grip;
+
+    // the vortex drags the whole hull, so it is added after the keel damping —
+    // otherwise the grip would simply cancel it out
+    vx += suckX;
+    vy += suckY;
 
     const newSpeed = Math.sqrt(vx * vx + vy * vy);
     if (newSpeed > GAME.maxSpeed) {
@@ -455,7 +467,7 @@ export const GameCanvas = memo(function GameCanvas({
         const wx = whirlX.value - mx;
         const wy = whirlY.value - my;
         const wd = Math.sqrt(wx * wx + wy * wy);
-        if (wd < GAME.whirlpoolCore) {
+        if (wd < GAME.whirlpoolCore + GAME.mineRadius * 0.5) {
           m.active.value = 0;
           blast(mx, my);
           continue;
@@ -501,8 +513,17 @@ export const GameCanvas = memo(function GameCanvas({
       for (let j = i + 1; j < mines.length; j += 1) {
         const b = mines[j];
         if (b.active.value === 0) continue;
-        // full hulls: they blow the moment the casings actually touch
-        if (circlesHit(a.x.value, a.y.value, mineR, b.x.value, b.y.value, mineR)) {
+        // spike tips: they blow the moment the drawn spikes actually touch
+        if (
+          circlesHit(
+            a.x.value,
+            a.y.value,
+            GAME.mineSpikeRadius,
+            b.x.value,
+            b.y.value,
+            GAME.mineSpikeRadius,
+          )
+        ) {
           blast(a.x.value, a.y.value);
           blast(b.x.value, b.y.value);
           a.active.value = 0;
@@ -711,7 +732,9 @@ const MineView = memo(function MineView({ entity }: { entity: MineEntity }) {
       transform: [
         { translateX: entity.x.value - half },
         { translateY: entity.y.value - half },
-        { scale: (0.55 + 0.45 * live) * (1 + 0.05 * Math.sin(entity.phase.value)) },
+        {
+          scale: GAME.mineScale * (0.55 + 0.45 * live) * (1 + 0.05 * Math.sin(entity.phase.value)),
+        },
         { rotate: `${Math.sin(entity.phase.value * 0.6) * 0.15}rad` },
       ],
     };

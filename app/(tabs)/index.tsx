@@ -7,8 +7,10 @@ import { GameCanvas, type GameStats } from '@/components/game/GameCanvas';
 import { GameOverOverlay } from '@/components/game/GameOverOverlay';
 import { Hud } from '@/components/game/Hud';
 import { MenuOverlay } from '@/components/game/MenuOverlay';
+import { MusicToggle } from '@/components/game/MusicToggle';
 import { ScorePopup, type Popup } from '@/components/game/ScorePopup';
 import { OceanBackground } from '@/components/game/Sprites';
+import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 import { useGameStore } from '@/lib/game/store';
 
 const EMPTY_STATS: GameStats = { score: 0, dubloons: 0, mines: 0 };
@@ -23,11 +25,15 @@ export default function Home() {
   const endGame = useGameStore((s) => s.endGame);
   const goToMenu = useGameStore((s) => s.goToMenu);
   const loadScores = useGameStore((s) => s.loadScores);
+  const musicMuted = useGameStore((s) => s.musicMuted);
+  const toggleMusic = useGameStore((s) => s.toggleMusic);
 
   const [runId, setRunId] = useState(0);
   const [stats, setStats] = useState<GameStats>(EMPTY_STATS);
   const [popups, setPopups] = useState<Popup[]>([]);
   const popupId = useRef(0);
+
+  useBackgroundMusic(!musicMuted);
 
   useEffect(() => {
     void loadScores();
@@ -94,6 +100,8 @@ export default function Home() {
           onMenu={goToMenu}
         />
       ) : null}
+
+      <MusicToggle muted={musicMuted} onToggle={toggleMusic} />
     </View>
   );
 }

@@ -72,8 +72,8 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
       </View>
 
       <Text className="text-foreground/60 mt-4 text-center text-xs leading-5">
-        Push the thumbstick to point her where you want to go — she runs fast in a straight line and
-        drifts through turns. Every dubloon you take sends another mine after you.
+        Push the thumbstick to point her where you want to go — she holds her line and answers the
+        helm quickly. Every dubloon you take sends another mine after you.
       </Text>
 
       {best > 0 ? (
