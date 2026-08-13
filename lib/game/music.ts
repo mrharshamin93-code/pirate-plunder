@@ -8,8 +8,7 @@
  * rest of the game's tone.
  *
  * The tune is in D minor, 6/8, at a steady rowing tempo: a lead fiddle line, a
- * plucked bass, staccato accordion chords, a hand drum on the lilt and a very
- * quiet wash of surf underneath.
+ * plucked bass, staccato accordion chords and a hand drum on the lilt.
  */
 
 const SAMPLE_RATE = 16_000;
@@ -274,18 +273,6 @@ function renderLoop(): Float32Array {
     for (const offset of [1, 2, 4, 5]) {
       addDrum(out, (barStart + offset) * EIGHTH, 0.045, noise);
     }
-  }
-
-  // a quiet wash of surf, faded at both ends so the loop point stays silent
-  let brown = 0;
-  const fade = Math.round(0.35 * SAMPLE_RATE);
-  for (let i = 0; i < out.length; i += 1) {
-    brown = brown * 0.985 + noise() * 0.015;
-    const swell = 0.6 + 0.4 * Math.sin((i / SAMPLE_RATE) * Math.PI * 2 * 0.14);
-    let edge = 1;
-    if (i < fade) edge = i / fade;
-    else if (i > out.length - fade) edge = (out.length - i) / fade;
-    out[i] += brown * 2.2 * swell * edge;
   }
 
   return out;
