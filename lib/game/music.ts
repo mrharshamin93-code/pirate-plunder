@@ -14,7 +14,7 @@
 
 const SAMPLE_RATE = 16_000;
 /** seconds per eighth note */
-const EIGHTH = 0.3;
+const EIGHTH = 0.275;
 const EIGHTHS_PER_BAR = 6;
 const BARS = 8;
 const TOTAL_EIGHTHS = BARS * EIGHTHS_PER_BAR;
@@ -60,6 +60,24 @@ const MELODY: readonly Step[] = [
   [64, 2],
   [61, 1],
   [62, 3],
+];
+
+
+/** A bright whistle response that answers the fiddle every other bar. */
+const COUNTER_MELODY: readonly Step[] = [
+  [0, 6],
+  [74, 3],
+  [72, 3],
+  [0, 6],
+  [70, 3],
+  [69, 3],
+  [0, 6],
+  [77, 2],
+  [76, 1],
+  [73, 3],
+  [0, 6],
+  [69, 3],
+  [0, 3],
 ];
 
 /** Bass — root then fifth, half a bar each. */
@@ -191,6 +209,18 @@ const LEAD: ToneOptions = {
   decay: 0.25,
 };
 
+
+const WHISTLE: ToneOptions = {
+  gain: 0.085,
+  edge: 0.06,
+  duty: 0.5,
+  gate: 0.88,
+  vibrato: 0.009,
+  attack: 0.035,
+  release: 0.1,
+  decay: 0.18,
+};
+
 const BASS_TONE: ToneOptions = {
   gain: 0.26,
   edge: 0.1,
@@ -228,6 +258,7 @@ function renderLoop(): Float32Array {
   const noise = makeNoise(20250813);
 
   renderSteps(out, MELODY, LEAD);
+  renderSteps(out, COUNTER_MELODY, WHISTLE);
   renderSteps(out, BASS, BASS_TONE);
 
   for (let bar = 0; bar < BARS; bar += 1) {
@@ -295,4 +326,4 @@ export function buildMusicWav(): Uint8Array<ArrayBuffer> {
 }
 
 /** Name of the cached file written on native platforms. */
-export const MUSIC_FILE_NAME = 'dubloon-shanty.wav';
+export const MUSIC_FILE_NAME = 'pirates-plunder-shanty.wav';
