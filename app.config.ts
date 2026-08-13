@@ -28,6 +28,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       supportsTablet: true,
       bundleIdentifier: process.env.BILT_IOS_BUNDLE_ID ?? 'com.yourcompany.yourapp',
     },
+    web: {
+      bundler: 'metro',
+      output: 'single',
+      favicon: './public/icons/icon-192.png',
+    },
     android: {
       package: process.env.BILT_ANDROID_PACKAGE ?? 'com.yourcompany.yourapp',
     },
