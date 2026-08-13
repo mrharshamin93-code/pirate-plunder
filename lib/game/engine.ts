@@ -61,12 +61,14 @@ export const GAME = {
   mineScale: 0.5,
   /** hard cap on simultaneous mines, exactly as in the original */
   maxMines: 9,
-  /** cruising chase speed in px/sec — always slower than the boat */
-  mineSpeed: 58,
-  /** chase speed once the boat is within mineAlertRange */
-  mineAlertSpeed: 96,
-  /** distance at which a mine senses the boat and accelerates */
-  mineAlertRange: 130,
+  /** minimum chase speed while the boat is far away */
+  mineFarSpeed: 22,
+  /** maximum chase speed once the mine is close to the boat */
+  mineNearSpeed: 130,
+  /** distance where the mine begins accelerating toward the boat */
+  mineFarRange: 400,
+  /** distance where the mine reaches maximum chase speed */
+  mineNearRange: 40,
   /**
    * How much a mine weaves sideways as it chases, as a fraction of its speed.
    * Without this every mine tracks the boat on the same line and they never
