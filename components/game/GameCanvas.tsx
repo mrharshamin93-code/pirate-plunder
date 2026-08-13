@@ -483,8 +483,15 @@ export const GameCanvas = memo(function GameCanvas({
       const tx = bx - mx;
       const ty = by - my;
       const td = Math.max(0.0001, Math.sqrt(tx * tx + ty * ty));
-      // a mine that senses the boat nearby surges after it
-      const chase = td < GAME.mineAlertRange ? GAME.mineAlertSpeed : GAME.mineSpeed;
+      // Quadratic proximity curve: distant mines drift slowly, then accelerate
+      // increasingly quickly as they close in on the boat.
+      const proximity = Math.max(
+        0,
+        Math.min(1, (GAME.mineFarRange - td) / (GAME.mineFarRange - GAME.mineNearRange)),
+      );
+      const chase =
+        GAME.mineFarSpeed +
+        (GAME.mineNearSpeed - GAME.mineFarSpeed) * proximity * proximity;
       const headX = tx / td;
       const headY = ty / td;
       // each mine weaves on its own phase, so their paths cross and they can
