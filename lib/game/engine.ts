@@ -1,13 +1,13 @@
 /**
- * Dubloon Disaster — rules, constants and worklet-safe helpers.
+ * Pirate's Plunder — rules, constants and worklet-safe helpers.
  *
  * Faithful to the original Neopets game (g772):
  *  - You steer Dorak's boat with a thumbstick: she heads where the stick points
  *    and rows harder the further you push. She keeps a little momentum, but the
  *    keel bites, so she tracks her bow instead of skidding broadside.
- *  - Exactly ONE dubloon is on the water at a time. Denominations are worth
+ *  - Exactly ONE coin is on the water at a time. Denominations are worth
  *    5x their face value in points, and the valuable ones are rare.
- *  - Every dubloon collected fires one more homing mine from the Black Pawkeet,
+ *  - Every coin collected fires one more homing mine from the Black Pawkeet,
  *    up to nine at once. Mines chase you and speed up when you get close.
  *  - Two mines that touch each other both explode.
  *  - Touching a mine ends the run.
@@ -44,10 +44,10 @@ export const GAME = {
   /** hard cap on boat speed in px/sec (drag settles her a little below this) */
   maxSpeed: 190,
 
-  /* --- dubloons --------------------------------------------------------- */
-  dubloonRadius: 13,
-  /** a fresh dubloon never lands closer than this to the boat */
-  dubloonMinDistance: 90,
+  /* --- coins --------------------------------------------------------- */
+  coinRadius: 13,
+  /** a fresh coin never lands closer than this to the boat */
+  coinMinDistance: 90,
 
   /* --- mines ------------------------------------------------------------ */
   /** collision radius — matched to the boat so a mine is the same size as her */
@@ -77,7 +77,7 @@ export const GAME = {
   mineArmTime: 0.55,
 
   /* --- whirlpools ------------------------------------------------------- */
-  /** chance a dubloon pickup also summons a whirlpool */
+  /** chance a coin pickup also summons a whirlpool */
   whirlpoolChance: 0.13,
   /** radius of influence in px */
   whirlpoolRange: 74,
@@ -99,11 +99,11 @@ export const GAME = {
 } as const;
 
 /**
- * Dubloon denominations. `weight` is the relative spawn chance, so the two
- * dubloon coin turns up constantly and the two hundred is a jackpot.
+ * Coin denominations. `weight` is the relative spawn chance, so the two
+ * coin coin turns up constantly and the two hundred is a jackpot.
  * Points are always five times the face value.
  */
-export const DUBLOON_TIERS = [
+export const COIN_TIERS = [
   { value: 2, points: 10, weight: 38 },
   { value: 5, points: 25, weight: 26 },
   { value: 10, points: 50, weight: 17 },
@@ -113,13 +113,13 @@ export const DUBLOON_TIERS = [
   { value: 200, points: 1000, weight: 1 },
 ] as const;
 
-export const DUBLOON_TIER_COUNT = DUBLOON_TIERS.length;
+export const COIN_TIER_COUNT = COIN_TIERS.length;
 
 /** Cumulative weights, precomputed so the worklet picker stays allocation free. */
 const TIER_CUMULATIVE: number[] = (() => {
   const out: number[] = [];
   let total = 0;
-  for (const tier of DUBLOON_TIERS) {
+  for (const tier of COIN_TIERS) {
     total += tier.weight;
     out.push(total);
   }
@@ -129,10 +129,10 @@ const TIER_CUMULATIVE: number[] = (() => {
 const TIER_TOTAL = TIER_CUMULATIVE[TIER_CUMULATIVE.length - 1];
 
 /** Points awarded for a tier index, readable from a worklet. */
-export const TIER_POINTS: number[] = DUBLOON_TIERS.map((t) => t.points);
+export const TIER_POINTS: number[] = COIN_TIERS.map((t) => t.points);
 
-/** Weighted random denomination, returned as an index into DUBLOON_TIERS. */
-export function pickDubloonTier(): number {
+/** Weighted random denomination, returned as an index into COIN_TIERS. */
+export function pickCoinTier(): number {
   'worklet';
   const roll = Math.random() * TIER_TOTAL;
   for (let i = 0; i < TIER_CUMULATIVE.length; i += 1) {
