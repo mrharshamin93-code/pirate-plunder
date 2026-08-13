@@ -2,6 +2,6 @@ export type GamePhase = 'menu' | 'playing' | 'gameover';
 
 export interface HighScore {
   score: number;
-  dubloons: number;
+  coins: number;
   date: number;
 }
