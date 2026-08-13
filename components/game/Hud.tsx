@@ -5,7 +5,7 @@ import { GAME } from '@/lib/game/engine';
 
 interface HudProps {
   score: number;
-  dubloons: number;
+  coins: number;
   mines: number;
 }
 
@@ -16,7 +16,7 @@ const SHADOW = {
   textShadowRadius: 5,
 } as const;
 
-export function Hud({ score, dubloons, mines }: HudProps) {
+export function Hud({ score, coins, mines }: HudProps) {
   return (
     <View className="pt-safe-offset-3 absolute top-0 right-0 left-0 flex-row justify-between px-5">
       <View>
@@ -33,9 +33,9 @@ export function Hud({ score, dubloons, mines }: HudProps) {
 
       <View className="items-end gap-1">
         <View className="flex-row items-center gap-2">
-          <View className="bg-dubloon border-dubloon-edge h-4 w-4 rounded-full border-2" />
+          <View className="bg-coin border-coin-edge h-4 w-4 rounded-full border-2" />
           <Text className="text-foreground text-xl font-bold" style={SHADOW}>
-            {dubloons}
+            {coins}
           </Text>
         </View>
         <View className="flex-row items-center gap-2">
