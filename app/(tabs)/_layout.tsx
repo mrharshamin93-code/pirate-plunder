@@ -8,7 +8,7 @@ export default function TabLayout() {
         tabBarStyle: { display: 'none' },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Coin Cascade' }} />
+      <Tabs.Screen name="index" options={{ title: 'Dubloon Disaster' }} />
     </Tabs>
   );
 }

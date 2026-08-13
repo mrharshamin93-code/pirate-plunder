@@ -1,7 +1,8 @@
-import { View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { Button, Text } from 'heroui-native';
 
-import { DubloonArt, MineArt, MonsterArt, SPRITE_BOX, SubArt } from '@/components/game/Sprites';
+import { BoatArt, DubloonArt, MineArt, PawkeetArt, SPRITE_BOX } from '@/components/game/Sprites';
+import { DUBLOON_TIERS } from '@/lib/game/engine';
 import type { HighScore } from '@/lib/game/types';
 
 interface MenuOverlayProps {
@@ -9,67 +10,74 @@ interface MenuOverlayProps {
   onStart: () => void;
 }
 
+const TITLE_SHADOW = {
+  textShadowColor: 'rgba(4,20,28,0.95)',
+  textShadowOffset: { width: 0, height: 3 },
+  textShadowRadius: 6,
+} as const;
+
+/** Absolute placement helper for the hero collage. */
+function at(cx: number, cy: number, size: number) {
+  return { position: 'absolute' as const, left: cx - size / 2, top: cy - size / 2 };
+}
+
 export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
   const best = highScores.length > 0 ? highScores[0].score : 0;
+
   return (
-    <View className="bg-sea-deep/45 absolute inset-0 items-center justify-center px-8">
-      <View className="mb-8 items-center">
-        <View style={{ width: 264, height: 140 }}>
-          <View
-            style={{
-              position: 'absolute',
-              left: 44 - SPRITE_BOX.dubloon / 2,
-              top: 52 - SPRITE_BOX.dubloon / 2,
-            }}
-          >
-            <DubloonArt />
-          </View>
-          <View
-            style={{
-              position: 'absolute',
-              left: 74 - SPRITE_BOX.mine / 2,
-              top: 106 - SPRITE_BOX.mine / 2,
-            }}
-          >
-            <MineArt />
-          </View>
-          <View
-            style={{
-              position: 'absolute',
-              left: 124 - SPRITE_BOX.sub / 2,
-              top: 62 - SPRITE_BOX.sub / 2,
-            }}
-          >
-            <SubArt />
-          </View>
-          <View
-            style={{
-              position: 'absolute',
-              left: 200 - SPRITE_BOX.monster / 2,
-              top: 60 - SPRITE_BOX.monster / 2,
-            }}
-          >
-            <MonsterArt />
-          </View>
+    <ScrollView
+      className="bg-sea-deep/45 absolute inset-0"
+      contentContainerClassName="grow items-center justify-center px-7 py-10"
+    >
+      <View style={{ width: 300, height: 170 }}>
+        <View style={at(210, 70, SPRITE_BOX.pawkeet)}>
+          <PawkeetArt />
         </View>
-        <Text
-          className="text-foreground mt-2 text-center text-4xl font-bold"
-          style={{
-            textShadowColor: 'rgba(10,51,88,0.9)',
-            textShadowOffset: { width: 0, height: 3 },
-            textShadowRadius: 6,
-          }}
-        >
-          Coin Cascade
-        </Text>
-        <Text className="text-foreground/70 mt-2 text-center text-base leading-6">
-          Steer with the joystick. Scoop up dubloons, dodge the grumpy urchins, and outswim the
-          hungry sea beast.
-        </Text>
+        <View style={at(58, 58, SPRITE_BOX.dubloon)}>
+          <DubloonArt tier={6} />
+        </View>
+        <View style={at(120, 52, SPRITE_BOX.dubloon)}>
+          <DubloonArt tier={2} />
+        </View>
+        <View style={at(150, 118, SPRITE_BOX.mine)}>
+          <MineArt />
+        </View>
+        <View style={at(88, 114, SPRITE_BOX.boat)}>
+          <BoatArt />
+        </View>
       </View>
 
+      <Text className="text-foreground mt-1 text-center text-4xl font-bold" style={TITLE_SHADOW}>
+        Dubloon Disaster
+      </Text>
+      <Text className="text-foreground/75 mt-2 text-center text-sm leading-5">
+        You are Dorak, rowing the wreckage of Krawk Harbour. Salvage the treasure and stay clear of
+        the homing mines fired from the Black Pawkeet.
+      </Text>
+
+      <View className="bg-surface/70 border-border mt-5 w-full max-w-sm rounded-2xl border px-4 py-3">
+        <Text className="text-foreground/60 mb-2 text-center text-xs tracking-widest uppercase">
+          Dubloon Values
+        </Text>
+        <View className="flex-row flex-wrap items-start justify-center gap-x-3 gap-y-1">
+          {DUBLOON_TIERS.map((tier, index) => (
+            <View key={tier.value} className="items-center">
+              <DubloonArt tier={index} />
+              <Text className="text-foreground/70 text-xs font-semibold">
+                {tier.points.toLocaleString()}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <Text className="text-foreground/60 mt-4 text-center text-xs leading-5">
+        Left buttons come about, right buttons row forward and back. She runs fast in a straight
+        line and turns slowly — every dubloon you take sends another mine after you.
+      </Text>
+
       {best > 0 ? (
-        <View className="bg-surface/70 border-border mb-6 rounded-2xl border px-6 py-3">
+        <View className="bg-surface/70 border-border mt-5 rounded-2xl border px-6 py-3">
           <Text className="text-foreground/60 text-center text-xs tracking-widest uppercase">
             Best Score
           </Text>
@@ -79,9 +87,9 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
         </View>
       ) : null}
 
-      <Button onPress={onStart} className="w-full max-w-xs">
-        <Button.Label>Dive In</Button.Label>
+      <Button onPress={onStart} className="mt-6 w-full max-w-xs">
+        <Button.Label>Set Sail</Button.Label>
       </Button>
-    </View>
+    </ScrollView>
   );
 }

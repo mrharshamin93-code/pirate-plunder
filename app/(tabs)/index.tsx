@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
-import { GameCanvas } from '@/components/game/GameCanvas';
+import { GameCanvas, type GameStats } from '@/components/game/GameCanvas';
 import { GameOverOverlay } from '@/components/game/GameOverOverlay';
 import { Hud } from '@/components/game/Hud';
 import { MenuOverlay } from '@/components/game/MenuOverlay';
-import { WaterBackground } from '@/components/game/Sprites';
+import { ScorePopup, type Popup } from '@/components/game/ScorePopup';
+import { OceanBackground } from '@/components/game/Sprites';
 import { useGameStore } from '@/lib/game/store';
+
+const EMPTY_STATS: GameStats = { score: 0, dubloons: 0, mines: 0 };
 
 export default function Home() {
   const { width, height } = useWindowDimensions();
@@ -22,16 +25,17 @@ export default function Home() {
   const loadScores = useGameStore((s) => s.loadScores);
 
   const [runId, setRunId] = useState(0);
-  const [liveScore, setLiveScore] = useState(0);
-  const [liveDubloons, setLiveDubloons] = useState(0);
+  const [stats, setStats] = useState<GameStats>(EMPTY_STATS);
+  const [popups, setPopups] = useState<Popup[]>([]);
+  const popupId = useRef(0);
 
   useEffect(() => {
     void loadScores();
   }, [loadScores]);
 
   const handleStart = useCallback(() => {
-    setLiveScore(0);
-    setLiveDubloons(0);
+    setStats(EMPTY_STATS);
+    setPopups([]);
     setRunId((n) => n + 1);
     startGame();
   }, [startGame]);
@@ -43,12 +47,22 @@ export default function Home() {
     [endGame],
   );
 
+  const handlePickup = useCallback((points: number, x: number, y: number) => {
+    popupId.current += 1;
+    const next: Popup = { id: popupId.current, points, x, y };
+    setPopups((current) => [...current, next]);
+  }, []);
+
+  const handlePopupDone = useCallback((id: number) => {
+    setPopups((current) => current.filter((p) => p.id !== id));
+  }, []);
+
   return (
     <View className="bg-sea-deep flex-1">
-      <Stack.Screen options={{ title: 'Coin Cascade' }} />
+      <Stack.Screen options={{ title: 'Dubloon Disaster' }} />
       <StatusBar style="light" />
 
-      <WaterBackground width={width} height={height} />
+      <OceanBackground width={width} height={height} />
 
       {phase === 'playing' ? (
         <GameCanvas
@@ -56,12 +70,18 @@ export default function Home() {
           width={width}
           height={height}
           onGameOver={handleGameOver}
-          onScoreChange={setLiveScore}
-          onDubloonsChange={setLiveDubloons}
+          onStats={setStats}
+          onPickup={handlePickup}
         />
       ) : null}
 
-      {phase === 'playing' ? <Hud score={liveScore} dubloons={liveDubloons} /> : null}
+      {phase === 'playing' ? (
+        <Hud score={stats.score} dubloons={stats.dubloons} mines={stats.mines} />
+      ) : null}
+
+      {popups.map((p) => (
+        <ScorePopup key={p.id} popup={p} onDone={handlePopupDone} />
+      ))}
 
       {phase === 'menu' ? <MenuOverlay highScores={highScores} onStart={handleStart} /> : null}
 

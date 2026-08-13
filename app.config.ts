@@ -10,7 +10,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
   return {
     ...config,
-    name: 'Coin Cascade',
+    name: 'Dubloon Disaster',
     slug: 'coin-cascade',
     newArchEnabled: true,
     version: process.env.BILT_APP_VERSION ?? '1.0.0',

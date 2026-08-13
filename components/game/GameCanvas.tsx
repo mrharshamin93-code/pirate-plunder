@@ -1,6 +1,6 @@
 import { memo, useCallback, useMemo } from 'react';
 import { Platform, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { Gesture } from 'react-native-gesture-handler';
 import Animated, {
   makeMutable,
   runOnJS,
@@ -11,8 +11,27 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
-import { DubloonArt, MineArt, MonsterArt, SPRITE_BOX, SubArt } from '@/components/game/Sprites';
-import { circlesHit, GAME, spawnPoint } from '@/lib/game/engine';
+import {
+  ControlPad,
+  type ControlButtonInput,
+  type ControlInputs,
+} from '@/components/game/ControlPad';
+import {
+  BoatArt,
+  DubloonArt,
+  ExplosionArt,
+  MineArt,
+  SPRITE_BOX,
+  WhirlpoolArt,
+} from '@/components/game/Sprites';
+import {
+  circlesHit,
+  DUBLOON_TIER_COUNT,
+  GAME,
+  pickDubloonTier,
+  spawnPoint,
+  TIER_POINTS,
+} from '@/lib/game/engine';
 
 /**
  * Rendering strategy
@@ -25,25 +44,37 @@ import { circlesHit, GAME, spawnPoint } from '@/lib/game/engine';
  * haptics, and to end the run.
  */
 
-const DUBLOON_POOL = GAME.targetDubloons + 3;
-const MINE_POOL = GAME.maxMines;
-/** how often the live score is pushed to the HUD, in seconds */
-const SCORE_REPORT_INTERVAL = 0.12;
+/** Screen insets that carve the arena out of the full-bleed ocean. */
+const FIELD_INSET = { top: 106, bottom: 130, side: 8 } as const;
 
-interface PoolEntity {
+/** how often live stats are pushed to the HUD, in seconds */
+const STATS_INTERVAL = 0.12;
+
+const TIER_INDEXES = Array.from({ length: DUBLOON_TIER_COUNT }, (_, i) => i);
+
+interface MineEntity {
   /** stable identity of this pool slot, for use as a React list key */
   id: number;
   x: SharedValue<number>;
   y: SharedValue<number>;
-  vx: SharedValue<number>;
-  vy: SharedValue<number>;
-  /** animation phase: coin spin / mine pulse */
+  /** seconds of arming left — an arming mine cannot kill the boat yet */
+  arm: SharedValue<number>;
+  /** bob/roll animation phase */
   phase: SharedValue<number>;
   /** 1 = in play, 0 = free slot */
   active: SharedValue<number>;
 }
 
-/** Monotonic ids so dubloon and mine pool slots never share a React key. */
+interface BlastEntity {
+  id: number;
+  x: SharedValue<number>;
+  y: SharedValue<number>;
+  /** seconds since the blast started */
+  t: SharedValue<number>;
+  active: SharedValue<number>;
+}
+
+/** Monotonic ids so pool slots never share a React key. */
 let poolIdCounter = 0;
 
 function nextPoolId(): number {
@@ -51,15 +82,14 @@ function nextPoolId(): number {
   return poolIdCounter;
 }
 
-function useEntityPool(count: number): PoolEntity[] {
+function useMinePool(count: number): MineEntity[] {
   return useMemo(
     () =>
       Array.from({ length: count }, () => ({
         id: nextPoolId(),
         x: makeMutable(0),
         y: makeMutable(0),
-        vx: makeMutable(0),
-        vy: makeMutable(0),
+        arm: makeMutable(0),
         phase: makeMutable(0),
         active: makeMutable(0),
       })),
@@ -67,240 +97,479 @@ function useEntityPool(count: number): PoolEntity[] {
   );
 }
 
-function haptic(kind: 'light' | 'heavy') {
+function useBlastPool(count: number): BlastEntity[] {
+  return useMemo(
+    () =>
+      Array.from({ length: count }, () => ({
+        id: nextPoolId(),
+        x: makeMutable(0),
+        y: makeMutable(0),
+        t: makeMutable(0),
+        active: makeMutable(0),
+      })),
+    [count],
+  );
+}
+
+function haptic(kind: 'light' | 'medium' | 'heavy') {
   if (Platform.OS === 'web') return;
   if (kind === 'light') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  else if (kind === 'medium') void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   else void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+}
+
+/**
+ * One hold-to-press control: a 0/1 shared value plus the gesture that flips it.
+ * Both are created together here so the component that owns the shared value is
+ * also the one that writes to it; ControlPad only ever reads it for styling.
+ */
+function useHoldInput(): ControlButtonInput {
+  const pressed = useSharedValue(0);
+  const gesture = useMemo(
+    () =>
+      Gesture.Pan()
+        // no activation threshold, so the very first touch already counts
+        .minDistance(0)
+        .shouldCancelWhenOutside(true)
+        .onBegin(() => {
+          'worklet';
+          pressed.value = 1;
+        })
+        .onFinalize(() => {
+          'worklet';
+          pressed.value = 0;
+        }),
+    [pressed],
+  );
+  return useMemo(() => ({ pressed, gesture }), [pressed, gesture]);
+}
+
+export interface GameStats {
+  score: number;
+  dubloons: number;
+  mines: number;
 }
 
 interface GameCanvasProps {
   width: number;
   height: number;
   onGameOver: (score: number, dubloons: number) => void;
-  onScoreChange: (score: number) => void;
-  onDubloonsChange: (count: number) => void;
+  onStats: (stats: GameStats) => void;
+  onPickup: (points: number, x: number, y: number) => void;
 }
 
 export const GameCanvas = memo(function GameCanvas({
   width,
   height,
   onGameOver,
-  onScoreChange,
-  onDubloonsChange,
+  onStats,
+  onPickup,
 }: GameCanvasProps) {
-  const dubloons = useEntityPool(DUBLOON_POOL);
-  const mines = useEntityPool(MINE_POOL);
+  const mines = useMinePool(GAME.maxMines);
+  const blasts = useBlastPool(GAME.explosionPool);
 
-  const subX = useSharedValue(width / 2);
-  const subY = useSharedValue(height / 2);
-  const subAngle = useSharedValue(0);
-  const monsterX = useSharedValue(40);
-  const monsterY = useSharedValue(40);
-  const monsterAngle = useSharedValue(0);
+  const left = FIELD_INSET.side;
+  const top = FIELD_INSET.top;
+  const right = width - FIELD_INSET.side;
+  const bottom = height - FIELD_INSET.bottom;
 
-  const dirX = useSharedValue(0);
-  const dirY = useSharedValue(0);
+  const boatX = useSharedValue((left + right) / 2);
+  const boatY = useSharedValue((top + bottom) / 2);
+  const boatAngle = useSharedValue(-Math.PI / 2);
+  const boatVX = useSharedValue(0);
+  const boatVY = useSharedValue(0);
 
-  const elapsed = useSharedValue(0);
+  const turnLeft = useHoldInput();
+  const turnRight = useHoldInput();
+  const forward = useHoldInput();
+  const reverse = useHoldInput();
+
+  const inputs: ControlInputs = useMemo(
+    () => ({ turnLeft, turnRight, forward, reverse }),
+    [turnLeft, turnRight, forward, reverse],
+  );
+
+  const dubX = useSharedValue(0);
+  const dubY = useSharedValue(0);
+  const dubTier = useSharedValue(0);
+  const dubPhase = useSharedValue(0);
+  const dubActive = useSharedValue(0);
+
+  const whirlX = useSharedValue(0);
+  const whirlY = useSharedValue(0);
+  const whirlLife = useSharedValue(0);
+  const whirlSpin = useSharedValue(0);
+  const whirlActive = useSharedValue(0);
+
   const score = useSharedValue(0);
-  const coins = useSharedValue(0);
-  const mineTimer = useSharedValue(0);
-  const reportTimer = useSharedValue(0);
+  const collected = useSharedValue(0);
+  const statsTimer = useSharedValue(0);
   const started = useSharedValue(0);
   const over = useSharedValue(0);
+  /** seconds since the boat went down, used to hold the sinking beat */
+  const deathTimer = useSharedValue(0);
+  const reported = useSharedValue(0);
+  const boatAlive = useSharedValue(1);
 
   const finishRun = useCallback(
-    (finalScore: number, finalCoins: number) => {
-      haptic('heavy');
-      onGameOver(finalScore, finalCoins);
+    (finalScore: number, finalDubloons: number) => {
+      onGameOver(finalScore, finalDubloons);
     },
     [onGameOver],
   );
 
-  const spawnDubloon = useCallback(
-    (slot: PoolEntity) => {
-      'worklet';
-      const p = spawnPoint(width, height, 40, subX.value, subY.value, 90);
-      slot.x.value = p.x;
-      slot.y.value = p.y;
-      slot.phase.value = Math.random() * Math.PI * 2;
-      slot.active.value = 1;
-    },
-    [width, height, subX, subY],
-  );
+  /** Puts the next dubloon on the water, well clear of the boat. */
+  const placeDubloon = useCallback(() => {
+    'worklet';
+    const p = spawnPoint(
+      left + 28,
+      top + 28,
+      right - 28,
+      bottom - 28,
+      boatX.value,
+      boatY.value,
+      GAME.dubloonMinDistance,
+    );
+    dubX.value = p.x;
+    dubY.value = p.y;
+    dubTier.value = pickDubloonTier();
+    dubActive.value = 1;
+  }, [left, top, right, bottom, boatX, boatY, dubX, dubY, dubTier, dubActive]);
 
-  const spawnMine = useCallback(
-    (slot: PoolEntity, speed: number) => {
+  /**
+   * Fires one more mine from the Pawkeet. Landing spots are near-random, just
+   * as in the original, so a mine really can drop next to you — but it spends
+   * `mineArmTime` arming, which is the window the original lets you skim over.
+   */
+  const fireMine = useCallback(() => {
+    'worklet';
+    for (let i = 0; i < mines.length; i += 1) {
+      const m = mines[i];
+      if (m.active.value === 1) continue;
+      const p = spawnPoint(
+        left + 24,
+        top + 24,
+        right - 24,
+        bottom - 24,
+        boatX.value,
+        boatY.value,
+        46,
+      );
+      m.x.value = p.x;
+      m.y.value = p.y;
+      m.arm.value = GAME.mineArmTime;
+      m.phase.value = Math.random() * Math.PI * 2;
+      m.active.value = 1;
+      return;
+    }
+  }, [mines, left, top, right, bottom, boatX, boatY]);
+
+  const openWhirlpool = useCallback(() => {
+    'worklet';
+    const p = spawnPoint(
+      left + 60,
+      top + 60,
+      right - 60,
+      bottom - 60,
+      boatX.value,
+      boatY.value,
+      GAME.whirlpoolMinDistance,
+    );
+    whirlX.value = p.x;
+    whirlY.value = p.y;
+    whirlLife.value = GAME.whirlpoolLife;
+    whirlSpin.value = 0;
+    whirlActive.value = 1;
+  }, [left, top, right, bottom, boatX, boatY, whirlX, whirlY, whirlLife, whirlSpin, whirlActive]);
+
+  const blast = useCallback(
+    (x: number, y: number) => {
       'worklet';
-      const p = spawnPoint(width, height, 30, subX.value, subY.value, 130);
-      const drift = speed * (0.25 + Math.random() * 0.35);
-      const heading = Math.random() * Math.PI * 2;
-      slot.x.value = p.x;
-      slot.y.value = p.y;
-      slot.vx.value = Math.cos(heading) * drift;
-      slot.vy.value = Math.sin(heading) * drift;
-      slot.phase.value = Math.random() * Math.PI * 2;
-      slot.active.value = 1;
+      for (let i = 0; i < blasts.length; i += 1) {
+        const b = blasts[i];
+        if (b.active.value === 1) continue;
+        b.x.value = x;
+        b.y.value = y;
+        b.t.value = 0;
+        b.active.value = 1;
+        return;
+      }
     },
-    [width, height, subX, subY],
+    [blasts],
   );
 
   useFrameCallback((info) => {
     'worklet';
-    if (over.value === 1) return;
+    const frameDt = Math.min((info.timeSincePreviousFrame ?? 16) / 1000, 0.05);
 
-    if (started.value === 0) {
-      started.value = 1;
-      subX.value = width / 2;
-      subY.value = height / 2;
-      monsterX.value = 40;
-      monsterY.value = 40;
-      for (let i = 0; i < GAME.targetDubloons; i += 1) spawnDubloon(dubloons[i]);
-      for (let i = 0; i < GAME.startMines; i += 1) spawnMine(mines[i], GAME.monsterBaseSpeed);
+    // The boat has gone down: hold on the wreck for a beat so the blast reads,
+    // then hand the run over to the game-over screen.
+    if (over.value === 1) {
+      deathTimer.value += frameDt;
+      for (let i = 0; i < blasts.length; i += 1) {
+        const b = blasts[i];
+        if (b.active.value === 0) continue;
+        b.t.value += frameDt;
+        if (b.t.value >= GAME.explosionLife) b.active.value = 0;
+      }
+      if (deathTimer.value > 0.7 && reported.value === 0) {
+        reported.value = 1;
+        runOnJS(finishRun)(Math.floor(score.value), collected.value);
+      }
       return;
     }
 
-    const dt = Math.min((info.timeSincePreviousFrame ?? 16) / 1000, 0.05);
-    elapsed.value += dt;
-
-    // --- player ------------------------------------------------------------
-    const dx = dirX.value;
-    const dy = dirY.value;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    let sx = subX.value;
-    let sy = subY.value;
-    if (len > 0.0001) {
-      const step = GAME.subDirSpeed * dt;
-      sx += (dx / len) * step;
-      sy += (dy / len) * step;
-      subAngle.value = Math.atan2(dy, dx);
+    if (started.value === 0) {
+      started.value = 1;
+      boatX.value = (left + right) / 2;
+      boatY.value = (top + bottom) / 2;
+      boatAngle.value = -Math.PI / 2;
+      boatVX.value = 0;
+      boatVY.value = 0;
+      boatAlive.value = 1;
+      // the original opens with a single dubloon and no mines at all
+      placeDubloon();
+      return;
     }
-    const r = GAME.subRadius;
-    sx = Math.max(r, Math.min(width - r, sx));
-    sy = Math.max(r, Math.min(height - r, sy));
-    subX.value = sx;
-    subY.value = sy;
 
-    // --- monster -----------------------------------------------------------
-    const chase = Math.min(
-      GAME.monsterMaxSpeed,
-      GAME.monsterBaseSpeed + elapsed.value * GAME.monsterRamp,
-    );
-    const mx = monsterX.value;
-    const my = monsterY.value;
-    const tx = sx - mx;
-    const ty = sy - my;
-    const td = Math.max(0.0001, Math.sqrt(tx * tx + ty * ty));
-    monsterX.value = mx + (tx / td) * chase * dt;
-    monsterY.value = my + (ty / td) * chase * dt;
-    monsterAngle.value = Math.atan2(ty, tx);
+    const dt = frameDt;
+    const r = GAME.boatRadius;
 
-    // --- dubloons ----------------------------------------------------------
-    let collected = 0;
-    let liveDubloons = 0;
-    for (let i = 0; i < dubloons.length; i += 1) {
-      const d = dubloons[i];
-      if (d.active.value === 0) continue;
-      d.phase.value += dt * 6;
-      if (circlesHit(sx, sy, r, d.x.value, d.y.value, GAME.dubloonRadius)) {
-        d.active.value = 0;
-        collected += 1;
-      } else {
-        liveDubloons += 1;
-      }
+    /* --- the boat: rotate, thrust, drift, drag --------------------------- */
+    let vx = boatVX.value;
+    let vy = boatVY.value;
+    const speed = Math.sqrt(vx * vx + vy * vy);
+    const speedFrac = Math.min(1, speed / GAME.maxSpeed);
+
+    const turn = turnRight.pressed.value - turnLeft.pressed.value;
+    if (turn !== 0) {
+      // she is heavy in the water: the faster she runs, the wider she turns
+      boatAngle.value += turn * GAME.turnRate * (1 - GAME.turnAtSpeed * speedFrac) * dt;
     }
-    if (collected > 0) {
-      coins.value += collected;
-      score.value += GAME.dubloonScore * collected;
-      runOnJS(haptic)('light');
-      runOnJS(onDubloonsChange)(coins.value);
+
+    const heading = boatAngle.value;
+    const throttle = forward.pressed.value - reverse.pressed.value;
+    if (throttle > 0) {
+      vx += Math.cos(heading) * GAME.thrust * dt;
+      vy += Math.sin(heading) * GAME.thrust * dt;
+    } else if (throttle < 0) {
+      vx -= Math.cos(heading) * GAME.reverseThrust * dt;
+      vy -= Math.sin(heading) * GAME.reverseThrust * dt;
     }
-    if (liveDubloons < GAME.targetDubloons) {
-      for (let i = 0; i < dubloons.length; i += 1) {
-        if (dubloons[i].active.value === 0) {
-          spawnDubloon(dubloons[i]);
-          break;
-        }
+
+    let caughtInEye = false;
+    if (whirlActive.value === 1) {
+      const wx = whirlX.value - boatX.value;
+      const wy = whirlY.value - boatY.value;
+      const wd = Math.sqrt(wx * wx + wy * wy);
+      if (wd < GAME.whirlpoolCore) caughtInEye = true;
+      else if (wd < GAME.whirlpoolRange) {
+        const pull = (1 - wd / GAME.whirlpoolRange) * GAME.whirlpoolPull * dt;
+        vx += (wx / wd) * pull;
+        vy += (wy / wd) * pull;
+        // a touch of spin so the water visibly turns the boat
+        vx += (-wy / wd) * pull * 0.45;
+        vy += (wx / wd) * pull * 0.45;
       }
     }
 
-    // --- mines -------------------------------------------------------------
+    const damp = Math.exp(-GAME.drag * dt);
+    vx *= damp;
+    vy *= damp;
+
+    const newSpeed = Math.sqrt(vx * vx + vy * vy);
+    if (newSpeed > GAME.maxSpeed) {
+      vx = (vx / newSpeed) * GAME.maxSpeed;
+      vy = (vy / newSpeed) * GAME.maxSpeed;
+    }
+
+    let bx = boatX.value + vx * dt;
+    let by = boatY.value + vy * dt;
+    if (bx < left + r) {
+      bx = left + r;
+      if (vx < 0) vx = 0;
+    } else if (bx > right - r) {
+      bx = right - r;
+      if (vx > 0) vx = 0;
+    }
+    if (by < top + r) {
+      by = top + r;
+      if (vy < 0) vy = 0;
+    } else if (by > bottom - r) {
+      by = bottom - r;
+      if (vy > 0) vy = 0;
+    }
+    boatX.value = bx;
+    boatY.value = by;
+    boatVX.value = vx;
+    boatVY.value = vy;
+
+    /* --- mines: home in, explode on each other, get swallowed ----------- */
     const mineR = GAME.mineRadius;
-    let dead = circlesHit(
-      sx,
-      sy,
-      r * 0.8,
-      monsterX.value,
-      monsterY.value,
-      GAME.monsterRadius * 0.75,
-    );
+    let dead = caughtInEye;
     let liveMines = 0;
+
     for (let i = 0; i < mines.length; i += 1) {
       const m = mines[i];
       if (m.active.value === 0) continue;
+
+      if (m.arm.value > 0) m.arm.value = Math.max(0, m.arm.value - dt);
+      m.phase.value += dt * 2.4;
+
+      let mx = m.x.value;
+      let my = m.y.value;
+
+      // whirlpools drag mines in far harder than the boat, and destroy them
+      let dragX = 0;
+      let dragY = 0;
+      if (whirlActive.value === 1) {
+        const wx = whirlX.value - mx;
+        const wy = whirlY.value - my;
+        const wd = Math.sqrt(wx * wx + wy * wy);
+        if (wd < GAME.whirlpoolCore) {
+          m.active.value = 0;
+          blast(mx, my);
+          continue;
+        }
+        if (wd < GAME.whirlpoolRange) {
+          const pull =
+            (1 - wd / GAME.whirlpoolRange) * GAME.whirlpoolPull * GAME.whirlpoolMinePull * 0.35;
+          dragX = (wx / wd) * pull + (-wy / wd) * pull * 0.6;
+          dragY = (wy / wd) * pull + (wx / wd) * pull * 0.6;
+        }
+      }
+
+      const tx = bx - mx;
+      const ty = by - my;
+      const td = Math.max(0.0001, Math.sqrt(tx * tx + ty * ty));
+      // a mine that senses the boat nearby surges after it
+      const chase = td < GAME.mineAlertRange ? GAME.mineAlertSpeed : GAME.mineSpeed;
+      mx += ((tx / td) * chase + dragX) * dt;
+      my += ((ty / td) * chase + dragY) * dt;
+
+      m.x.value = Math.max(left + mineR, Math.min(right - mineR, mx));
+      m.y.value = Math.max(top + mineR, Math.min(bottom - mineR, my));
       liveMines += 1;
-      m.phase.value += dt * 3;
 
-      let px = m.x.value + m.vx.value * dt;
-      let py = m.y.value + m.vy.value * dt;
-      if (px < mineR) {
-        px = mineR;
-        m.vx.value = Math.abs(m.vx.value);
-      } else if (px > width - mineR) {
-        px = width - mineR;
-        m.vx.value = -Math.abs(m.vx.value);
+      if (
+        !dead &&
+        m.arm.value <= 0 &&
+        circlesHit(bx, by, r * 0.8, m.x.value, m.y.value, mineR * 0.85)
+      ) {
+        dead = true;
       }
-      if (py < mineR) {
-        py = mineR;
-        m.vy.value = Math.abs(m.vy.value);
-      } else if (py > height - mineR) {
-        py = height - mineR;
-        m.vy.value = -Math.abs(m.vy.value);
-      }
-      m.x.value = px;
-      m.y.value = py;
-
-      if (!dead && circlesHit(sx, sy, r * 0.75, px, py, mineR * 0.8)) dead = true;
     }
 
-    mineTimer.value += dt;
-    if (mineTimer.value > GAME.mineInterval && liveMines < GAME.maxMines) {
-      mineTimer.value = 0;
-      for (let i = 0; i < mines.length; i += 1) {
-        if (mines[i].active.value === 0) {
-          spawnMine(mines[i], GAME.monsterBaseSpeed + elapsed.value * GAME.mineSpeedRamp);
+    // two mines that touch each other both go up
+    for (let i = 0; i < mines.length; i += 1) {
+      const a = mines[i];
+      if (a.active.value === 0) continue;
+      for (let j = i + 1; j < mines.length; j += 1) {
+        const b = mines[j];
+        if (b.active.value === 0) continue;
+        if (circlesHit(a.x.value, a.y.value, mineR * 0.9, b.x.value, b.y.value, mineR * 0.9)) {
+          blast((a.x.value + b.x.value) / 2, (a.y.value + b.y.value) / 2);
+          a.active.value = 0;
+          b.active.value = 0;
+          liveMines -= 2;
+          runOnJS(haptic)('medium');
           break;
         }
       }
     }
 
-    // --- scoring / end of run ---------------------------------------------
-    score.value += GAME.survivalScore * dt;
-    reportTimer.value += dt;
-    if (reportTimer.value > SCORE_REPORT_INTERVAL) {
-      reportTimer.value = 0;
-      runOnJS(onScoreChange)(Math.floor(score.value));
+    /* --- the dubloon ---------------------------------------------------- */
+    dubPhase.value += dt * 3;
+    if (
+      dubActive.value === 1 &&
+      circlesHit(bx, by, r, dubX.value, dubY.value, GAME.dubloonRadius)
+    ) {
+      const points = TIER_POINTS[dubTier.value];
+      score.value += points;
+      collected.value += 1;
+      runOnJS(onPickup)(points, dubX.value, dubY.value);
+      runOnJS(haptic)('light');
+
+      placeDubloon();
+      // every dubloon salvaged means one more mine in the water
+      if (liveMines < GAME.maxMines) {
+        fireMine();
+        liveMines += 1;
+      }
+      if (whirlActive.value === 0 && Math.random() < GAME.whirlpoolChance) openWhirlpool();
+    }
+
+    /* --- timers --------------------------------------------------------- */
+    if (whirlActive.value === 1) {
+      whirlSpin.value += dt * 1.5;
+      whirlLife.value -= dt;
+      if (whirlLife.value <= 0) whirlActive.value = 0;
+    }
+
+    for (let i = 0; i < blasts.length; i += 1) {
+      const b = blasts[i];
+      if (b.active.value === 0) continue;
+      b.t.value += dt;
+      if (b.t.value >= GAME.explosionLife) b.active.value = 0;
+    }
+
+    statsTimer.value += dt;
+    if (statsTimer.value > STATS_INTERVAL) {
+      statsTimer.value = 0;
+      runOnJS(onStats)({
+        score: Math.floor(score.value),
+        dubloons: collected.value,
+        mines: liveMines,
+      });
     }
 
     if (dead) {
       over.value = 1;
-      runOnJS(finishRun)(Math.floor(score.value), coins.value);
+      deathTimer.value = 0;
+      boatAlive.value = 0;
+      dubActive.value = 0;
+      blast(bx, by);
+      runOnJS(haptic)('heavy');
+      runOnJS(onStats)({
+        score: Math.floor(score.value),
+        dubloons: collected.value,
+        mines: liveMines,
+      });
     }
   });
 
   return (
     <View style={{ width, height, overflow: 'hidden' }}>
-      {dubloons.map((d) => (
-        <DubloonView key={d.id} entity={d} />
-      ))}
+      {/* arena bounds */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left,
+          top,
+          width: Math.max(0, right - left),
+          height: Math.max(0, bottom - top),
+          borderRadius: 18,
+          borderWidth: 2,
+          borderColor: 'rgba(217,244,251,0.18)',
+        }}
+      />
+
+      <WhirlpoolView x={whirlX} y={whirlY} life={whirlLife} spin={whirlSpin} active={whirlActive} />
+
+      <DubloonView x={dubX} y={dubY} tier={dubTier} phase={dubPhase} active={dubActive} />
+
       {mines.map((m) => (
         <MineView key={m.id} entity={m} />
       ))}
 
-      <SubView x={subX} y={subY} angle={subAngle} />
-      <MonsterView x={monsterX} y={monsterY} angle={monsterAngle} />
+      <BoatView x={boatX} y={boatY} angle={boatAngle} alive={boatAlive} />
 
-      <Joystick dirX={dirX} dirY={dirY} />
+      {blasts.map((b) => (
+        <BlastView key={b.id} entity={b} />
+      ))}
+
+      <ControlPad inputs={inputs} />
     </View>
   );
 });
@@ -316,36 +585,99 @@ function spriteBox(size: number) {
   };
 }
 
-const DubloonView = memo(function DubloonView({ entity }: { entity: PoolEntity }) {
-  const half = SPRITE_BOX.dubloon / 2;
+const BoatView = memo(function BoatView({
+  x,
+  y,
+  angle,
+  alive,
+}: {
+  x: SharedValue<number>;
+  y: SharedValue<number>;
+  angle: SharedValue<number>;
+  alive: SharedValue<number>;
+}) {
+  const half = SPRITE_BOX.boat / 2;
   const style = useAnimatedStyle(() => ({
-    opacity: entity.active.value,
+    opacity: alive.value,
     transform: [
-      { translateX: entity.x.value - half },
-      { translateY: entity.y.value - half },
-      // squash horizontally to fake a spinning coin
-      { scaleX: 0.55 + 0.45 * Math.abs(Math.cos(entity.phase.value)) },
+      { translateX: x.value - half },
+      { translateY: y.value - half },
+      { rotate: `${angle.value}rad` },
     ],
   }));
   return (
-    <Animated.View pointerEvents="none" style={[spriteBox(SPRITE_BOX.dubloon), style]}>
-      <DubloonArt />
+    <Animated.View pointerEvents="none" style={[spriteBox(SPRITE_BOX.boat), style]}>
+      <BoatArt />
     </Animated.View>
   );
 });
 
-const MineView = memo(function MineView({ entity }: { entity: PoolEntity }) {
-  const half = SPRITE_BOX.mine / 2;
+/**
+ * All seven denominations are mounted at once and cross-faded by index, so the
+ * coin's face value can change on the UI thread without a React render.
+ */
+const DubloonView = memo(function DubloonView({
+  x,
+  y,
+  tier,
+  phase,
+  active,
+}: {
+  x: SharedValue<number>;
+  y: SharedValue<number>;
+  tier: SharedValue<number>;
+  phase: SharedValue<number>;
+  active: SharedValue<number>;
+}) {
+  const half = SPRITE_BOX.dubloon / 2;
   const style = useAnimatedStyle(() => ({
-    opacity: entity.active.value,
+    opacity: active.value,
     transform: [
-      { translateX: entity.x.value - half },
-      { translateY: entity.y.value - half },
-      // slow breathing pulse so the hazard reads as alive
-      { scale: 1 + 0.07 * Math.sin(entity.phase.value) },
-      { rotate: `${Math.sin(entity.phase.value * 0.5) * 0.12}rad` },
+      { translateX: x.value - half },
+      { translateY: y.value - half },
+      { scale: 1 + 0.08 * Math.sin(phase.value) },
     ],
   }));
+  return (
+    <Animated.View pointerEvents="none" style={[spriteBox(SPRITE_BOX.dubloon), style]}>
+      {TIER_INDEXES.map((index) => (
+        <DubloonFace key={index} index={index} tier={tier} />
+      ))}
+    </Animated.View>
+  );
+});
+
+const DubloonFace = memo(function DubloonFace({
+  index,
+  tier,
+}: {
+  index: number;
+  tier: SharedValue<number>;
+}) {
+  const style = useAnimatedStyle(() => ({ opacity: tier.value === index ? 1 : 0 }));
+  return (
+    <Animated.View style={[{ position: 'absolute', left: 0, top: 0 }, style]}>
+      <DubloonArt tier={index} />
+    </Animated.View>
+  );
+});
+
+const MineView = memo(function MineView({ entity }: { entity: MineEntity }) {
+  const half = SPRITE_BOX.mine / 2;
+  const style = useAnimatedStyle(() => {
+    // an arming mine drops in: small and faded until it goes live
+    const armFrac = entity.arm.value / GAME.mineArmTime;
+    const live = 1 - Math.max(0, Math.min(1, armFrac));
+    return {
+      opacity: entity.active.value * (0.3 + 0.7 * live),
+      transform: [
+        { translateX: entity.x.value - half },
+        { translateY: entity.y.value - half },
+        { scale: (0.55 + 0.45 * live) * (1 + 0.05 * Math.sin(entity.phase.value)) },
+        { rotate: `${Math.sin(entity.phase.value * 0.6) * 0.15}rad` },
+      ],
+    };
+  });
   return (
     <Animated.View pointerEvents="none" style={[spriteBox(SPRITE_BOX.mine), style]}>
       <MineArt />
@@ -353,208 +685,57 @@ const MineView = memo(function MineView({ entity }: { entity: PoolEntity }) {
   );
 });
 
-interface ActorProps {
+const WhirlpoolView = memo(function WhirlpoolView({
+  x,
+  y,
+  life,
+  spin,
+  active,
+}: {
   x: SharedValue<number>;
   y: SharedValue<number>;
-  angle: SharedValue<number>;
-}
-
-const SubView = memo(function SubView({ x, y, angle }: ActorProps) {
-  const half = SPRITE_BOX.sub / 2;
+  life: SharedValue<number>;
+  spin: SharedValue<number>;
+  active: SharedValue<number>;
+}) {
+  const half = SPRITE_BOX.whirlpool / 2;
   const style = useAnimatedStyle(() => {
-    const a = angle.value;
+    const age = GAME.whirlpoolLife - life.value;
+    const rising = Math.max(0, Math.min(1, age / 0.5));
+    const fading = Math.max(0, Math.min(1, life.value / 1.2));
     return {
+      opacity: active.value * rising * fading,
       transform: [
         { translateX: x.value - half },
         { translateY: y.value - half },
-        { rotate: `${a}rad` },
-        // mirror instead of turning the face upside-down when heading left
-        { scaleY: Math.cos(a) < 0 ? -1 : 1 },
+        { rotate: `${spin.value}rad` },
+        { scale: 0.6 + 0.4 * rising },
       ],
     };
   });
   return (
-    <Animated.View pointerEvents="none" style={[spriteBox(SPRITE_BOX.sub), style]}>
-      <SubArt />
+    <Animated.View pointerEvents="none" style={[spriteBox(SPRITE_BOX.whirlpool), style]}>
+      <WhirlpoolArt />
     </Animated.View>
   );
 });
 
-const MonsterView = memo(function MonsterView({ x, y, angle }: ActorProps) {
-  const half = SPRITE_BOX.monster / 2;
+const BlastView = memo(function BlastView({ entity }: { entity: BlastEntity }) {
+  const half = SPRITE_BOX.explosion / 2;
   const style = useAnimatedStyle(() => {
-    const a = angle.value;
+    const p = Math.max(0, Math.min(1, entity.t.value / GAME.explosionLife));
     return {
+      opacity: entity.active.value * (1 - p),
       transform: [
-        { translateX: x.value - half },
-        { translateY: y.value - half },
-        { rotate: `${a}rad` },
-        { scaleY: Math.cos(a) < 0 ? -1 : 1 },
+        { translateX: entity.x.value - half },
+        { translateY: entity.y.value - half },
+        { scale: 0.35 + p * 1.05 },
       ],
     };
   });
   return (
-    <Animated.View pointerEvents="none" style={[spriteBox(SPRITE_BOX.monster), style]}>
-      <MonsterArt />
+    <Animated.View pointerEvents="none" style={[spriteBox(SPRITE_BOX.explosion), style]}>
+      <ExplosionArt />
     </Animated.View>
   );
 });
-
-const JOYSTICK_SIZE = 132;
-const KNOB_SIZE = 58;
-const MAX_OFFSET = (JOYSTICK_SIZE - KNOB_SIZE) / 2;
-/** finger travel from the pad origin that already counts as full deflection */
-const ACTIVE_RADIUS = 32;
-/** offsets under this are treated as "no input" */
-const DEAD_ZONE = 4;
-/** finger travel opposing the current heading that snaps the pad origin */
-const FLICK_REVERSE = 4;
-
-/**
- * Analog joystick anchored bottom-right. Steering is instantaneous: the pad has
- * a floating origin that trails the finger, so the heading is always read from
- * a short offset instead of the finger's absolute distance from the base. Any
- * movement that opposes the current heading (dot product < 0) re-anchors the
- * origin behind the finger, which makes a flick the other way reverse the sub
- * on the very next frame. Direction is written straight into the simulation's
- * shared values, so steering never crosses onto the JS thread.
- */
-function Joystick({ dirX, dirY }: { dirX: SharedValue<number>; dirY: SharedValue<number> }) {
-  const knobX = useSharedValue(0);
-  const knobY = useSharedValue(0);
-  const originX = useSharedValue(JOYSTICK_SIZE / 2);
-  const originY = useSharedValue(JOYSTICK_SIZE / 2);
-  const lastX = useSharedValue(JOYSTICK_SIZE / 2);
-  const lastY = useSharedValue(JOYSTICK_SIZE / 2);
-
-  const pan = useMemo(() => {
-    /** Publish an offset (already relative to the pad origin) as a heading. */
-    const commit = (ox: number, oy: number) => {
-      'worklet';
-      const len = Math.sqrt(ox * ox + oy * oy);
-      if (len < DEAD_ZONE) {
-        knobX.value = 0;
-        knobY.value = 0;
-        dirX.value = 0;
-        dirY.value = 0;
-        return;
-      }
-      const ux = ox / len;
-      const uy = oy / len;
-      dirX.value = ux;
-      dirY.value = uy;
-      const pull = Math.min(1, len / ACTIVE_RADIUS) * MAX_OFFSET;
-      knobX.value = ux * pull;
-      knobY.value = uy * pull;
-    };
-
-    /** Clamp the finger offset, dragging the origin along when it overshoots. */
-    const track = (ex: number, ey: number) => {
-      'worklet';
-      let ox = ex - originX.value;
-      let oy = ey - originY.value;
-      const len = Math.sqrt(ox * ox + oy * oy);
-      if (len > ACTIVE_RADIUS) {
-        const over = len - ACTIVE_RADIUS;
-        originX.value += (ox / len) * over;
-        originY.value += (oy / len) * over;
-        ox = (ox / len) * ACTIVE_RADIUS;
-        oy = (oy / len) * ACTIVE_RADIUS;
-      }
-      commit(ox, oy);
-    };
-
-    return (
-      Gesture.Pan()
-        // no activation threshold: the first move already steers
-        .minDistance(0)
-        .maxPointers(1)
-        .onBegin((e) => {
-          'worklet';
-          originX.value = JOYSTICK_SIZE / 2;
-          originY.value = JOYSTICK_SIZE / 2;
-          lastX.value = e.x;
-          lastY.value = e.y;
-          track(e.x, e.y);
-        })
-        .onUpdate((e) => {
-          'worklet';
-          const mvx = e.x - lastX.value;
-          const mvy = e.y - lastY.value;
-          lastX.value = e.x;
-          lastY.value = e.y;
-          const move = Math.sqrt(mvx * mvx + mvy * mvy);
-          if (move > FLICK_REVERSE && mvx * dirX.value + mvy * dirY.value < 0) {
-            // finger turned back on itself: re-anchor so this frame already
-            // points at full deflection down the new heading
-            originX.value = e.x - (mvx / move) * ACTIVE_RADIUS;
-            originY.value = e.y - (mvy / move) * ACTIVE_RADIUS;
-          }
-          track(e.x, e.y);
-        })
-        .onFinalize(() => {
-          'worklet';
-          originX.value = JOYSTICK_SIZE / 2;
-          originY.value = JOYSTICK_SIZE / 2;
-          knobX.value = 0;
-          knobY.value = 0;
-          dirX.value = 0;
-          dirY.value = 0;
-        })
-    );
-  }, [dirX, dirY, knobX, knobY, lastX, lastY, originX, originY]);
-
-  const knobStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: knobX.value }, { translateY: knobY.value }],
-  }));
-
-  return (
-    <View
-      pointerEvents="box-none"
-      style={{ position: 'absolute', right: 24, bottom: 40 }}
-      className="pb-safe"
-    >
-      <GestureDetector gesture={pan}>
-        <View
-          style={{
-            width: JOYSTICK_SIZE,
-            height: JOYSTICK_SIZE,
-            borderRadius: JOYSTICK_SIZE / 2,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: 'rgba(255,255,255,0.1)',
-            borderWidth: 3,
-            borderColor: 'rgba(255,255,255,0.32)',
-          }}
-        >
-          <Animated.View
-            style={[
-              {
-                width: KNOB_SIZE,
-                height: KNOB_SIZE,
-                borderRadius: KNOB_SIZE / 2,
-                backgroundColor: 'rgba(255,255,255,0.34)',
-                borderWidth: 3,
-                borderColor: 'rgba(255,255,255,0.62)',
-                alignItems: 'center',
-                justifyContent: 'center',
-              },
-              knobStyle,
-            ]}
-          >
-            <View
-              style={{
-                width: KNOB_SIZE * 0.3,
-                height: KNOB_SIZE * 0.3,
-                borderRadius: KNOB_SIZE * 0.15,
-                backgroundColor: 'rgba(255,255,255,0.55)',
-                marginBottom: KNOB_SIZE * 0.18,
-                marginRight: KNOB_SIZE * 0.18,
-              }}
-            />
-          </Animated.View>
-        </View>
-      </GestureDetector>
-    </View>
-  );
-}

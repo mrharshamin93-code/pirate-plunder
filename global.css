@@ -164,36 +164,58 @@
 
 @source './node_modules/heroui-native/lib';
 
-/* Deep-sea arcade palette */
+/* Open-ocean pirate palette */
 @layer theme {
   :root {
-    --background: oklch(0.28 0.09 245);
-    --foreground: oklch(0.97 0.02 220);
-    --surface: oklch(0.34 0.09 244);
-    --surface-foreground: oklch(0.97 0.02 220);
-    --overlay: oklch(0.32 0.09 244);
-    --overlay-foreground: oklch(0.97 0.02 220);
-    --muted: oklch(0.72 0.05 230);
-    --default: oklch(0.4 0.08 244);
-    --default-foreground: oklch(0.97 0.02 220);
-    --accent: oklch(0.78 0.16 90);
-    --accent-foreground: oklch(0.24 0.06 250);
-    --border: oklch(0.42 0.08 244);
-    --separator: oklch(0.42 0.08 244);
+    @variant light {
+      --background: oklch(0.28 0.05 222);
+      --foreground: oklch(0.97 0.02 210);
+      --surface: oklch(0.34 0.055 216);
+      --surface-foreground: oklch(0.97 0.02 210);
+      --overlay: oklch(0.32 0.055 216);
+      --overlay-foreground: oklch(0.97 0.02 210);
+      --muted: oklch(0.74 0.04 210);
+      --default: oklch(0.4 0.05 216);
+      --default-foreground: oklch(0.97 0.02 210);
+      --accent: oklch(0.83 0.15 88);
+      --accent-foreground: oklch(0.26 0.05 222);
+      --border: oklch(0.45 0.05 216);
+      --separator: oklch(0.45 0.05 216);
+      --danger: oklch(0.64 0.19 30);
+      --danger-foreground: oklch(0.98 0.01 210);
+    }
+
+    @variant dark {
+      --background: oklch(0.28 0.05 222);
+      --foreground: oklch(0.97 0.02 210);
+      --surface: oklch(0.34 0.055 216);
+      --surface-foreground: oklch(0.97 0.02 210);
+      --overlay: oklch(0.32 0.055 216);
+      --overlay-foreground: oklch(0.97 0.02 210);
+      --muted: oklch(0.74 0.04 210);
+      --default: oklch(0.4 0.05 216);
+      --default-foreground: oklch(0.97 0.02 210);
+      --accent: oklch(0.83 0.15 88);
+      --accent-foreground: oklch(0.26 0.05 222);
+      --border: oklch(0.45 0.05 216);
+      --separator: oklch(0.45 0.05 216);
+      --danger: oklch(0.64 0.19 30);
+      --danger-foreground: oklch(0.98 0.01 210);
+    }
   }
 
   /* Game palette utilities */
   :root {
-    --color-sea-deep: oklch(0.31 0.08 250);
-    --color-sea-mid: oklch(0.49 0.1 240);
-    --color-sea-light: oklch(0.69 0.11 220);
+    --color-sea-deep: oklch(0.28 0.05 222);
+    --color-sea-mid: oklch(0.44 0.06 213);
+    --color-sea-light: oklch(0.56 0.07 213);
+    --color-foam: oklch(0.95 0.03 210);
     --color-dubloon: oklch(0.87 0.16 90);
-    --color-dubloon-edge: oklch(0.66 0.13 76);
-    --color-urchin: oklch(0.68 0.17 300);
-    --color-urchin-spike: oklch(0.46 0.19 300);
-    --color-sub: oklch(0.88 0.16 92);
-    --color-monster: oklch(0.83 0.15 165);
-    --color-monster-dark: oklch(0.66 0.14 165);
-    --color-danger: oklch(0.68 0.22 28);
+    --color-dubloon-edge: oklch(0.63 0.13 82);
+    --color-mine: oklch(0.27 0.012 250);
+    --color-wood: oklch(0.53 0.09 60);
+    --color-wood-dark: oklch(0.4 0.08 55);
+    --color-blast: oklch(0.72 0.19 45);
+    --color-danger: oklch(0.64 0.19 30);
   }
 }

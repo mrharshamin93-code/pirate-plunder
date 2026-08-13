@@ -3,7 +3,7 @@ import { create } from 'zustand';
 
 import type { GamePhase, HighScore } from './types';
 
-const STORAGE_KEY = 'dubloon.highscores.v1';
+const STORAGE_KEY = 'dubloon.highscores.v2';
 const MAX_SCORES = 5;
 
 interface GameStore {
