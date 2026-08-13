@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 0.9 seconds
-Output:
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
@@ -86,4 +83,3 @@ export async function submitGlobalScore(
 export async function loadPlayerName(): Promise<string> {
   return (await AsyncStorage.getItem(PLAYER_NAME_KEY)) ?? '';
 }
-
