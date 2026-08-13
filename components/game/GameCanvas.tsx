@@ -473,8 +473,13 @@ export const GameCanvas = memo(function GameCanvas({
       const td = Math.max(0.0001, Math.sqrt(tx * tx + ty * ty));
       // a mine that senses the boat nearby surges after it
       const chase = td < GAME.mineAlertRange ? GAME.mineAlertSpeed : GAME.mineSpeed;
-      mx += ((tx / td) * chase + dragX) * dt;
-      my += ((ty / td) * chase + dragY) * dt;
+      const headX = tx / td;
+      const headY = ty / td;
+      // each mine weaves on its own phase, so their paths cross and they can
+      // run into each other instead of trailing the boat in a neat column
+      const weave = Math.sin(m.phase.value * 0.55) * GAME.mineWander;
+      mx += ((headX - headY * weave) * chase + dragX) * dt;
+      my += ((headY + headX * weave) * chase + dragY) * dt;
 
       m.x.value = Math.max(left + mineR, Math.min(right - mineR, mx));
       m.y.value = Math.max(top + mineR, Math.min(bottom - mineR, my));
@@ -489,15 +494,17 @@ export const GameCanvas = memo(function GameCanvas({
       }
     }
 
-    // two mines that touch each other both go up
+    // two mines that touch each other both go up and leave the water
     for (let i = 0; i < mines.length; i += 1) {
       const a = mines[i];
       if (a.active.value === 0) continue;
       for (let j = i + 1; j < mines.length; j += 1) {
         const b = mines[j];
         if (b.active.value === 0) continue;
-        if (circlesHit(a.x.value, a.y.value, mineR * 0.9, b.x.value, b.y.value, mineR * 0.9)) {
-          blast((a.x.value + b.x.value) / 2, (a.y.value + b.y.value) / 2);
+        // full hulls: they blow the moment the casings actually touch
+        if (circlesHit(a.x.value, a.y.value, mineR, b.x.value, b.y.value, mineR)) {
+          blast(a.x.value, a.y.value);
+          blast(b.x.value, b.y.value);
           a.active.value = 0;
           b.active.value = 0;
           liveMines -= 2;

@@ -45,11 +45,17 @@ export const GAME = {
   /** hard cap on simultaneous mines, exactly as in the original */
   maxMines: 9,
   /** cruising chase speed in px/sec — always slower than the boat */
-  mineSpeed: 78,
+  mineSpeed: 58,
   /** chase speed once the boat is within mineAlertRange */
-  mineAlertSpeed: 128,
+  mineAlertSpeed: 96,
   /** distance at which a mine senses the boat and accelerates */
   mineAlertRange: 130,
+  /**
+   * How much a mine weaves sideways as it chases, as a fraction of its speed.
+   * Without this every mine tracks the boat on the same line and they never
+   * meet; the weave makes their paths cross so they can take each other out.
+   */
+  mineWander: 0.42,
   /** seconds a freshly fired mine spends arming — it cannot kill you yet */
   mineArmTime: 0.55,
 
@@ -70,8 +76,8 @@ export const GAME = {
   whirlpoolMinDistance: 150,
 
   /* --- explosions ------------------------------------------------------- */
-  /** render pool size for mine explosions */
-  explosionPool: 6,
+  /** render pool size for mine explosions — a pair of mines uses two slots */
+  explosionPool: 10,
   explosionLife: 0.45,
 } as const;
 
