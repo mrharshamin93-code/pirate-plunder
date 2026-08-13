@@ -1,6 +1,3 @@
-Exit code: 0
-Wall time: 0.8 seconds
-Output:
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
 import { Button, Separator, Text } from 'heroui-native';
@@ -150,4 +147,3 @@ export function GameOverOverlay({
     </View>
   );
 }
-
