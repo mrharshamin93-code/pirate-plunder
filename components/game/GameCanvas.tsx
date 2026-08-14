@@ -265,9 +265,8 @@ export const GameCanvas = memo(function GameCanvas({
   }, [left, top, right, bottom, boatX, boatY, coinX, coinY, coinTier, coinActive]);
 
   /**
-   * Fires one more mine from the Pawkeet. Landing spots are near-random, just
-   * as in the original, so a mine really can drop next to you — but it spends
-   * `mineArmTime` arming, which is the window the original lets you skim over.
+   * Fires one more mine from the Dreadwake. Landing spots are near-random, so
+   * a mine can drop next to you, but `mineArmTime` provides a brief safe window.
    */
   const fireMine = useCallback(() => {
     'worklet';
@@ -355,7 +354,7 @@ export const GameCanvas = memo(function GameCanvas({
       boatVX.value = 0;
       boatVY.value = 0;
       boatAlive.value = 1;
-      // the original opens with a single coin and no mines at all
+      // Each run opens with a single coin and no active mines.
       placeCoin();
       return;
     }
