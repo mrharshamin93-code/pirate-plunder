@@ -18,7 +18,7 @@ export interface Popup {
 const WIDTH = 96;
 const DURATION = 850;
 
-/** Floating "+250" that rises off a salvaged dubloon and fades out. */
+/** Floating "+250" that rises off a salvaged coin and fades out. */
 export function ScorePopup({ popup, onDone }: { popup: Popup; onDone: (id: number) => void }) {
   const t = useSharedValue(0);
 
@@ -49,7 +49,7 @@ export function ScorePopup({ popup, onDone }: { popup: Popup; onDone: (id: numbe
       ]}
     >
       <Text
-        className="text-dubloon text-xl font-bold"
+        className="text-accent text-xl font-bold"
         style={{
           textShadowColor: 'rgba(4,20,28,0.95)',
           textShadowOffset: { width: 0, height: 2 },
