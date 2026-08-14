@@ -8,7 +8,7 @@ export default function TabLayout() {
         tabBarStyle: { display: 'none' },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Dubloon Disaster' }} />
+      <Tabs.Screen name="index" options={{ title: "Pirate's Plunder" }} />
     </Tabs>
   );
 }
