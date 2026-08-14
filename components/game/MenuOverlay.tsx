@@ -1,7 +1,7 @@
 import { ScrollView, View } from 'react-native';
 import { Button, Text } from 'heroui-native';
 
-import { BoatArt, CoinArt, MineArt, PawkeetArt, SPRITE_BOX } from '@/components/game/Sprites';
+import { BoatArt, CoinArt, MineArt, RaiderShipArt, SPRITE_BOX } from '@/components/game/Sprites';
 import { COIN_TIERS } from '@/lib/game/engine';
 import type { HighScore } from '@/lib/game/types';
 
@@ -30,8 +30,8 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
       contentContainerClassName="grow items-center justify-center px-7 py-10"
     >
       <View style={{ width: 300, height: 170 }}>
-        <View style={at(210, 70, SPRITE_BOX.pawkeet)}>
-          <PawkeetArt />
+        <View style={at(210, 70, SPRITE_BOX.raiderShip)}>
+          <RaiderShipArt />
         </View>
         <View style={at(58, 58, SPRITE_BOX.coin)}>
           <CoinArt tier={6} />
@@ -48,11 +48,11 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
       </View>
 
       <Text className="text-foreground mt-1 text-center text-4xl font-bold" style={TITLE_SHADOW}>
-        Pirate's Plunder
+        Pirate’s Plunder
       </Text>
       <Text className="text-foreground/75 mt-2 text-center text-sm leading-5">
-        You are Captain Marlow, rowing the wreckage of Blackwake Harbor. Salvage the treasure and stay clear of
-        the homing mines fired from the Black Pawkeet.
+        You are Captain Marlow, rowing through the wreckage of Blackwake Harbor. Salvage the
+        treasure and stay clear of the homing mines fired from the Dreadwake.
       </Text>
 
       <View className="bg-surface/70 border-border mt-5 w-full max-w-sm rounded-2xl border px-4 py-3">
