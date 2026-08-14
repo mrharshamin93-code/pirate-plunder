@@ -1,13 +1,13 @@
 /**
  * Pirate's Plunder — rules, constants and worklet-safe helpers.
  *
- * Faithful to the original Neopets game (g772):
+ * Core gameplay rules:
  *  - You steer Captain Marlow's boat with a thumbstick: she heads where the stick points
  *    and rows harder the further you push. She keeps a little momentum, but the
  *    keel bites, so she tracks her bow instead of skidding broadside.
  *  - Exactly ONE coin is on the water at a time. Denominations are worth
  *    5x their face value in points, and the valuable ones are rare.
- *  - Every coin collected fires one more homing mine from the Black Pawkeet,
+ *  - Every coin collected fires one more homing mine from the Dreadwake,
  *    up to nine at once. Mines chase you and speed up when you get close.
  *  - Two mines that touch each other both explode.
  *  - Touching a mine ends the run.
@@ -59,7 +59,7 @@ export const GAME = {
   mineSpikeRadius: 11,
   /** the mine sprite is drawn at this scale, matching boatScale */
   mineScale: 0.5,
-  /** hard cap on simultaneous mines, exactly as in the original */
+  /** hard cap on simultaneous mines */
   maxMines: 9,
   /** minimum chase speed while the boat is far away */
   mineFarSpeed: 22,
@@ -82,7 +82,7 @@ export const GAME = {
   /** chance a coin pickup also summons a whirlpool */
   whirlpoolChance: 0.13,
   /** radius of influence in px */
-  whirlpoolRange: 84,
+  whirlpoolRange: 74,
   /** the eye — fatal to the boat, destroys mines */
   whirlpoolCore: 12,
   /** pull on the boat at the very centre, in px/sec^2 */
