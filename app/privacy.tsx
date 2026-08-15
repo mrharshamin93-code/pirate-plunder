@@ -8,73 +8,80 @@ export default function PrivacyPolicy() {
       <Stack.Screen options={{ title: 'Privacy Policy' }} />
 
       <ScrollView
-        className="bg-sea-deep flex-1"
-        contentContainerClassName="px-6 py-10"
+        style={{ flex: 1, backgroundColor: '#ffffff' }}
+        contentContainerStyle={{ paddingHorizontal: 24, paddingVertical: 40 }}
       >
-        <View className="mx-auto w-full max-w-2xl">
-          <Text className="text-foreground text-3xl font-bold">
+        <View style={{ width: '100%', maxWidth: 760, alignSelf: 'center' }}>
+          <Text style={{ color: '#111111', fontSize: 30, fontWeight: '700' }}>
             Pirate&apos;s Plunder Privacy Policy
           </Text>
 
-          <Text className="text-foreground/60 mt-2 text-sm">
+          <Text style={{ color: '#666666', marginTop: 8, fontSize: 14 }}>
             Last updated: August 14, 2026
           </Text>
 
-          <Text className="text-foreground mt-8 text-xl font-semibold">
+          <Text style={{ color: '#111111', marginTop: 32, fontSize: 20, fontWeight: '600' }}>
             Overview
           </Text>
-          <Text className="text-foreground/80 mt-2 leading-6">
+
+          <Text style={{ color: '#333333', marginTop: 8, fontSize: 16, lineHeight: 24 }}>
             Pirate&apos;s Plunder is a casual mobile game. The current version
             does not require users to create an account or sign in.
           </Text>
 
-          <Text className="text-foreground mt-6 text-xl font-semibold">
+          <Text style={{ color: '#111111', marginTop: 24, fontSize: 20, fontWeight: '600' }}>
             Information We Collect
           </Text>
-          <Text className="text-foreground/80 mt-2 leading-6">
+
+          <Text style={{ color: '#333333', marginTop: 8, fontSize: 16, lineHeight: 24 }}>
             Pirate&apos;s Plunder does not intentionally collect personal
             information such as your name, email address, phone number, or
             precise location.
           </Text>
 
-          <Text className="text-foreground mt-6 text-xl font-semibold">
+          <Text style={{ color: '#111111', marginTop: 24, fontSize: 20, fontWeight: '600' }}>
             Game Data
           </Text>
-          <Text className="text-foreground/80 mt-2 leading-6">
+
+          <Text style={{ color: '#333333', marginTop: 8, fontSize: 16, lineHeight: 24 }}>
             Game progress, settings, and high scores may be stored locally on
             your device. This information is used only to provide game
             functionality and is not intentionally transmitted to us.
           </Text>
 
-          <Text className="text-foreground mt-6 text-xl font-semibold">
+          <Text style={{ color: '#111111', marginTop: 24, fontSize: 20, fontWeight: '600' }}>
             Advertising
           </Text>
-          <Text className="text-foreground/80 mt-2 leading-6">
+
+          <Text style={{ color: '#333333', marginTop: 8, fontSize: 16, lineHeight: 24 }}>
             The current version of Pirate&apos;s Plunder does not contain
             advertising.
           </Text>
 
-          <Text className="text-foreground mt-6 text-xl font-semibold">
+          <Text style={{ color: '#111111', marginTop: 24, fontSize: 20, fontWeight: '600' }}>
             Children&apos;s Privacy
           </Text>
-          <Text className="text-foreground/80 mt-2 leading-6">
+
+          <Text style={{ color: '#333333', marginTop: 8, fontSize: 16, lineHeight: 24 }}>
             Pirate&apos;s Plunder does not knowingly collect personal
             information from children.
           </Text>
 
-          <Text className="text-foreground mt-6 text-xl font-semibold">
+          <Text style={{ color: '#111111', marginTop: 24, fontSize: 20, fontWeight: '600' }}>
             Changes to This Policy
           </Text>
-          <Text className="text-foreground/80 mt-2 leading-6">
+
+          <Text style={{ color: '#333333', marginTop: 8, fontSize: 16, lineHeight: 24 }}>
             We may update this Privacy Policy if the game&apos;s features or
             data practices change. Any updated policy will be posted on this
             page with a revised date.
           </Text>
 
-          <Text className="text-foreground mt-6 text-xl font-semibold">
+          <Text style={{ color: '#111111', marginTop: 24, fontSize: 20, fontWeight: '600' }}>
             Contact
           </Text>
-          <Text className="text-foreground/80 mt-2 leading-6">
+
+          <Text style={{ color: '#333333', marginTop: 8, fontSize: 16, lineHeight: 24 }}>
             For privacy-related questions, contact: heroinvestor15@gmail.com
           </Text>
         </View>
