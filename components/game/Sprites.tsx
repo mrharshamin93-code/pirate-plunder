@@ -441,157 +441,86 @@ export const CoinArt = memo(function CoinArt({
   );
 });
 
-const ARM_COUNT = 7;
+const ARM_COUNT = 5;
 
 export const WhirlpoolArt = memo(function WhirlpoolArt() {
   const box = SPRITE_BOX.whirlpool;
   const half = box / 2;
   const reach = GAME.whirlpoolRange;
   const eye = GAME.whirlpoolCore;
-  const outer = reach * 0.9;
+  const outer = reach * 0.83;
 
   return (
     <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
       <Defs>
-        <RadialGradient id="vortexDeep" cx="50%" cy="50%" r="58%">
-          <Stop offset="0%" stopColor="#00070b" stopOpacity={1} />
-          <Stop offset="18%" stopColor="#03131a" stopOpacity={0.98} />
-          <Stop offset="42%" stopColor="#073747" stopOpacity={0.92} />
-          <Stop offset="68%" stopColor="#0f6678" stopOpacity={0.62} />
-          <Stop offset="100%" stopColor="#1b8da0" stopOpacity={0} />
+        <RadialGradient id="vortex" cx="50%" cy="50%" r="50%">
+          <Stop offset="0%" stopColor="#03151d" stopOpacity={0.95} />
+          <Stop offset="42%" stopColor={PALETTE.seaDeep} stopOpacity={0.72} />
+          <Stop offset="100%" stopColor={PALETTE.seaDeep} stopOpacity={0} />
         </RadialGradient>
-
-        <RadialGradient id="vortexGlow" cx="50%" cy="50%" r="55%">
-          <Stop offset="0%" stopColor="#dffaff" stopOpacity={0} />
-          <Stop offset="58%" stopColor="#89e5ef" stopOpacity={0.12} />
-          <Stop offset="82%" stopColor="#baf6ff" stopOpacity={0.22} />
-          <Stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
-        </RadialGradient>
-
-        <LinearGradient id="foamSweep" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0%" stopColor="#ffffff" stopOpacity={0.96} />
-          <Stop offset="45%" stopColor={PALETTE.foam} stopOpacity={0.78} />
-          <Stop offset="100%" stopColor={PALETTE.crest} stopOpacity={0.12} />
-        </LinearGradient>
       </Defs>
 
-      {/* Broad dark water depression */}
-      <Circle cx={0} cy={0} r={reach + 10} fill="url(#vortexDeep)" />
+      <Circle cx={0} cy={0} r={reach} fill="url(#vortex)" />
 
-      {/* Soft turquoise halo, similar to the concept art */}
-      <Circle cx={0} cy={0} r={reach + 3} fill="url(#vortexGlow)" />
-
-      {/* Layered circular water bands */}
-      <Circle
-        cx={0}
-        cy={0}
-        r={outer}
-        fill="none"
-        stroke="#9cecf4"
-        strokeOpacity={0.32}
-        strokeWidth={3.2}
-      />
-      <Circle
-        cx={0}
-        cy={0}
-        r={outer * 0.76}
-        fill="none"
-        stroke="#62c9d8"
-        strokeOpacity={0.30}
-        strokeWidth={3}
-      />
-      <Circle
-        cx={0}
-        cy={0}
-        r={outer * 0.54}
-        fill="none"
-        stroke="#bff8ff"
-        strokeOpacity={0.22}
-        strokeWidth={2.4}
-      />
-
-      {/* Curved spiral arms */}
       {Array.from({ length: ARM_COUNT }, (_, i) => {
         const a = (i / ARM_COUNT) * Math.PI * 2;
         const deg = (a * 180) / Math.PI;
-        const length = outer - (i % 2) * 5;
 
         return (
-          <G key={i} transform={`rotate(${deg})`}>
-            <Path
-              d={`M ${length} 0
-                  C ${length * 0.78} ${length * 0.20},
-                    ${length * 0.55} ${length * 0.35},
-                    ${length * 0.38} ${length * 0.22}
-                  C ${length * 0.24} ${length * 0.12},
-                    ${length * 0.16} ${length * 0.06},
-                    ${eye * 0.85} 2`}
-              stroke="url(#foamSweep)"
-              strokeWidth={i % 2 === 0 ? 4.5 : 3.4}
-              strokeLinecap="round"
-              fill="none"
-              opacity={i % 2 === 0 ? 0.82 : 0.62}
-            />
-
-            <Path
-              d={`M ${length * 0.88} 5
-                  C ${length * 0.66} ${length * 0.13},
-                    ${length * 0.50} ${length * 0.24},
-                    ${length * 0.32} ${length * 0.16}`}
-              stroke="#ffffff"
-              strokeOpacity={0.28}
-              strokeWidth={1.6}
-              strokeLinecap="round"
-              fill="none"
-            />
-          </G>
-        );
-      })}
-
-      {/* Broken foam flecks around the rim */}
-      {Array.from({ length: 12 }, (_, i) => {
-        const a = (i / 12) * Math.PI * 2 + 0.18;
-        const radius = outer * (0.84 + (i % 3) * 0.035);
-        const cx = Math.cos(a) * radius;
-        const cy = Math.sin(a) * radius;
-
-        return (
-          <Ellipse
-            key={`foam-${i}`}
-            cx={cx}
-            cy={cy}
-            rx={i % 2 === 0 ? 3.5 : 2.4}
-            ry={1.2}
-            fill={PALETTE.foam}
-            opacity={0.45 + (i % 3) * 0.08}
-            transform={`rotate(${(a * 180) / Math.PI} ${cx} ${cy})`}
+          <Path
+            key={i}
+            d={`M ${outer - 4} 0 C ${outer * 0.6} ${outer * 0.42} ${outer * 0.2} ${
+              outer * 0.4
+            } ${eye * 0.6} 3`}
+            stroke={PALETTE.foam}
+            strokeOpacity={0.5}
+            strokeWidth={3}
+            strokeLinecap="round"
+            fill="none"
+            transform={`rotate(${deg})`}
           />
         );
       })}
 
-      {/* Deep center hole */}
-      <Circle cx={0} cy={0} r={eye * 1.75} fill="#031017" opacity={0.98} />
       <Circle
         cx={0}
         cy={0}
-        r={eye * 1.58}
+        r={reach - 2}
         fill="none"
-        stroke="#5ac8d8"
-        strokeOpacity={0.34}
-        strokeWidth={2.4}
+        stroke={PALETTE.foam}
+        strokeOpacity={0.22}
+        strokeWidth={2}
       />
-      <Circle cx={0} cy={0} r={eye * 0.94} fill="#000000" opacity={0.95} />
+      <Circle
+        cx={0}
+        cy={0}
+        r={outer - 3}
+        fill="none"
+        stroke={PALETTE.crest}
+        strokeOpacity={0.35}
+        strokeWidth={2}
+      />
+      <Circle
+        cx={0}
+        cy={0}
+        r={outer * 0.62}
+        fill="none"
+        stroke={PALETTE.crest}
+        strokeOpacity={0.28}
+        strokeWidth={1.8}
+      />
 
-      {/* Bright inner foam crescent */}
-      <Path
-        d={`M ${-eye * 1.20} ${-eye * 0.25}
-            Q 0 ${-eye * 1.55} ${eye * 1.30} ${-eye * 0.05}`}
-        stroke="#dffcff"
-        strokeOpacity={0.62}
-        strokeWidth={2.5}
-        strokeLinecap="round"
+      <Circle cx={0} cy={0} r={eye} fill="#02121a" />
+      <Circle
+        cx={0}
+        cy={0}
+        r={eye}
         fill="none"
+        stroke={PALETTE.foam}
+        strokeOpacity={0.6}
+        strokeWidth={2}
       />
+      <Circle cx={0} cy={0} r={eye * 0.46} fill="#000000" opacity={0.85} />
     </Svg>
   );
 });
