@@ -27,43 +27,37 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
   return (
     <ScrollView
       className="bg-sea-deep/45 absolute inset-0"
-      contentContainerClassName="grow items-center justify-center px-7 py-10"
+      contentContainerClassName="grow items-center justify-center px-5 py-9"
     >
-      <View style={{ width: 300, height: 170 }}>
-        <View style={at(210, 70, SPRITE_BOX.raiderShip)}>
+      <View style={{ width: 350, height: 205, maxWidth: '100%' }}>
+        <View style={at(270, 92, SPRITE_BOX.raiderShip)}>
           <RaiderShipArt />
         </View>
-        <View style={at(58, 58, SPRITE_BOX.coin)}>
-          <CoinArt tier={6} />
-        </View>
-        <View style={at(120, 52, SPRITE_BOX.coin)}>
-          <CoinArt tier={2} />
-        </View>
-        <View style={at(150, 118, SPRITE_BOX.mine)}>
+        <View style={at(168, 125, SPRITE_BOX.mine)}>
           <MineArt />
         </View>
-        <View style={at(88, 114, SPRITE_BOX.boat)}>
+        <View style={at(78, 126, SPRITE_BOX.boat)}>
           <BoatArt />
         </View>
       </View>
 
-      <Text className="text-foreground mt-1 text-center text-4xl font-bold" style={TITLE_SHADOW}>
+      <Text className="text-foreground mt-1 text-center text-5xl font-bold" style={TITLE_SHADOW}>
         Pirate’s Plunder
       </Text>
-      <Text className="text-foreground/75 mt-2 text-center text-sm leading-5">
+      <Text className="text-foreground/80 mt-4 max-w-md text-center text-base leading-7">
         You are Captain Marlow, rowing through the wreckage of Blackwake Harbor. Salvage the
         treasure and stay clear of the homing mines fired from the Dreadwake.
       </Text>
 
-      <View className="bg-surface/70 border-border mt-5 w-full max-w-sm rounded-2xl border px-4 py-3">
-        <Text className="text-foreground/60 mb-2 text-center text-xs tracking-widest uppercase">
+      <View className="bg-surface/60 border-foreground/20 mt-7 w-full max-w-md rounded-3xl border px-2 py-5">
+        <Text className="text-foreground/70 mb-4 text-center text-sm tracking-[4px] uppercase">
           Coin Values
         </Text>
-        <View className="flex-row flex-wrap items-start justify-center gap-x-3 gap-y-1">
+        <View className="flex-row flex-wrap items-end justify-center gap-x-1 gap-y-3">
           {COIN_TIERS.map((tier, index) => (
-            <View key={tier.value} className="items-center">
-              <CoinArt tier={index} />
-              <Text className="text-foreground/70 text-xs font-semibold">
+            <View key={tier.value} className="items-center" style={{ width: 42 + index * 2 }}>
+              <CoinArt tier={index} size={42 + index * 2} />
+              <Text className="text-foreground/75 mt-1 text-xs font-bold">
                 {tier.points.toLocaleString()}
               </Text>
             </View>
@@ -71,17 +65,17 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
         </View>
       </View>
 
-      <Text className="text-foreground/60 mt-4 text-center text-xs leading-5">
+      <Text className="text-foreground/70 mt-7 max-w-md text-center text-sm leading-6">
         Push the thumbstick to point her where you want to go — she holds her line and answers the
         helm quickly. Every coin you take sends another mine after you.
       </Text>
 
       {best > 0 ? (
-        <View className="bg-surface/70 border-border mt-5 rounded-2xl border px-6 py-3">
-          <Text className="text-foreground/60 text-center text-xs tracking-widest uppercase">
+        <View className="bg-surface/60 border-foreground/20 mt-6 rounded-3xl border px-9 py-4">
+          <Text className="text-foreground/70 text-center text-sm tracking-[3px] uppercase">
             Best Score
           </Text>
-          <Text className="text-accent text-center text-2xl font-bold">
+          <Text className="text-accent mt-1 text-center text-4xl font-bold">
             {best.toLocaleString()}
           </Text>
         </View>
