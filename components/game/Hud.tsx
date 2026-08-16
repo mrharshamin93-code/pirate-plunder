@@ -8,6 +8,7 @@ interface HudProps {
   score: number;
   coins: number;
   mines: number;
+  coinTier: number;
 }
 
 /** Keeps the readouts legible over open water. */
@@ -17,7 +18,7 @@ const SHADOW = {
   textShadowRadius: 5,
 } as const;
 
-export function Hud({ score, coins, mines }: HudProps) {
+export function Hud({ score, coins, mines, coinTier }: HudProps) {
   return (
     <View className="pt-safe-offset-3 absolute top-0 right-0 left-0 flex-row justify-between px-5">
       <View>
@@ -34,7 +35,7 @@ export function Hud({ score, coins, mines }: HudProps) {
 
       <View className="items-end gap-1">
         <View className="flex-row items-center gap-2">
-          <CoinArt tier={0} size={18} />
+          <CoinArt tier={coinTier} size={18} />
           <Text className="text-foreground text-xl font-bold" style={SHADOW}>
             {coins}
           </Text>
