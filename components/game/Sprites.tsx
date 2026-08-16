@@ -409,13 +409,13 @@ export const MineArt = memo(function MineArt({ size }: { size?: number }) {
 
 const COIN_SHEET_SIZE = 1254;
 const COIN_SPRITES = [
-  { cx: 164, cy: 427, diameter: 306 },
-  { cx: 474, cy: 427, diameter: 302 },
-  { cx: 780, cy: 427, diameter: 302 },
-  { cx: 1090, cy: 427, diameter: 302 },
-  { cx: 165, cy: 848, diameter: 316 },
-  { cx: 483, cy: 849, diameter: 320 },
-  { cx: 872, cy: 844, diameter: 386 },
+  { cx: 164, cy: 427, diameter: 306 }, // 10 points
+  { cx: 474, cy: 427, diameter: 302 }, // 25 points
+  { cx: 780, cy: 427, diameter: 302 }, // 50 points
+  { cx: 483, cy: 849, diameter: 320 }, // 100 points (former 500 artwork)
+  { cx: 165, cy: 848, diameter: 316 }, // 250 points
+  { cx: 1090, cy: 427, diameter: 302 }, // 500 points (shiny silver artwork)
+  { cx: 872, cy: 844, diameter: 386 }, // 1,000 points
 ] as const;
 
 const COIN_SHEET = require('../../assets/images/treasure-coins-3d-v7.png');
