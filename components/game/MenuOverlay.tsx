@@ -55,8 +55,8 @@ export function MenuOverlay({ highScores, onStart }: MenuOverlayProps) {
         </Text>
         <View className="flex-row flex-wrap items-end justify-center gap-x-1 gap-y-3">
           {COIN_TIERS.map((tier, index) => (
-            <View key={tier.value} className="items-center" style={{ width: 38 + index * 2 }}>
-              <CoinArt tier={index} size={38 + index * 2} />
+            <View key={tier.value} className="items-center" style={{ width: 38 }}>
+              <CoinArt tier={index} size={38} />
               <Text className="text-foreground/75 mt-1 text-xs font-bold">
                 {tier.points.toLocaleString()}
               </Text>
