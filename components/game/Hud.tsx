@@ -1,7 +1,7 @@
 import { View } from 'react-native';
 import { Text } from 'heroui-native';
 
-import { CoinArt } from '@/components/game/Sprites';
+import { MineArt } from '@/components/game/Sprites';
 import { GAME } from '@/lib/game/engine';
 
 interface HudProps {
@@ -34,13 +34,13 @@ export function Hud({ score, coins, mines }: HudProps) {
 
       <View className="items-end gap-1">
         <View className="flex-row items-center gap-2">
-          <CoinArt tier={4} size={22} />
+          <View className="bg-coin border-coin-edge h-4 w-4 rounded-full border-2" />
           <Text className="text-foreground text-xl font-bold" style={SHADOW}>
             {coins}
           </Text>
         </View>
         <View className="flex-row items-center gap-2">
-          <View className="bg-mine h-3.5 w-3.5 rounded-full border-2 border-white/40" />
+          <MineArt size={18} />
           <Text className="text-foreground/85 text-base font-semibold" style={SHADOW}>
             {mines}/{GAME.maxMines}
           </Text>
