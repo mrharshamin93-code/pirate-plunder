@@ -1088,13 +1088,13 @@ const CoinValueFace = memo(function CoinValueFace({
 
       <Text
         style={{
-          color: '#fff6d5',
+          color: '#FFD54A',
           fontSize: 13,
           fontWeight: '900',
           lineHeight: 18,
           textAlign: 'center',
           letterSpacing: 0.2,
-          textShadowColor: 'rgba(255, 214, 92, 0.5)',
+          textShadowColor: 'rgba(255, 213, 74, 0.65)',
           textShadowOffset: { width: 0, height: 0 },
           textShadowRadius: 3,
         }}
