@@ -1,5 +1,5 @@
 import { memo, useCallback, useMemo } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import Animated, {
   makeMutable,
@@ -35,6 +35,7 @@ import {
 const FIELD_INSET = { top: 106, bottom: 158, side: 8 } as const;
 const STATS_INTERVAL = 0.12;
 const TIER_INDEXES = Array.from({ length: COIN_TIER_COUNT }, (_, i) => i);
+const TIER_LABELS = ['10', '25', '50', '100', '250', '500', '1,000'] as const;
 
 const WAKE_POOL_SIZE = 24;
 const WAKE_LIFE = 0.72;
@@ -775,6 +776,14 @@ export const GameCanvas = memo(function GameCanvas({
         active={coinActive}
       />
 
+      <CoinValueLabel
+        x={coinX}
+        y={coinY}
+        tier={coinTier}
+        phase={coinPhase}
+        active={coinActive}
+      />
+
       {mines.map((m) => (
         <MineView key={m.id} entity={m} />
       ))}
@@ -911,6 +920,100 @@ const CoinFace = memo(function CoinFace({
   return (
     <Animated.View style={[{ position: 'absolute', left: 0, top: 0 }, style]}>
       <CoinArt tier={index} />
+    </Animated.View>
+  );
+});
+
+
+const CoinValueLabel = memo(function CoinValueLabel({
+  x,
+  y,
+  tier,
+  phase,
+  active,
+}: {
+  x: SharedValue<number>;
+  y: SharedValue<number>;
+  tier: SharedValue<number>;
+  phase: SharedValue<number>;
+  active: SharedValue<number>;
+}) {
+  const width = 64;
+  const height = 22;
+  const coinHalf = SPRITE_BOX.coin / 2;
+
+  const style = useAnimatedStyle(() => ({
+    opacity: active.value,
+    transform: [
+      { translateX: x.value - width / 2 },
+      { translateY: y.value - coinHalf - 22 },
+      { scale: 1 + 0.025 * Math.sin(phase.value) },
+    ],
+  }));
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        {
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width,
+          height,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        style,
+      ]}
+    >
+      {TIER_INDEXES.map((index) => (
+        <CoinValueFace key={index} index={index} tier={tier} />
+      ))}
+    </Animated.View>
+  );
+});
+
+const CoinValueFace = memo(function CoinValueFace({
+  index,
+  tier,
+}: {
+  index: number;
+  tier: SharedValue<number>;
+}) {
+  const style = useAnimatedStyle(() => ({
+    opacity: tier.value === index ? 1 : 0,
+  }));
+
+  return (
+    <Animated.View
+      style={[
+        {
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width: 64,
+          height: 22,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        style,
+      ]}
+    >
+      <Text
+        style={{
+          color: '#f4fbff',
+          fontSize: 12,
+          fontWeight: '800',
+          lineHeight: 16,
+          textAlign: 'center',
+          textShadowColor: 'rgba(0, 0, 0, 0.95)',
+          textShadowOffset: { width: 0, height: 1 },
+          textShadowRadius: 2.5,
+        }}
+      >
+        {TIER_LABELS[index]}
+      </Text>
     </Animated.View>
   );
 });
