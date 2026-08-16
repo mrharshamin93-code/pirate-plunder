@@ -56,10 +56,19 @@ export function Hud({ score, coins, mines, coinTier }: HudProps) {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            minHeight: 28,
+            minHeight: 31,
+            marginBottom: 2,
           }}
         >
-          <CoinArt tier={coinTier} size={20} />
+          <View
+            style={{
+              width: 30,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <CoinArt tier={coinTier} size={24} />
+          </View>
 
           <Text
             className="text-foreground text-lg font-bold"
@@ -71,21 +80,22 @@ export function Hud({ score, coins, mines, coinTier }: HudProps) {
 
         <View
           style={{
-            height: 1,
-            marginVertical: 3,
-            backgroundColor: 'rgba(217,244,251,0.12)',
-          }}
-        />
-
-        <View
-          style={{
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            minHeight: 30,
+            minHeight: 33,
+            marginTop: 2,
           }}
         >
-          <MineArt size={25} />
+          <View
+            style={{
+              width: 30,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <MineArt size={29} />
+          </View>
 
           <Text
             className="text-foreground/90 text-sm font-bold"
