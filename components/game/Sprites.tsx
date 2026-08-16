@@ -408,16 +408,16 @@ export const MineArt = memo(function MineArt() {
 
 const COIN_SHEET_SIZE = 1254;
 const COIN_SPRITES = [
-  { cx: 162, cy: 422, diameter: 292 },
-  { cx: 476, cy: 423, diameter: 294 },
-  { cx: 779, cy: 423, diameter: 292 },
-  { cx: 1091, cy: 423, diameter: 294 },
-  { cx: 162, cy: 840, diameter: 304 },
-  { cx: 480, cy: 841, diameter: 312 },
-  { cx: 865, cy: 837, diameter: 374 },
+  { cx: 164, cy: 427, diameter: 306 },
+  { cx: 474, cy: 427, diameter: 302 },
+  { cx: 780, cy: 427, diameter: 302 },
+  { cx: 1090, cy: 427, diameter: 302 },
+  { cx: 165, cy: 848, diameter: 316 },
+  { cx: 483, cy: 849, diameter: 320 },
+  { cx: 872, cy: 844, diameter: 386 },
 ] as const;
 
-const COIN_SHEET = require('../../assets/images/treasure-coins-3d.png');
+const COIN_SHEET = require('../../assets/images/treasure-coins-3d-v2.png');
 
 export const CoinArt = memo(function CoinArt({ tier, size }: { tier: number; size?: number }) {
   const index = Math.max(0, Math.min(COIN_TIERS.length - 1, tier));
