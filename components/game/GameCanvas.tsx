@@ -184,6 +184,7 @@ export interface GameStats {
   score: number;
   coins: number;
   mines: number;
+  coinTier: number;
 }
 
 interface GameCanvasProps {
@@ -489,8 +490,7 @@ export const GameCanvas = memo(function GameCanvas({
         Math.min(1, (GAME.mineFarRange - td) / (GAME.mineFarRange - GAME.mineNearRange)),
       );
       const chase =
-        GAME.mineFarSpeed +
-        (GAME.mineNearSpeed - GAME.mineFarSpeed) * proximity * proximity;
+        GAME.mineFarSpeed + (GAME.mineNearSpeed - GAME.mineFarSpeed) * proximity * proximity;
       const headX = tx / td;
       const headY = ty / td;
       // each mine weaves on its own phase, so their paths cross and they can
@@ -583,6 +583,7 @@ export const GameCanvas = memo(function GameCanvas({
         score: Math.floor(score.value),
         coins: collected.value,
         mines: liveMines,
+        coinTier: coinTier.value,
       });
     }
 
@@ -597,6 +598,7 @@ export const GameCanvas = memo(function GameCanvas({
         score: Math.floor(score.value),
         coins: collected.value,
         mines: liveMines,
+        coinTier: coinTier.value,
       });
     }
   });
