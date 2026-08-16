@@ -10,7 +10,6 @@ import Svg, {
   RadialGradient,
   Rect,
   Stop,
-  Text as SvgText,
 } from 'react-native-svg';
 
 import { COIN_TIERS, GAME } from '@/lib/game/engine';
@@ -406,29 +405,37 @@ export const MineArt = memo(function MineArt() {
 /* Coin coins — one static sprite per denomination                        */
 /* ------------------------------------------------------------------------- */
 
-/** Coppers for the common coins, silver in the middle, gold for the jackpots. */
+/** Distinct metals let players identify a coin's tier before reading it. */
 const COIN_METALS = [
-  { face: '#c98a4b', rim: '#8d5a26', gloss: '#f0c68f', text: '#5c3312' },
-  { face: '#c98a4b', rim: '#8d5a26', gloss: '#f0c68f', text: '#5c3312' },
-  { face: '#cdd6dd', rim: '#8e9aa4', gloss: '#f4f8fb', text: '#43505a' },
-  { face: '#cdd6dd', rim: '#8e9aa4', gloss: '#f4f8fb', text: '#43505a' },
-  { face: '#ffd34a', rim: '#b8801a', gloss: '#fff3bd', text: '#6b4708' },
-  { face: '#ffdc5e', rim: '#c08b1c', gloss: '#fff8d6', text: '#6b4708' },
-  { face: '#ffe882', rim: '#d19a1f', gloss: '#fffbe6', text: '#6b4708' },
+  { light: '#d78a52', face: '#9b4e29', shade: '#4b2115', rim: '#e3a265', mark: '#3a170f' },
+  { light: '#d4a44e', face: '#856022', shade: '#35250f', rim: '#e1bd67', mark: '#251709' },
+  { light: '#edf0ed', face: '#9ba09d', shade: '#404643', rim: '#f7f5e9', mark: '#252927' },
+  { light: '#d3d1c5', face: '#74746f', shade: '#32332f', rim: '#dedacb', mark: '#22231f' },
+  { light: '#f7ca52', face: '#aa7418', shade: '#563507', rim: '#ffd96c', mark: '#4a2b05' },
+  { light: '#ffe16b', face: '#d79b20', shade: '#70460a', rim: '#fff09a', mark: '#593305' },
+  { light: '#fff09a', face: '#e3a51f', shade: '#80500a', rim: '#fff7c4', mark: '#5b3404' },
 ] as const;
 
 const NOTCH_COUNT = 16;
 
-export const CoinArt = memo(function CoinArt({ tier }: { tier: number }) {
+export const CoinArt = memo(function CoinArt({ tier, size }: { tier: number; size?: number }) {
   const box = SPRITE_BOX.coin;
   const half = box / 2;
   const index = Math.max(0, Math.min(COIN_TIERS.length - 1, tier));
   const metal = COIN_METALS[index];
-  const value = COIN_TIERS[index].value;
-  const r = 13;
+  const r = 12.2 + index * 0.36;
+  const renderedSize = size ?? box;
+  const gradientId = `coin-metal-${index}`;
 
   return (
-    <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
+    <Svg width={renderedSize} height={renderedSize} viewBox={`${-half} ${-half} ${box} ${box}`}>
+      <Defs>
+        <RadialGradient id={gradientId} cx="34%" cy="28%" r="72%">
+          <Stop offset="0%" stopColor={metal.light} />
+          <Stop offset="58%" stopColor={metal.face} />
+          <Stop offset="100%" stopColor={metal.shade} />
+        </RadialGradient>
+      </Defs>
       {/* milled edge */}
       {Array.from({ length: NOTCH_COUNT }, (_, i) => {
         const a = (i / NOTCH_COUNT) * Math.PI * 2;
@@ -440,44 +447,80 @@ export const CoinArt = memo(function CoinArt({ tier }: { tier: number }) {
             width={3}
             height={2.8}
             rx={1}
-            fill={metal.rim}
+            fill={metal.shade}
             transform={`rotate(${(a * 180) / Math.PI})`}
           />
         );
       })}
 
-      <Circle cx={0} cy={0} r={r} fill={metal.rim} />
-      <Circle cx={0} cy={0} r={r - 2} fill={metal.face} />
+      <Circle cx={1.1} cy={1.5} r={r + 0.8} fill="#02090c" opacity={0.55} />
+      <Circle cx={0} cy={0} r={r} fill={metal.shade} stroke={metal.rim} strokeWidth={1.15} />
+      <Circle cx={0} cy={0} r={r - 1.8} fill={`url(#${gradientId})`} />
       <Circle
         cx={0}
         cy={0}
         r={r - 4}
         fill="none"
         stroke={metal.rim}
-        strokeWidth={1}
-        opacity={0.6}
+        strokeWidth={0.8}
+        opacity={0.72}
       />
 
-      <SvgText
-        x={0}
-        y={value >= 100 ? 3.6 : 4}
-        fill={metal.text}
-        fontSize={value >= 100 ? 10 : 13}
-        fontWeight="bold"
-        textAnchor="middle"
-      >
-        {String(value)}
-      </SvgText>
+      <Path
+        d="M -7.2 6.8 L 6.8 -6.4 M -6.8 -6.4 L 7.2 6.8"
+        stroke={metal.mark}
+        strokeWidth={2.15}
+        strokeLinecap="round"
+      />
+      <Circle cx={-7.5} cy={7.2} r={1.35} fill={metal.mark} />
+      <Circle cx={7.3} cy={-6.9} r={1.35} fill={metal.mark} />
+      <Circle cx={-7.3} cy={-6.9} r={1.35} fill={metal.mark} />
+      <Circle cx={7.5} cy={7.2} r={1.35} fill={metal.mark} />
+
+      <Path
+        d="M -6 -3.4 C -6 -8.6 6 -8.6 6 -3.4 C 6 0 4.4 2.4 2.8 3.2 L 2.8 7 L -2.8 7 L -2.8 3.2 C -4.4 2.4 -6 0 -6 -3.4 Z"
+        fill={metal.rim}
+        stroke={metal.mark}
+        strokeWidth={1}
+      />
+      <Ellipse cx={-2.5} cy={-2.1} rx={1.65} ry={1.9} fill={metal.mark} />
+      <Ellipse cx={2.5} cy={-2.1} rx={1.65} ry={1.9} fill={metal.mark} />
+      <Path d="M 0 0.2 L -1.1 2 L 1.1 2 Z" fill={metal.mark} />
+      <Path
+        d="M -2.6 4.4 L 2.6 4.4 M -0.9 4.3 L -0.9 6.8 M 0.9 4.3 L 0.9 6.8"
+        stroke={metal.mark}
+        strokeWidth={0.8}
+      />
+
+      {Array.from({ length: 10 }, (_, i) => {
+        const a = (i / 10) * Math.PI * 2;
+        const rr = r - 3;
+        return (
+          <Circle
+            key={`rivet-${i}`}
+            cx={Math.cos(a) * rr}
+            cy={Math.sin(a) * rr}
+            r={0.65}
+            fill={metal.rim}
+          />
+        );
+      })}
 
       {/* gloss crescent */}
       <Path
         d={`M ${-r + 3} -4 A ${r - 3} ${r - 3} 0 0 1 -1 ${-r + 3}`}
-        stroke={metal.gloss}
-        strokeWidth={2.4}
+        stroke={metal.rim}
+        strokeWidth={1.7}
         strokeLinecap="round"
         fill="none"
         opacity={0.9}
       />
+      {index >= 5 ? (
+        <Path
+          d="M 8 -13 L 9.2 -9.6 L 12.5 -8.5 L 9.2 -7.4 L 8 -4 L 6.8 -7.4 L 3.5 -8.5 L 6.8 -9.6 Z"
+          fill="#fff8cc"
+        />
+      ) : null}
     </Svg>
   );
 });
