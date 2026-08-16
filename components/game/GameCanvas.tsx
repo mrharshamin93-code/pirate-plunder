@@ -742,6 +742,56 @@ export const GameCanvas = memo(function GameCanvas({
 
   return (
     <View style={{ width, height, overflow: 'hidden' }}>
+      {/* Darker non-playable ocean outside the arena. */}
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: 0,
+          width,
+          height: top,
+          backgroundColor: 'rgba(2, 18, 28, 0.72)',
+        }}
+      />
+
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: 0,
+          top: bottom,
+          width,
+          height: Math.max(0, height - bottom),
+          backgroundColor: 'rgba(2, 18, 28, 0.72)',
+        }}
+      />
+
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: 0,
+          top,
+          width: left,
+          height: Math.max(0, bottom - top),
+          backgroundColor: 'rgba(2, 18, 28, 0.72)',
+        }}
+      />
+
+      <View
+        pointerEvents="none"
+        style={{
+          position: 'absolute',
+          left: right,
+          top,
+          width: Math.max(0, width - right),
+          height: Math.max(0, bottom - top),
+          backgroundColor: 'rgba(2, 18, 28, 0.72)',
+        }}
+      />
+
+      {/* Playable-area edge highlight. */}
       <View
         pointerEvents="none"
         style={{
@@ -752,7 +802,10 @@ export const GameCanvas = memo(function GameCanvas({
           height: Math.max(0, bottom - top),
           borderRadius: 18,
           borderWidth: 2,
-          borderColor: 'rgba(217,244,251,0.18)',
+          borderColor: 'rgba(183, 235, 244, 0.32)',
+          shadowColor: '#7ed7e5',
+          shadowOpacity: 0.14,
+          shadowRadius: 7,
         }}
       />
 
