@@ -418,7 +418,7 @@ const COIN_SPRITES = [
   { cx: 872, cy: 844, diameter: 386 }, // 1,000 points
 ] as const;
 
-const COIN_SHEET = require('../../assets/images/treasure-coins-3d-v7.png');
+const COIN_SHEET = require('../../assets/images/treasure-coins-3d-v8.png');
 
 export const CoinArt = memo(function CoinArt({ tier, size }: { tier: number; size?: number }) {
   const index = Math.max(0, Math.min(COIN_TIERS.length - 1, tier));
