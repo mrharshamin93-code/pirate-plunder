@@ -325,8 +325,9 @@ export const BoatArt = memo(function BoatArt() {
 
 const SPIKE_COUNT = 10;
 
-export const MineArt = memo(function MineArt() {
+export const MineArt = memo(function MineArt({ size }: { size?: number }) {
   const box = SPRITE_BOX.mine;
+  const renderedSize = size ?? box;
   const half = box / 2;
   const bodyR = 13;
   const spikes = Array.from({ length: SPIKE_COUNT }, (_, i) => {
@@ -342,7 +343,7 @@ export const MineArt = memo(function MineArt() {
   });
 
   return (
-    <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
+    <Svg width={renderedSize} height={renderedSize} viewBox={`${-half} ${-half} ${box} ${box}`}>
       <Defs>
         <RadialGradient id="mineBody" cx="35%" cy="30%" r="75%">
           <Stop offset="0%" stopColor={PALETTE.mineLight} />
