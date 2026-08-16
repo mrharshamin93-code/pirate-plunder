@@ -63,7 +63,7 @@ const PALETTE = {
 export const SPRITE_BOX = {
   boat: 84,
   mine: 56,
-  coin: 36,
+  coin: 32,
   whirlpool: 170,
   explosion: 120,
   raiderShip: 132,
@@ -408,16 +408,16 @@ export const MineArt = memo(function MineArt() {
 
 const COIN_SHEET_SIZE = 1254;
 const COIN_SPRITES = [
-  { cx: 161, cy: 413, diameter: 274 },
-  { cx: 469, cy: 414, diameter: 274 },
-  { cx: 777, cy: 414, diameter: 280 },
-  { cx: 1090, cy: 414, diameter: 284 },
-  { cx: 158, cy: 837, diameter: 294 },
-  { cx: 477, cy: 839, diameter: 304 },
-  { cx: 865, cy: 829, diameter: 378 },
+  { cx: 162, cy: 422, diameter: 292 },
+  { cx: 476, cy: 423, diameter: 294 },
+  { cx: 779, cy: 423, diameter: 292 },
+  { cx: 1091, cy: 423, diameter: 294 },
+  { cx: 162, cy: 840, diameter: 304 },
+  { cx: 480, cy: 841, diameter: 312 },
+  { cx: 865, cy: 837, diameter: 374 },
 ] as const;
 
-const COIN_SHEET = require('../../assets/images/treasure-coins.png');
+const COIN_SHEET = require('../../assets/images/treasure-coins-3d.png');
 
 export const CoinArt = memo(function CoinArt({ tier, size }: { tier: number; size?: number }) {
   const index = Math.max(0, Math.min(COIN_TIERS.length - 1, tier));
