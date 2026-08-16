@@ -1,5 +1,6 @@
 import { memo, useCallback, useMemo } from 'react';
 import { Platform, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { Gesture } from 'react-native-gesture-handler';
 import Animated, {
   makeMutable,
@@ -742,54 +743,39 @@ export const GameCanvas = memo(function GameCanvas({
 
   return (
     <View style={{ width, height, overflow: 'hidden' }}>
-      {/* Darker non-playable ocean outside the arena. */}
-      <View
+      {/* Dark non-playable ocean with a rounded cut-out for the playable arena.
+          Using one even-odd SVG mask removes the sharp rectangular corner joins
+          and leaves only the curved playable edge visible. */}
+      <Svg
         pointerEvents="none"
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          width,
-          height: top,
-          backgroundColor: 'rgba(2, 18, 28, 0.72)',
-        }}
-      />
+        width={width}
+        height={height}
+        style={{ position: 'absolute', left: 0, top: 0 }}
+      >
+        <Path
+          d={`
+            M 0 0
+            H ${width}
+            V ${height}
+            H 0
+            Z
 
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          left: 0,
-          top: bottom,
-          width,
-          height: Math.max(0, height - bottom),
-          backgroundColor: 'rgba(2, 18, 28, 0.72)',
-        }}
-      />
-
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          left: 0,
-          top,
-          width: left,
-          height: Math.max(0, bottom - top),
-          backgroundColor: 'rgba(2, 18, 28, 0.72)',
-        }}
-      />
-
-      <View
-        pointerEvents="none"
-        style={{
-          position: 'absolute',
-          left: right,
-          top,
-          width: Math.max(0, width - right),
-          height: Math.max(0, bottom - top),
-          backgroundColor: 'rgba(2, 18, 28, 0.72)',
-        }}
-      />
+            M ${left + 18} ${top}
+            H ${right - 18}
+            A 18 18 0 0 1 ${right} ${top + 18}
+            V ${bottom - 18}
+            A 18 18 0 0 1 ${right - 18} ${bottom}
+            H ${left + 18}
+            A 18 18 0 0 1 ${left} ${bottom - 18}
+            V ${top + 18}
+            A 18 18 0 0 1 ${left + 18} ${top}
+            Z
+          `}
+          fill="rgba(2, 18, 28, 0.72)"
+          fillRule="evenodd"
+          clipRule="evenodd"
+        />
+      </Svg>
 
       {/* Playable-area edge highlight. */}
       <View
