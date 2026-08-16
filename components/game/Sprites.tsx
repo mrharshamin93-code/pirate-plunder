@@ -412,8 +412,8 @@ const COIN_SPRITES = [
   { cx: 164, cy: 427, diameter: 306 }, // 10 points
   { cx: 474, cy: 427, diameter: 302 }, // 25 points
   { cx: 780, cy: 427, diameter: 302 }, // 50 points
-  { cx: 483, cy: 849, diameter: 320 }, // 100 points (former 500 artwork)
-  { cx: 165, cy: 848, diameter: 316 }, // 250 points
+  { cx: 165, cy: 848, diameter: 316 }, // 100 points
+  { cx: 483, cy: 849, diameter: 320 }, // 250 points (former 500 artwork)
   { cx: 1090, cy: 427, diameter: 302 }, // 500 points (shiny silver artwork)
   { cx: 872, cy: 844, diameter: 386 }, // 1,000 points
 ] as const;
