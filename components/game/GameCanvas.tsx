@@ -938,18 +938,23 @@ const CoinValueLabel = memo(function CoinValueLabel({
   phase: SharedValue<number>;
   active: SharedValue<number>;
 }) {
-  const width = 64;
-  const height = 22;
+  const width = 72;
+  const height = 26;
   const coinHalf = SPRITE_BOX.coin / 2;
 
-  const style = useAnimatedStyle(() => ({
-    opacity: active.value,
-    transform: [
-      { translateX: x.value - width / 2 },
-      { translateY: y.value - coinHalf - 22 },
-      { scale: 1 + 0.025 * Math.sin(phase.value) },
-    ],
-  }));
+  const style = useAnimatedStyle(() => {
+    // Keep the label perfectly in sync with the coin pulse.
+    const pulse = 1 + 0.08 * Math.sin(phase.value);
+
+    return {
+      opacity: active.value,
+      transform: [
+        { translateX: x.value - width / 2 },
+        { translateY: y.value - coinHalf - 24 },
+        { scale: pulse },
+      ],
+    };
+  });
 
   return (
     <Animated.View
@@ -992,24 +997,53 @@ const CoinValueFace = memo(function CoinValueFace({
           position: 'absolute',
           left: 0,
           top: 0,
-          width: 64,
-          height: 22,
+          width: 72,
+          height: 26,
           alignItems: 'center',
           justifyContent: 'center',
         },
         style,
       ]}
     >
+      {/* faux outline: eight dark copies around the bright center text */}
+      {[
+        [-1.5, 0],
+        [1.5, 0],
+        [0, -1.5],
+        [0, 1.5],
+        [-1.2, -1.2],
+        [1.2, -1.2],
+        [-1.2, 1.2],
+        [1.2, 1.2],
+      ].map(([dx, dy], outlineIndex) => (
+        <Text
+          key={outlineIndex}
+          style={{
+            position: 'absolute',
+            transform: [{ translateX: dx }, { translateY: dy }],
+            color: '#07171d',
+            fontSize: 13,
+            fontWeight: '900',
+            lineHeight: 18,
+            textAlign: 'center',
+            letterSpacing: 0.2,
+          }}
+        >
+          {TIER_LABELS[index]}
+        </Text>
+      ))}
+
       <Text
         style={{
-          color: '#f4fbff',
-          fontSize: 12,
-          fontWeight: '800',
-          lineHeight: 16,
+          color: '#fff6d5',
+          fontSize: 13,
+          fontWeight: '900',
+          lineHeight: 18,
           textAlign: 'center',
-          textShadowColor: 'rgba(0, 0, 0, 0.95)',
-          textShadowOffset: { width: 0, height: 1 },
-          textShadowRadius: 2.5,
+          letterSpacing: 0.2,
+          textShadowColor: 'rgba(255, 214, 92, 0.5)',
+          textShadowOffset: { width: 0, height: 0 },
+          textShadowRadius: 3,
         }}
       >
         {TIER_LABELS[index]}
