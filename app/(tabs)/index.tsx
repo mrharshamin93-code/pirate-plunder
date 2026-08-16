@@ -13,7 +13,7 @@ import { OceanBackground } from '@/components/game/Sprites';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
 import { useGameStore } from '@/lib/game/store';
 
-const EMPTY_STATS: GameStats = { score: 0, coins: 0, mines: 0 };
+const EMPTY_STATS: GameStats = { score: 0, coins: 0, mines: 0, coinTier: 0 };
 
 export default function Home() {
   const { width, height } = useWindowDimensions();
@@ -82,7 +82,12 @@ export default function Home() {
       ) : null}
 
       {phase === 'playing' ? (
-        <Hud score={stats.score} coins={stats.coins} mines={stats.mines} />
+        <Hud
+          score={stats.score}
+          coins={stats.coins}
+          mines={stats.mines}
+          coinTier={stats.coinTier}
+        />
       ) : null}
 
       {popups.map((p) => (
