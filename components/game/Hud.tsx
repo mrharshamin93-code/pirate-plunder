@@ -56,8 +56,8 @@ export function Hud({ score, coins, mines, coinTier }: HudProps) {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            minHeight: 31,
-            marginBottom: 2,
+            minHeight: 28,
+            marginBottom: -2,
           }}
         >
           <View
@@ -83,8 +83,8 @@ export function Hud({ score, coins, mines, coinTier }: HudProps) {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
-            minHeight: 33,
-            marginTop: 2,
+            minHeight: 30,
+            marginTop: -2,
           }}
         >
           <View
