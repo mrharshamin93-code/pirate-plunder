@@ -44,8 +44,12 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       package:
         process.env.BILT_ANDROID_PACKAGE ?? 'com.harshamin.piratesplunder',
+
+      // Firebase Android configuration
       googleServicesFile: './google-services.json',
+
       icon: './public/icons/icon-512.png',
+
       adaptiveIcon: {
         foregroundImage: './public/icons/icon-512-maskable.png',
         backgroundColor: '#06202B',
@@ -61,6 +65,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
 
     extra: {
       appStoreAppId: process.env.BILT_APP_STORE_APP_ID,
+
       eas: {
         projectId: '7b93db2f-0866-4f20-bb30-f4be96435582',
       },
@@ -69,8 +74,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     plugins: [
       'expo-router',
       'expo-font',
+
+      // React Native Firebase base native configuration.
+      // Analytics is installed as a package but is NOT an Expo config plugin.
       '@react-native-firebase/app',
-      '@react-native-firebase/analytics',
+
       [
         'expo-splash-screen',
         {
@@ -78,12 +86,14 @@ export default ({ config }: ConfigContext): ExpoConfig => {
           imageWidth: 240,
           resizeMode: 'contain',
           backgroundColor: '#06202B',
+
           dark: {
             image: './public/icons/icon-512.png',
             backgroundColor: '#06202B',
           },
         },
       ],
+
       ...nativePlugins,
     ],
 
