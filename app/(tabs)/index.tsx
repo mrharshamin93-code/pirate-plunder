@@ -12,6 +12,7 @@ import { MusicToggle } from '@/components/game/MusicToggle';
 import { ScorePopup, type Popup } from '@/components/game/ScorePopup';
 import { OceanBackground } from '@/components/game/Sprites';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
+import { trackCoinPickup, trackGameEnded, trackGameStarted } from '@/lib/analytics';
 import { useGameStore } from '@/lib/game/store';
 
 const EMPTY_STATS: GameStats = { score: 0, coins: 0, mines: 0, coinTier: 0 };
@@ -34,6 +35,7 @@ export default function Home() {
   const [stats, setStats] = useState<GameStats>(EMPTY_STATS);
   const [popups, setPopups] = useState<Popup[]>([]);
   const popupId = useRef(0);
+  const runStartedAt = useRef<number | null>(null);
 
   // Keep the entire interactive game layer inside the device safe area.
   // GameCanvas already reserves its top HUD zone and bottom joystick zone,
@@ -53,11 +55,18 @@ export default function Home() {
     setStats(EMPTY_STATS);
     setPopups([]);
     setRunId((n) => n + 1);
+    runStartedAt.current = Date.now();
+    void trackGameStarted();
     startGame();
   }, [startGame]);
 
   const handleGameOver = useCallback(
     (score: number, coins: number) => {
+      const startedAt = runStartedAt.current;
+      const durationSeconds = startedAt === null ? 0 : (Date.now() - startedAt) / 1000;
+      runStartedAt.current = null;
+
+      void trackGameEnded({ score, coins, durationSeconds });
       void endGame(score, coins);
     },
     [endGame],
@@ -68,6 +77,7 @@ export default function Home() {
       popupId.current += 1;
       const next: Popup = { id: popupId.current, points, x, y: y + gameTop };
       setPopups((current) => [...current, next]);
+      void trackCoinPickup(points);
     },
     [gameTop],
   );
