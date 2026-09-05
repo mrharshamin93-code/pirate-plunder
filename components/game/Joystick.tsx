@@ -47,7 +47,6 @@ const RingArt = memo(function RingArt() {
         strokeWidth={3}
       />
       <Circle r={half - 16} fill="none" stroke="rgba(217,244,251,0.12)" strokeWidth={1.5} />
-      {/* compass ticks, one per quarter */}
       {[0, 90, 180, 270].map((deg) => (
         <Polygon
           key={deg}
@@ -89,7 +88,7 @@ export function Joystick({ input }: { input: JoystickInput }) {
   return (
     <View
       pointerEvents="box-none"
-      className="pb-safe-offset-3 absolute right-0 bottom-0 left-0 items-center"
+      className="absolute right-0 bottom-0 left-0 items-center pb-3"
     >
       <GestureDetector gesture={gesture}>
         <Animated.View
