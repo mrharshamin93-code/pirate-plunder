@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, useWindowDimensions } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GameCanvas, type GameStats } from '@/components/game/GameCanvas';
 import { GameOverOverlay } from '@/components/game/GameOverOverlay';
@@ -17,6 +18,7 @@ const EMPTY_STATS: GameStats = { score: 0, coins: 0, mines: 0, coinTier: 0 };
 
 export default function Home() {
   const { width, height } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const phase = useGameStore((s) => s.phase);
   const highScores = useGameStore((s) => s.highScores);
   const lastScore = useGameStore((s) => s.lastScore);
@@ -32,6 +34,14 @@ export default function Home() {
   const [stats, setStats] = useState<GameStats>(EMPTY_STATS);
   const [popups, setPopups] = useState<Popup[]>([]);
   const popupId = useRef(0);
+
+  // Keep the entire interactive game layer inside the device safe area.
+  // GameCanvas already reserves its top HUD zone and bottom joystick zone,
+  // so this prevents either control from ever overlapping system UI or
+  // pushing into the playable arena on phones with larger insets.
+  const gameTop = Math.max(0, insets.top);
+  const gameBottom = Math.max(0, insets.bottom);
+  const gameHeight = Math.max(320, height - gameTop - gameBottom);
 
   useBackgroundMusic(phase === 'playing' && !musicMuted);
 
@@ -53,11 +63,14 @@ export default function Home() {
     [endGame],
   );
 
-  const handlePickup = useCallback((points: number, x: number, y: number) => {
-    popupId.current += 1;
-    const next: Popup = { id: popupId.current, points, x, y };
-    setPopups((current) => [...current, next]);
-  }, []);
+  const handlePickup = useCallback(
+    (points: number, x: number, y: number) => {
+      popupId.current += 1;
+      const next: Popup = { id: popupId.current, points, x, y: y + gameTop };
+      setPopups((current) => [...current, next]);
+    },
+    [gameTop],
+  );
 
   const handlePopupDone = useCallback((id: number) => {
     setPopups((current) => current.filter((p) => p.id !== id));
@@ -71,14 +84,25 @@ export default function Home() {
       <OceanBackground width={width} height={height} />
 
       {phase === 'playing' ? (
-        <GameCanvas
-          key={runId}
-          width={width}
-          height={height}
-          onGameOver={handleGameOver}
-          onStats={setStats}
-          onPickup={handlePickup}
-        />
+        <View
+          pointerEvents="box-none"
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            top: gameTop,
+            height: gameHeight,
+          }}
+        >
+          <GameCanvas
+            key={runId}
+            width={width}
+            height={gameHeight}
+            onGameOver={handleGameOver}
+            onStats={setStats}
+            onPickup={handlePickup}
+          />
+        </View>
       ) : null}
 
       {phase === 'playing' ? (
