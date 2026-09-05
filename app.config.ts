@@ -44,6 +44,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     android: {
       package:
         process.env.BILT_ANDROID_PACKAGE ?? 'com.harshamin.piratesplunder',
+      googleServicesFile: './google-services.json',
       icon: './public/icons/icon-512.png',
       adaptiveIcon: {
         foregroundImage: './public/icons/icon-512-maskable.png',
@@ -68,6 +69,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     plugins: [
       'expo-router',
       'expo-font',
+      '@react-native-firebase/app',
+      '@react-native-firebase/analytics',
       [
         'expo-splash-screen',
         {
