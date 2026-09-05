@@ -16,6 +16,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     slug: 'pirate-plunder',
     version: process.env.BILT_APP_VERSION ?? '1.0.0',
     scheme: 'pirate-plunder',
+    icon: './public/icons/icon-512.png',
 
     // App settings
     newArchEnabled: true,
@@ -36,12 +37,18 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       supportsTablet: true,
       bundleIdentifier:
         process.env.BILT_IOS_BUNDLE_ID ?? 'com.harshamin.piratesplunder',
+      icon: './public/icons/icon-512.png',
     },
 
     // Android
     android: {
       package:
         process.env.BILT_ANDROID_PACKAGE ?? 'com.harshamin.piratesplunder',
+      icon: './public/icons/icon-512.png',
+      adaptiveIcon: {
+        foregroundImage: './public/icons/icon-512-maskable.png',
+        backgroundColor: '#06202B',
+      },
     },
 
     // Web
@@ -52,11 +59,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
 
     extra: {
-  appStoreAppId: process.env.BILT_APP_STORE_APP_ID,
-  eas: {
-    projectId: '7b93db2f-0866-4f20-bb30-f4be96435582',
-  },
-},
+      appStoreAppId: process.env.BILT_APP_STORE_APP_ID,
+      eas: {
+        projectId: '7b93db2f-0866-4f20-bb30-f4be96435582',
+      },
+    },
 
     plugins: ['expo-router', 'expo-font', ...nativePlugins],
 
