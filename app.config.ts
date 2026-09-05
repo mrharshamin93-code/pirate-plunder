@@ -65,7 +65,24 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       },
     },
 
-    plugins: ['expo-router', 'expo-font', ...nativePlugins],
+    plugins: [
+      'expo-router',
+      'expo-font',
+      [
+        'expo-splash-screen',
+        {
+          image: './public/icons/icon-512.png',
+          imageWidth: 240,
+          resizeMode: 'contain',
+          backgroundColor: '#06202B',
+          dark: {
+            image: './public/icons/icon-512.png',
+            backgroundColor: '#06202B',
+          },
+        },
+      ],
+      ...nativePlugins,
+    ],
 
     experiments: {
       typedRoutes: true,
