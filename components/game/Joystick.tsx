@@ -1,5 +1,5 @@
-import { memo, useMemo } from 'react';
-import { View } from 'react-native';
+import { memo, useEffect, useMemo } from 'react';
+import { View, useWindowDimensions } from 'react-native';
 import { Gesture, GestureDetector, type GestureType } from 'react-native-gesture-handler';
 import Animated, {
   useAnimatedStyle,
@@ -10,11 +10,12 @@ import Animated, {
 import Svg, { Circle, Polygon } from 'react-native-svg';
 
 /**
- * Dynamic thumbstick used to steer the boat.
+ * Semi-dynamic thumbstick used to steer the boat.
  *
- * The player can press anywhere inside the bottom control zone. That first touch
- * becomes the centre of the joystick, and dragging away from it controls heading
- * and thrust. Releasing the finger hides and resets the joystick.
+ * The joystick has a normal home position at the bottom centre of the screen.
+ * A touch near that home position lets the base slide underneath the player's
+ * thumb, while touches farther away only shift the base by a limited amount.
+ * Releasing the finger returns the joystick to its home position.
  */
 export const JOYSTICK = {
   /** diameter of the base ring */
@@ -25,8 +26,10 @@ export const JOYSTICK = {
   throw: 40,
   /** offsets smaller than this read as "let go of the stick" */
   deadZone: 7,
-  /** height of the bottom area in which a dynamic joystick can be started */
+  /** height of the bottom area that accepts joystick touches */
   touchZoneHeight: 158,
+  /** maximum distance the joystick base can move away from home */
+  baseShift: 72,
 } as const;
 
 export interface JoystickInput {
@@ -45,6 +48,7 @@ export interface JoystickInput {
 const RingArt = memo(function RingArt() {
   const box = JOYSTICK.base;
   const half = box / 2;
+
   return (
     <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
       <Circle
@@ -69,6 +73,7 @@ const RingArt = memo(function RingArt() {
 const KnobArt = memo(function KnobArt() {
   const box = JOYSTICK.knob;
   const half = box / 2;
+
   return (
     <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
       <Circle r={half - 2} fill="rgba(217,244,251,0.9)" />
@@ -80,10 +85,22 @@ const KnobArt = memo(function KnobArt() {
 });
 
 export function Joystick({ input }: { input: JoystickInput }) {
+  const { width } = useWindowDimensions();
   const { dirX, dirY, knobX, knobY, magnitude } = input;
-  const originX = useSharedValue(0);
-  const originY = useSharedValue(0);
+
+  const homeX = useSharedValue(width / 2);
+  const homeY = useSharedValue(JOYSTICK.touchZoneHeight - JOYSTICK.base / 2 - 8);
+  const originX = useSharedValue(width / 2);
+  const originY = useSharedValue(JOYSTICK.touchZoneHeight - JOYSTICK.base / 2 - 8);
   const active = useSharedValue(0);
+
+  useEffect(() => {
+    homeX.value = width / 2;
+
+    if (active.value === 0) {
+      originX.value = width / 2;
+    }
+  }, [active, homeX, originX, width]);
 
   const gesture = useMemo(() => {
     const apply = (px: number, py: number) => {
@@ -109,17 +126,35 @@ export function Joystick({ input }: { input: JoystickInput }) {
       knobY.value = (dy / dist) * clamped;
     };
 
+    const recenterTowardTouch = (px: number, py: number) => {
+      'worklet';
+
+      const dx = px - homeX.value;
+      const dy = py - homeY.value;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist <= JOYSTICK.baseShift || dist === 0) {
+        originX.value = px;
+        originY.value = py;
+        return;
+      }
+
+      const scale = JOYSTICK.baseShift / dist;
+      originX.value = homeX.value + dx * scale;
+      originY.value = homeY.value + dy * scale;
+    };
+
     return Gesture.Pan()
       .minDistance(0)
       .maxPointers(1)
       .onBegin((e) => {
         'worklet';
-        originX.value = e.x;
-        originY.value = e.y;
+        active.value = 1;
+        recenterTowardTouch(e.x, e.y);
         knobX.value = 0;
         knobY.value = 0;
         magnitude.value = 0;
-        active.value = 1;
+        apply(e.x, e.y);
       })
       .onUpdate((e) => {
         'worklet';
@@ -128,14 +163,16 @@ export function Joystick({ input }: { input: JoystickInput }) {
       .onFinalize(() => {
         'worklet';
         magnitude.value = 0;
-        knobX.value = withTiming(0, { duration: 110 });
-        knobY.value = withTiming(0, { duration: 110 });
-        active.value = withTiming(0, { duration: 90 });
+        knobX.value = withTiming(0, { duration: 120 });
+        knobY.value = withTiming(0, { duration: 120 });
+        originX.value = withTiming(homeX.value, { duration: 150 });
+        originY.value = withTiming(homeY.value, { duration: 150 });
+        active.value = withTiming(0, { duration: 120 });
       });
-  }, [active, dirX, dirY, magnitude, knobX, knobY, originX, originY]);
+  }, [active, dirX, dirY, homeX, homeY, magnitude, knobX, knobY, originX, originY]);
 
   const ringStyle = useAnimatedStyle(() => ({
-    opacity: active.value * (0.7 + 0.3 * magnitude.value),
+    opacity: active.value > 0 ? 0.78 + 0.22 * magnitude.value : 0.52,
     transform: [
       { translateX: originX.value - JOYSTICK.base / 2 },
       { translateY: originY.value - JOYSTICK.base / 2 },
@@ -143,7 +180,7 @@ export function Joystick({ input }: { input: JoystickInput }) {
   }));
 
   const knobStyle = useAnimatedStyle(() => ({
-    opacity: active.value * (0.75 + 0.25 * magnitude.value),
+    opacity: active.value > 0 ? 0.78 + 0.22 * magnitude.value : 0.72,
     transform: [
       { translateX: originX.value - JOYSTICK.knob / 2 + knobX.value },
       { translateY: originY.value - JOYSTICK.knob / 2 + knobY.value },
