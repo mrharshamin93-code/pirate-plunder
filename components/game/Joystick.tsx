@@ -1,19 +1,23 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { View } from 'react-native';
-import { GestureDetector, type GestureType } from 'react-native-gesture-handler';
-import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
+import { Gesture, GestureDetector, type GestureType } from 'react-native-gesture-handler';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 import Svg, { Circle, Polygon } from 'react-native-svg';
 
 /**
- * Thumbstick used to steer the boat: she heads where the stick points and rows
- * harder the further it is pushed.
+ * Dynamic thumbstick used to steer the boat.
  *
- * The shared values and the gesture that writes to them are both created by the
- * owning GameCanvas and handed down here fully formed, so this component only
- * reads them for styling and never mutates a prop.
+ * The player can press anywhere inside the bottom control zone. That first touch
+ * becomes the centre of the joystick, and dragging away from it controls heading
+ * and thrust. Releasing the finger hides and resets the joystick.
  */
 export const JOYSTICK = {
-  /** diameter of the base ring, and of the touch target */
+  /** diameter of the base ring */
   base: 138,
   /** diameter of the thumb knob */
   knob: 58,
@@ -21,6 +25,8 @@ export const JOYSTICK = {
   throw: 40,
   /** offsets smaller than this read as "let go of the stick" */
   deadZone: 7,
+  /** height of the bottom area in which a dynamic joystick can be started */
+  touchZoneHeight: 158,
 } as const;
 
 export interface JoystickInput {
@@ -32,6 +38,7 @@ export interface JoystickInput {
   /** knob offset in px, already clamped to JOYSTICK.throw */
   knobX: SharedValue<number>;
   knobY: SharedValue<number>;
+  /** retained for compatibility with the existing GameCanvas input shape */
   gesture: GestureType;
 }
 
@@ -73,39 +80,109 @@ const KnobArt = memo(function KnobArt() {
 });
 
 export function Joystick({ input }: { input: JoystickInput }) {
-  const { knobX, knobY, magnitude, gesture } = input;
-  const half = JOYSTICK.knob / 2;
+  const { dirX, dirY, knobX, knobY, magnitude } = input;
+  const originX = useSharedValue(0);
+  const originY = useSharedValue(0);
+  const active = useSharedValue(0);
 
-  const knobStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: knobX.value }, { translateY: knobY.value }],
-    opacity: 0.75 + 0.25 * magnitude.value,
-  }));
+  const gesture = useMemo(() => {
+    const apply = (px: number, py: number) => {
+      'worklet';
+
+      const dx = px - originX.value;
+      const dy = py - originY.value;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+
+      if (dist < JOYSTICK.deadZone) {
+        magnitude.value = 0;
+        knobX.value = dx;
+        knobY.value = dy;
+        return;
+      }
+
+      dirX.value = dx / dist;
+      dirY.value = dy / dist;
+      magnitude.value = Math.min(1, dist / JOYSTICK.throw);
+
+      const clamped = Math.min(dist, JOYSTICK.throw);
+      knobX.value = (dx / dist) * clamped;
+      knobY.value = (dy / dist) * clamped;
+    };
+
+    return Gesture.Pan()
+      .minDistance(0)
+      .maxPointers(1)
+      .onBegin((e) => {
+        'worklet';
+        originX.value = e.x;
+        originY.value = e.y;
+        knobX.value = 0;
+        knobY.value = 0;
+        magnitude.value = 0;
+        active.value = 1;
+      })
+      .onUpdate((e) => {
+        'worklet';
+        apply(e.x, e.y);
+      })
+      .onFinalize(() => {
+        'worklet';
+        magnitude.value = 0;
+        knobX.value = withTiming(0, { duration: 110 });
+        knobY.value = withTiming(0, { duration: 110 });
+        active.value = withTiming(0, { duration: 90 });
+      });
+  }, [active, dirX, dirY, magnitude, knobX, knobY, originX, originY]);
 
   const ringStyle = useAnimatedStyle(() => ({
-    opacity: 0.7 + 0.3 * magnitude.value,
+    opacity: active.value * (0.7 + 0.3 * magnitude.value),
+    transform: [
+      { translateX: originX.value - JOYSTICK.base / 2 },
+      { translateY: originY.value - JOYSTICK.base / 2 },
+    ],
+  }));
+
+  const knobStyle = useAnimatedStyle(() => ({
+    opacity: active.value * (0.75 + 0.25 * magnitude.value),
+    transform: [
+      { translateX: originX.value - JOYSTICK.knob / 2 + knobX.value },
+      { translateY: originY.value - JOYSTICK.knob / 2 + knobY.value },
+    ],
   }));
 
   return (
-    <View
-      pointerEvents="box-none"
-      className="absolute right-0 bottom-0 left-0 items-center pb-3"
-    >
+    <View pointerEvents="box-none" className="absolute right-0 bottom-0 left-0">
       <GestureDetector gesture={gesture}>
         <Animated.View
           accessibilityRole="adjustable"
           accessibilityLabel="Steer the boat"
-          style={{ width: JOYSTICK.base, height: JOYSTICK.base }}
+          style={{ width: '100%', height: JOYSTICK.touchZoneHeight }}
         >
-          <Animated.View pointerEvents="none" style={ringStyle}>
-            <RingArt />
-          </Animated.View>
           <Animated.View
             pointerEvents="none"
             style={[
               {
                 position: 'absolute',
-                left: JOYSTICK.base / 2 - half,
-                top: JOYSTICK.base / 2 - half,
+                left: 0,
+                top: 0,
+                width: JOYSTICK.base,
+                height: JOYSTICK.base,
+              },
+              ringStyle,
+            ]}
+          >
+            <RingArt />
+          </Animated.View>
+
+          <Animated.View
+            pointerEvents="none"
+            style={[
+              {
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                width: JOYSTICK.knob,
+                height: JOYSTICK.knob,
               },
               knobStyle,
             ]}
