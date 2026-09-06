@@ -51,6 +51,15 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       // Firebase Android config
       googleServicesFile: './google-services.json',
 
+      // Pirate's Plunder only plays audio and stores app-private data.
+      // Explicitly block permissions that can be contributed by native libraries
+      // but are not required by the game.
+      blockedPermissions: [
+        'android.permission.RECORD_AUDIO',
+        'android.permission.READ_EXTERNAL_STORAGE',
+        'android.permission.WRITE_EXTERNAL_STORAGE',
+      ],
+
       icon: './public/icons/icon-512.png',
 
       adaptiveIcon: {
@@ -80,6 +89,15 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       'expo-router',
 
       'expo-font',
+
+      // Configure expo-audio for playback only. The game does not record audio.
+      [
+        'expo-audio',
+        {
+          recordAudioAndroid: false,
+          microphonePermission: false,
+        },
+      ],
 
       // React Native Firebase
       // Use direct plugin path to avoid INVALID_PLUGIN_IMPORT error.
