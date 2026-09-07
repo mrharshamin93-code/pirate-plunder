@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  Share,
+  TextInput,
+  View,
+} from 'react-native';
 import { Button, Separator, Text } from 'heroui-native';
+import { Share2 } from 'lucide-react-native';
 
 import {
   loadLeaderboard,
@@ -18,6 +27,9 @@ interface GameOverOverlayProps {
   onRetry: () => void;
   onMenu: () => void;
 }
+
+const PLAY_STORE_URL =
+  'https://play.google.com/store/apps/details?id=com.harshamin.piratesplunder';
 
 export function GameOverOverlay({
   score,
@@ -63,86 +75,142 @@ export function GameOverOverlay({
     }
   };
 
+  const shareScore = async () => {
+    const message = `🏴‍☠️ I scored ${score.toLocaleString()} in Pirate's Plunder! Think you can beat my score?\n\n${PLAY_STORE_URL}`;
+
+    try {
+      if (Platform.OS === 'web') {
+        const nav = globalThis.navigator as
+          | (Navigator & {
+              share?: (data: { title?: string; text?: string; url?: string }) => Promise<void>;
+            })
+          | undefined;
+
+        if (nav?.share) {
+          await nav.share({
+            title: "Pirate's Plunder",
+            text: `🏴‍☠️ I scored ${score.toLocaleString()} in Pirate's Plunder! Think you can beat my score?`,
+            url: PLAY_STORE_URL,
+          });
+        }
+        return;
+      }
+
+      await Share.share({
+        title: "Pirate's Plunder",
+        message,
+      });
+    } catch {
+      // Closing the native share sheet can reject on some platforms.
+    }
+  };
+
   return (
     <View className="bg-sea-deep/55 absolute inset-0 px-8">
       <ScrollView contentContainerClassName="grow items-center justify-center py-8">
-      <View className="bg-surface/90 border-border w-full max-w-sm rounded-3xl border px-7 py-6">
-        <Text className="text-danger text-center text-3xl font-bold">Sunk!</Text>
-        {newBest ? (
-          <Text className="text-accent mt-1 text-center text-sm font-semibold tracking-widest uppercase">
-            New Best Score
-          </Text>
-        ) : null}
-
-        <View className="mt-5 mb-4 flex-row justify-around">
-          <View className="items-center">
-            <Text className="text-foreground/60 text-xs tracking-widest uppercase">Score</Text>
-            <Text className="text-foreground text-3xl font-bold">{score.toLocaleString()}</Text>
+        <View className="bg-surface/90 border-border w-full max-w-sm rounded-3xl border px-7 py-6">
+          <View className="relative min-h-10 items-center justify-center">
+            <Text className="text-danger text-center text-3xl font-bold">Sunk!</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Share score"
+              hitSlop={10}
+              onPress={() => void shareScore()}
+              style={({ pressed }) => ({
+                position: 'absolute',
+                right: 0,
+                top: 0,
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: pressed
+                  ? 'rgba(233, 187, 69, 0.22)'
+                  : 'rgba(233, 187, 69, 0.12)',
+                borderWidth: 1,
+                borderColor: 'rgba(233, 187, 69, 0.42)',
+              })}
+            >
+              <Share2 size={20} color="#e9bb45" strokeWidth={2.2} />
+            </Pressable>
           </View>
-          <View className="items-center">
-            <Text className="text-foreground/60 text-xs tracking-widest uppercase">Coins</Text>
-            <Text className="text-foreground text-3xl font-bold">{coins}</Text>
-          </View>
-        </View>
 
-        <View className="bg-sea-deep/35 mb-4 rounded-2xl px-4 py-3">
-          <Text className="text-foreground/60 text-center text-xs tracking-widest uppercase">
-            Your Best
-          </Text>
-          <Text className="text-accent text-center text-2xl font-bold">
-            {Math.max(localBest, personalBest).toLocaleString()}
-          </Text>
-        </View>
-
-        <Text className="text-foreground/70 mb-2 text-center text-xs tracking-widest uppercase">
-          Enter your name for the global leaderboard
-        </Text>
-        <TextInput
-          value={name}
-          onChangeText={setName}
-          maxLength={20}
-          editable={!submitted}
-          autoCapitalize="words"
-          placeholder="Captain name"
-          placeholderTextColor="#8fb3bd"
-          className="text-foreground border-border mb-2 rounded-xl border bg-[rgba(8,46,60,0.72)] px-4 py-3"
-        />
-        <Button onPress={() => void submit()} className="mb-3">
-          <Button.Label>
-            {submitting ? 'Submitting...' : submitted ? 'Score Submitted' : 'Submit Score'}
-          </Button.Label>
-        </Button>
-        {submitting ? <ActivityIndicator color="#e9bb45" className="mb-2" /> : null}
-        {error ? <Text className="text-danger mb-2 text-center text-xs">{error}</Text> : null}
-
-        <Separator className="my-2" />
-
-        <Text className="text-foreground/60 mb-2 text-center text-xs tracking-widest uppercase">
-          Global Top 10
-        </Text>
-        <View className="mb-4 gap-1">
-          {globalScores.map((entry, index) => (
-            <View key={entry.createdAt} className="flex-row items-center justify-between">
-              <Text className="text-foreground/80 text-sm">
-                {index + 1}. {entry.name}
-              </Text>
-              <Text className="text-accent text-sm font-semibold">
-                {entry.score.toLocaleString()}
-              </Text>
-            </View>
-          ))}
-          {globalScores.length === 0 && !error ? (
-            <Text className="text-foreground/50 text-center text-sm">Be the first captain!</Text>
+          {newBest ? (
+            <Text className="text-accent mt-1 text-center text-sm font-semibold tracking-widest uppercase">
+              New Best Score
+            </Text>
           ) : null}
-        </View>
 
-        <Button onPress={onRetry} className="mb-2">
-          <Button.Label>Row Again</Button.Label>
-        </Button>
-        <Button variant="tertiary" onPress={onMenu}>
-          <Button.Label>Main Menu</Button.Label>
-        </Button>
-      </View>
+          <View className="mt-5 mb-4 flex-row justify-around">
+            <View className="items-center">
+              <Text className="text-foreground/60 text-xs tracking-widest uppercase">Score</Text>
+              <Text className="text-foreground text-3xl font-bold">{score.toLocaleString()}</Text>
+            </View>
+            <View className="items-center">
+              <Text className="text-foreground/60 text-xs tracking-widest uppercase">Coins</Text>
+              <Text className="text-foreground text-3xl font-bold">{coins}</Text>
+            </View>
+          </View>
+
+          <View className="bg-sea-deep/35 mb-4 rounded-2xl px-4 py-3">
+            <Text className="text-foreground/60 text-center text-xs tracking-widest uppercase">
+              Your Best
+            </Text>
+            <Text className="text-accent text-center text-2xl font-bold">
+              {Math.max(localBest, personalBest).toLocaleString()}
+            </Text>
+          </View>
+
+          <Text className="text-foreground/70 mb-2 text-center text-xs tracking-widest uppercase">
+            Enter your name for the global leaderboard
+          </Text>
+          <TextInput
+            value={name}
+            onChangeText={setName}
+            maxLength={20}
+            editable={!submitted}
+            autoCapitalize="words"
+            placeholder="Captain name"
+            placeholderTextColor="#8fb3bd"
+            className="text-foreground border-border mb-2 rounded-xl border bg-[rgba(8,46,60,0.72)] px-4 py-3"
+          />
+          <Button onPress={() => void submit()} className="mb-3">
+            <Button.Label>
+              {submitting ? 'Submitting...' : submitted ? 'Score Submitted' : 'Submit Score'}
+            </Button.Label>
+          </Button>
+          {submitting ? <ActivityIndicator color="#e9bb45" className="mb-2" /> : null}
+          {error ? <Text className="text-danger mb-2 text-center text-xs">{error}</Text> : null}
+
+          <Separator className="my-2" />
+
+          <Text className="text-foreground/60 mb-2 text-center text-xs tracking-widest uppercase">
+            Global Top 10
+          </Text>
+          <View className="mb-4 gap-1">
+            {globalScores.map((entry, index) => (
+              <View key={entry.createdAt} className="flex-row items-center justify-between">
+                <Text className="text-foreground/80 text-sm">
+                  {index + 1}. {entry.name}
+                </Text>
+                <Text className="text-accent text-sm font-semibold">
+                  {entry.score.toLocaleString()}
+                </Text>
+              </View>
+            ))}
+            {globalScores.length === 0 && !error ? (
+              <Text className="text-foreground/50 text-center text-sm">Be the first captain!</Text>
+            ) : null}
+          </View>
+
+          <Button onPress={onRetry} className="mb-2">
+            <Button.Label>Row Again</Button.Label>
+          </Button>
+          <Button variant="tertiary" onPress={onMenu}>
+            <Button.Label>Main Menu</Button.Label>
+          </Button>
+        </View>
       </ScrollView>
     </View>
   );
