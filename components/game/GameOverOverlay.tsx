@@ -9,7 +9,6 @@ import {
   View,
 } from 'react-native';
 import { Button, Separator, Text } from 'heroui-native';
-import { Share2 } from 'lucide-react-native';
 
 import {
   loadLeaderboard,
@@ -119,20 +118,25 @@ export function GameOverOverlay({
               style={({ pressed }) => ({
                 position: 'absolute',
                 right: 0,
-                top: 0,
-                width: 40,
-                height: 40,
-                borderRadius: 20,
+                top: 5,
+                height: 30,
+                paddingHorizontal: 12,
+                borderRadius: 15,
                 alignItems: 'center',
                 justifyContent: 'center',
                 backgroundColor: pressed
-                  ? 'rgba(233, 187, 69, 0.22)'
-                  : 'rgba(233, 187, 69, 0.12)',
+                  ? 'rgba(233, 187, 69, 0.20)'
+                  : 'rgba(233, 187, 69, 0.10)',
                 borderWidth: 1,
-                borderColor: 'rgba(233, 187, 69, 0.42)',
+                borderColor: 'rgba(233, 187, 69, 0.38)',
               })}
             >
-              <Share2 size={20} color="#e9bb45" strokeWidth={2.2} />
+              <Text
+                className="text-accent text-xs font-semibold tracking-wide"
+                maxFontSizeMultiplier={1}
+              >
+                Share
+              </Text>
             </Pressable>
           </View>
 
