@@ -1,89 +1,72 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { Platform } from 'react-native';
-import {
-  createAudioPlayer,
-  setAudioModeAsync,
-  type AudioPlayer,
-} from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+
+import { ensureGameAudioSession } from '@/lib/game/audioSession';
 
 const COIN_SOUND = require('../assets/sounds/coin_sound_5_premium_plink.mp3');
 const EFFECT_VOLUME = 0.8;
-const REWIND_DELAY_MS = 320;
-const PLAY_LOCK_MS = 360;
+const DUPLICATE_GUARD_MS = 260;
+const MOBILE_FIRST_PLINK_MS = 58;
 
 export function useCoinPickupSound(): () => void {
-  const playerRef = useRef<AudioPlayer | null>(null);
-  const lockedRef = useRef(false);
-  const rewindTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const unlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const player = useAudioPlayer(COIN_SOUND, { updateInterval: 50 });
+  const status = useAudioPlayerStatus(player);
+  const lastPlayAtRef = useRef(0);
+  const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    let active = true;
-    let createdPlayer: AudioPlayer | null = null;
-
-    const prepare = async () => {
-      // On native, configure the audio session before creating the effect player.
-      // Previously this only happened inside the background-music hook, which is
-      // why coin audio could stay silent until the music button was toggled.
-      if (Platform.OS !== 'web') {
-        try {
-          await setAudioModeAsync({
-            playsInSilentMode: true,
-            shouldPlayInBackground: false,
-          });
-        } catch {
-          // Keep gameplay running even if the platform rejects audio-mode setup.
-        }
-      }
-
-      if (!active) return;
-
-      const player = createAudioPlayer(COIN_SOUND);
-      player.loop = false;
-      player.volume = EFFECT_VOLUME;
-      createdPlayer = player;
-      playerRef.current = player;
-    };
-
-    void prepare();
+    player.loop = false;
+    player.volume = EFFECT_VOLUME;
+    void ensureGameAudioSession().catch(() => {
+      // A later game-start/pickup interaction retries the session setup.
+    });
 
     return () => {
-      active = false;
-
-      if (rewindTimerRef.current !== null) {
-        clearTimeout(rewindTimerRef.current);
-        rewindTimerRef.current = null;
+      if (stopTimerRef.current !== null) {
+        clearTimeout(stopTimerRef.current);
+        stopTimerRef.current = null;
       }
-      if (unlockTimerRef.current !== null) {
-        clearTimeout(unlockTimerRef.current);
-        unlockTimerRef.current = null;
-      }
-
-      lockedRef.current = false;
-      playerRef.current = null;
-      createdPlayer?.remove();
     };
-  }, []);
+  }, [player]);
 
   return useCallback(() => {
-    const player = playerRef.current;
-    if (player === null || lockedRef.current) return;
+    const now = Date.now();
+    if (now - lastPlayAtRef.current < DUPLICATE_GUARD_MS) return;
+    if (!status.isLoaded) return;
 
-    // Keep one native playback active at a time. This prevents the same pickup
-    // from being heard twice on mobile while preserving the original MP3 asset.
-    lockedRef.current = true;
-    player.play();
+    lastPlayAtRef.current = now;
 
-    if (rewindTimerRef.current !== null) clearTimeout(rewindTimerRef.current);
-    rewindTimerRef.current = setTimeout(() => {
-      void player.seekTo(0);
-      rewindTimerRef.current = null;
-    }, REWIND_DELAY_MS);
+    void ensureGameAudioSession().then(
+      () => {
+        if (!status.isLoaded) return;
 
-    if (unlockTimerRef.current !== null) clearTimeout(unlockTimerRef.current);
-    unlockTimerRef.current = setTimeout(() => {
-      lockedRef.current = false;
-      unlockTimerRef.current = null;
-    }, PLAY_LOCK_MS);
-  }, []);
+        // The original Premium Plink asset contains a second accent about 65 ms
+        // into the file. Desktop speakers blend it into one sound, but phone
+        // speakers make it sound like a double click. Keep the original asset
+        // untouched and, on native only, play just its first plink.
+        player.play();
+
+        if (Platform.OS !== 'web') {
+          if (stopTimerRef.current !== null) clearTimeout(stopTimerRef.current);
+          stopTimerRef.current = setTimeout(() => {
+            player.pause();
+            void player.seekTo(0);
+            stopTimerRef.current = null;
+          }, MOBILE_FIRST_PLINK_MS);
+        } else {
+          // Web sounds correct with the complete original clip. Rewind after it
+          // finishes so the next pickup starts from the beginning.
+          if (stopTimerRef.current !== null) clearTimeout(stopTimerRef.current);
+          stopTimerRef.current = setTimeout(() => {
+            void player.seekTo(0);
+            stopTimerRef.current = null;
+          }, 320);
+        }
+      },
+      () => {
+        // Sound effects are optional; gameplay should never be interrupted.
+      },
+    );
+  }, [player, status.isLoaded]);
 }
