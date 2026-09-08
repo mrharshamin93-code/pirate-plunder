@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { File, Paths } from 'expo-file-system';
 
+import { ensureGameAudioSession } from '@/lib/game/audioSession';
 import { buildMusicWav, MUSIC_FILE_NAME } from '@/lib/game/music';
 
 /** Sits under the effects rather than over them. */
@@ -11,9 +12,8 @@ const MUSIC_VOLUME = 0.42;
 let trackPromise: Promise<string> | null = null;
 
 /**
- * Renders the shanty once per app session and returns a uri the audio player can
- * load: a blob url on web, a cached wav file on native. The synthesis is pushed
- * to a later tick so the first paint is never blocked by it.
+ * Renders the shanty once per app session and returns a URI the audio player can
+ * load: a blob URL on web, a cached WAV file on native.
  */
 function prepareTrack(): Promise<string> {
   trackPromise ??= new Promise<string>((resolve, reject) => {
@@ -39,52 +39,65 @@ function prepareTrack(): Promise<string> {
   return trackPromise;
 }
 
-/**
- * Loops the shanty for as long as `enabled` is true. Playback only ever starts
- * after a tap, which is also what browsers require before they will let audio
- * through.
- */
 export function useBackgroundMusic(enabled: boolean): void {
   const [uri, setUri] = useState<string | null>(null);
-  const playerRef = useRef<AudioPlayer | null>(null);
+  const player = useAudioPlayer(null, { updateInterval: 100 });
+  const status = useAudioPlayerStatus(player);
 
   useEffect(() => {
     let active = true;
+
+    void ensureGameAudioSession().catch(() => {
+      // A later play request can retry session activation.
+    });
+
     prepareTrack().then(
       (value) => {
         if (active) setUri(value);
       },
       () => {
-        // music is optional; the game plays on in silence
+        // Music is optional; the game continues if synthesis fails.
       },
     );
+
     return () => {
       active = false;
     };
   }, []);
 
   useEffect(() => {
-    if (uri === null) return undefined;
-
-    if (Platform.OS !== 'web') {
-      void setAudioModeAsync({ playsInSilentMode: true, shouldPlayInBackground: false });
-    }
-
-    const player = createAudioPlayer({ uri });
     player.loop = true;
     player.volume = MUSIC_VOLUME;
-    playerRef.current = player;
-
-    return () => {
-      playerRef.current = null;
-      player.remove();
-    };
-  }, [uri]);
+  }, [player]);
 
   useEffect(() => {
-    const player = playerRef.current;
-    if (player === null) return;
-    if (enabled) player.play();
-    else player.pause();
-  }, [enabled, uri]);
+    if (uri === null) return;
+    player.replace({ uri });
+  }, [player, uri]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const syncPlayback = async () => {
+      if (!enabled) {
+        player.pause();
+        return;
+      }
+
+      try {
+        await ensureGameAudioSession();
+      } catch {
+        return;
+      }
+
+      if (cancelled || !status.isLoaded) return;
+      player.play();
+    };
+
+    void syncPlayback();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled, player, status.isLoaded]);
 }
