@@ -296,123 +296,65 @@ export const CoinArt = memo(function CoinArt({ tier, size }: { tier: number; siz
 });
 
 const WHIRLPOOL_VISUAL_RADIUS = 70;
-const WHIRLPOOL_ARMS = [
-  { rotate: 0, opacity: 0.92, width: 7.2 },
-  { rotate: 58, opacity: 0.84, width: 6.6 },
-  { rotate: 118, opacity: 0.76, width: 6.0 },
-  { rotate: 181, opacity: 0.68, width: 5.4 },
-  { rotate: 242, opacity: 0.60, width: 4.8 },
-  { rotate: 302, opacity: 0.52, width: 4.2 },
-] as const;
 
 export const WhirlpoolArt = memo(function WhirlpoolArt() {
   const box = SPRITE_BOX.whirlpool;
   const half = box / 2;
   const outer = WHIRLPOOL_VISUAL_RADIUS;
-  const eye = Math.max(5, GAME.whirlpoolCore * 0.48);
+  const eye = Math.max(4.5, GAME.whirlpoolCore * 0.4);
 
   return (
     <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
       <Defs>
-        <RadialGradient id="whirlpoolWater" cx="47%" cy="45%" r="56%">
-          <Stop offset="0%" stopColor="#00070c" stopOpacity={1} />
-          <Stop offset="13%" stopColor="#01131e" stopOpacity={1} />
-          <Stop offset="32%" stopColor="#032f43" stopOpacity={0.99} />
-          <Stop offset="56%" stopColor="#075a75" stopOpacity={0.94} />
-          <Stop offset="78%" stopColor="#0b7792" stopOpacity={0.78} />
-          <Stop offset="100%" stopColor="#42bfd0" stopOpacity={0} />
+        <RadialGradient id="deepBasin" cx="49%" cy="47%" r="57%">
+          <Stop offset="0%" stopColor="#000205" />
+          <Stop offset="12%" stopColor="#00070c" />
+          <Stop offset="26%" stopColor="#011824" />
+          <Stop offset="43%" stopColor="#032f42" />
+          <Stop offset="63%" stopColor="#07566d" stopOpacity={0.96} />
+          <Stop offset="82%" stopColor="#0a7187" stopOpacity={0.62} />
+          <Stop offset="100%" stopColor="#2aa7ba" stopOpacity={0} />
         </RadialGradient>
-        <RadialGradient id="whirlpoolEye" cx="46%" cy="43%" r="58%">
-          <Stop offset="0%" stopColor="#000000" stopOpacity={1} />
-          <Stop offset="60%" stopColor="#00070b" stopOpacity={1} />
-          <Stop offset="100%" stopColor="#063247" stopOpacity={0.96} />
+        <RadialGradient id="deepPit" cx="46%" cy="44%" r="62%">
+          <Stop offset="0%" stopColor="#000000" />
+          <Stop offset="55%" stopColor="#000306" />
+          <Stop offset="100%" stopColor="#062632" stopOpacity={0.9} />
         </RadialGradient>
       </Defs>
 
-      <Circle cx={0} cy={0} r={outer} fill="url(#whirlpoolWater)" />
+      <Circle cx={0} cy={0} r={outer} fill="url(#deepBasin)" />
 
-      <Path
-        d="M -68 -16 C -50 -41 -19 -56 18 -52 C 43 -49 60 -36 68 -18"
-        stroke="#e7fbff"
-        strokeOpacity={0.42}
-        strokeWidth={3.8}
-        strokeLinecap="round"
-        fill="none"
-      />
-      <Path
-        d="M -64 28 C -43 49 -13 57 18 49 C 42 43 58 28 65 11"
-        stroke="#c6f3f8"
-        strokeOpacity={0.34}
-        strokeWidth={3.1}
-        strokeLinecap="round"
-        fill="none"
-      />
+      <Ellipse cx={-2} cy={1} rx={61} ry={52} fill="none" stroke="#4da9b7" strokeOpacity={0.2} strokeWidth={5.5} transform="rotate(-11)" />
+      <Ellipse cx={1} cy={-1} rx={50} ry={41} fill="none" stroke="#72c5cf" strokeOpacity={0.19} strokeWidth={5} transform="rotate(16)" />
+      <Ellipse cx={-1} cy={1} rx={39} ry={31} fill="none" stroke="#9bdddf" strokeOpacity={0.17} strokeWidth={4.5} transform="rotate(-18)" />
+      <Ellipse cx={1} cy={0} rx={29} ry={22} fill="none" stroke="#b9edf0" strokeOpacity={0.15} strokeWidth={3.8} transform="rotate(12)" />
 
-      {WHIRLPOOL_ARMS.map((arm, index) => (
-        <G key={index} transform={`rotate(${arm.rotate})`}>
-          <Path
-            d="M 67 -3 C 53 12 43 23 27 28 C 11 33 -3 25 -10 14 C -14 8 -14 3 -11 -2"
-            stroke="#e5fbff"
-            strokeOpacity={arm.opacity}
-            strokeWidth={arm.width}
-            strokeLinecap="round"
-            fill="none"
-          />
-          <Path
-            d="M 64 4 C 50 19 38 29 22 32 C 9 34 -2 29 -9 20"
-            stroke="#4cbfd4"
-            strokeOpacity={Math.max(0.26, arm.opacity - 0.34)}
-            strokeWidth={Math.max(2.2, arm.width * 0.46)}
-            strokeLinecap="round"
-            fill="none"
-          />
-        </G>
-      ))}
+      <Path d="M -67 -18 C -57 -41 -36 -55 -10 -59 C 9 -62 29 -57 43 -47 C 54 -39 62 -27 66 -15" stroke="#d9f5f7" strokeOpacity={0.48} strokeWidth={4.2} strokeLinecap="round" fill="none" />
+      <Path d="M -62 21 C -52 41 -31 55 -7 59 C 15 62 38 54 52 39 C 59 31 64 22 66 13" stroke="#b7e8ec" strokeOpacity={0.4} strokeWidth={3.5} strokeLinecap="round" fill="none" />
+      <Path d="M -49 -43 C -34 -51 -16 -54 2 -50 C 16 -47 28 -40 37 -30" stroke="#ffffff" strokeOpacity={0.54} strokeWidth={3.2} strokeLinecap="round" fill="none" />
+      <Path d="M 41 39 C 26 49 8 52 -9 48 C -24 45 -35 37 -42 27" stroke="#eefeff" strokeOpacity={0.44} strokeWidth={2.8} strokeLinecap="round" fill="none" />
 
-      <Path
-        d="M 42 -43 C 25 -51 4 -54 -18 -46"
-        stroke="#ffffff"
-        strokeOpacity={0.58}
-        strokeWidth={3.1}
-        strokeLinecap="round"
-        fill="none"
-      />
-      <Path
-        d="M -56 29 C -41 44 -23 50 -6 48"
-        stroke="#ffffff"
-        strokeOpacity={0.46}
-        strokeWidth={2.7}
-        strokeLinecap="round"
-        fill="none"
-      />
-      <Path
-        d="M 16 52 C 35 47 49 38 56 27"
-        stroke="#dffcff"
-        strokeOpacity={0.4}
-        strokeWidth={2.3}
-        strokeLinecap="round"
-        fill="none"
-      />
+      <Path d="M -59 4 C -51 -12 -38 -22 -23 -24 C -10 -26 1 -21 6 -12 C 10 -5 8 2 3 7" stroke="#79c9d3" strokeOpacity={0.58} strokeWidth={5.2} strokeLinecap="round" fill="none" />
+      <Path d="M 58 -8 C 50 9 38 20 24 23 C 11 26 1 22 -5 14 C -9 8 -9 2 -5 -3" stroke="#a9e4e8" strokeOpacity={0.5} strokeWidth={4.7} strokeLinecap="round" fill="none" />
+      <Path d="M -31 48 C -17 39 -6 29 -2 18 C 2 8 -1 1 -8 -3" stroke="#c5eef1" strokeOpacity={0.38} strokeWidth={3.6} strokeLinecap="round" fill="none" />
+      <Path d="M 30 -46 C 18 -38 8 -29 4 -19 C 0 -9 2 -2 8 2" stroke="#8fd4db" strokeOpacity={0.34} strokeWidth={3.3} strokeLinecap="round" fill="none" />
 
-      <Circle cx={0} cy={0} r={eye * 1.85} fill="url(#whirlpoolEye)" />
-      <Circle cx={0} cy={0} r={eye} fill="#000000" opacity={0.99} />
-      <Circle
-        cx={0}
-        cy={0}
-        r={eye * 2.25}
-        fill="none"
-        stroke="#5bb8ca"
-        strokeOpacity={0.28}
-        strokeWidth={2.4}
-      />
+      <Path d="M -70 -6 C -65 -3 -60 -4 -55 -8" stroke="#ffffff" strokeOpacity={0.72} strokeWidth={2.6} strokeLinecap="round" fill="none" />
+      <Path d="M -54 46 C -48 49 -42 48 -37 44" stroke="#f4ffff" strokeOpacity={0.62} strokeWidth={2.4} strokeLinecap="round" fill="none" />
+      <Path d="M 53 -43 C 59 -39 63 -34 65 -28" stroke="#ffffff" strokeOpacity={0.67} strokeWidth={2.5} strokeLinecap="round" fill="none" />
+      <Path d="M 59 30 C 55 36 50 41 44 44" stroke="#dff9fb" strokeOpacity={0.56} strokeWidth={2.2} strokeLinecap="round" fill="none" />
 
-      <Circle cx={-67} cy={-18} r={2.2} fill="#dffbff" opacity={0.72} />
-      <Circle cx={-70} cy={15} r={1.6} fill="#a9eaf3" opacity={0.68} />
-      <Circle cx={61} cy={-31} r={2.4} fill="#e8fdff" opacity={0.75} />
-      <Circle cx={68} cy={12} r={1.8} fill="#bceff6" opacity={0.72} />
-      <Circle cx={49} cy={49} r={1.7} fill="#e7fdff" opacity={0.66} />
-      <Circle cx={-39} cy={57} r={1.9} fill="#c8f5fa" opacity={0.64} />
-      <Circle cx={8} cy={-69} r={1.5} fill="#ffffff" opacity={0.7} />
+      <Circle cx={-66} cy={-29} r={2.2} fill="#efffff" opacity={0.68} />
+      <Circle cx={-71} cy={10} r={1.5} fill="#bdeef2" opacity={0.58} />
+      <Circle cx={-49} cy={55} r={1.8} fill="#ffffff" opacity={0.64} />
+      <Circle cx={10} cy={-66} r={1.6} fill="#dffbfc" opacity={0.62} />
+      <Circle cx={52} cy={-49} r={2.1} fill="#efffff" opacity={0.69} />
+      <Circle cx={69} cy={17} r={1.7} fill="#c8f1f4" opacity={0.62} />
+      <Circle cx={39} cy={57} r={1.4} fill="#ffffff" opacity={0.58} />
+
+      <Ellipse cx={0} cy={1} rx={eye * 2.4} ry={eye * 2.05} fill="url(#deepPit)" transform="rotate(-8)" />
+      <Ellipse cx={0} cy={0} rx={eye} ry={eye * 0.86} fill="#000000" transform="rotate(-8)" />
+      <Ellipse cx={0} cy={0} rx={eye * 3.2} ry={eye * 2.7} fill="none" stroke="#4f9eaa" strokeOpacity={0.18} strokeWidth={2} transform="rotate(-8)" />
     </Svg>
   );
 });
