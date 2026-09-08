@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 
-const COIN_SOUND = require('../assets/sounds/coin_sound_5_premium_plink.mp3');
+const COIN_SOUND = require('../assets/sounds/coin_premium_plink_single.mp3');
 const EFFECT_VOLUME = 0.8;
 const PLAYER_POOL_SIZE = 3;
-const REWIND_DELAY_MS = 320;
+const REWIND_DELAY_MS = 180;
 const DUPLICATE_GUARD_MS = 100;
 
 export function useCoinPickupSound(): () => void {
@@ -43,8 +43,7 @@ export function useCoinPickupSound(): () => void {
     const player = players[index];
     nextPlayerRef.current = (index + 1) % players.length;
 
-    // The sound asset is preloaded by expo-audio, so playback starts immediately.
-    // Rewind only after the clip has finished to avoid seek latency before playback.
+    // Preloaded single-plink asset: play immediately, then rewind only after it ends.
     player.play();
 
     const timer = setTimeout(() => {
