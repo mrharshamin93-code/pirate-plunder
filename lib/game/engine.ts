@@ -81,12 +81,19 @@ export const GAME = {
   /* --- whirlpools ------------------------------------------------------- */
   /** chance a coin pickup also summons a whirlpool */
   whirlpoolChance: 0.13,
-  /** radius of influence in px */
-  whirlpoolRange: 74,
+  /**
+   * Radius of influence in px. Intentionally much larger than the visible
+   * whirlpool so the current can be felt before the boat reaches the artwork.
+   */
+  whirlpoolRange: 140,
   /** the eye — fatal to the boat, destroys mines */
   whirlpoolCore: 12,
-  /** pull on the boat at the very centre, in px/sec^2 */
-  whirlpoolPull: 260,
+  /**
+   * Peak pull strength in px/sec^2. The simulation already scales this by
+   * distance, so the current gets progressively stronger as the boat gets
+   * closer to the eye.
+   */
+  whirlpoolPull: 420,
   /** mines are dragged in far harder than the boat */
   whirlpoolMinePull: 2.6,
   /** seconds a whirlpool lasts, including spin-up and fade */
