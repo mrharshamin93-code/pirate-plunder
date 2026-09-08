@@ -17,15 +17,29 @@ namespace PiratesPlunder.Input
         private Vector2 home;
         private Vector2 origin;
 
-        private void Awake()
+        public void Configure(RectTransform ring, RectTransform thumb, BoatController controller)
         {
+            baseRing = ring;
+            knob = thumb;
+            boat = controller;
             rect = transform as RectTransform;
             home = baseRing.anchoredPosition;
             origin = home;
         }
 
+        private void Awake()
+        {
+            rect = transform as RectTransform;
+            if (baseRing != null)
+            {
+                home = baseRing.anchoredPosition;
+                origin = home;
+            }
+        }
+
         public void OnPointerDown(PointerEventData eventData)
         {
+            if (baseRing == null || knob == null || boat == null) return;
             Vector2 p = Local(eventData);
             Vector2 delta = p - home;
             origin = delta.magnitude <= baseShift ? p : home + delta.normalized * baseShift;
@@ -34,10 +48,15 @@ namespace PiratesPlunder.Input
             Apply(p);
         }
 
-        public void OnDrag(PointerEventData eventData) => Apply(Local(eventData));
+        public void OnDrag(PointerEventData eventData)
+        {
+            if (boat == null) return;
+            Apply(Local(eventData));
+        }
 
         public void OnPointerUp(PointerEventData eventData)
         {
+            if (boat == null || baseRing == null || knob == null) return;
             boat.SetMoveInput(Vector2.zero);
             origin = home;
             baseRing.anchoredPosition = home;
