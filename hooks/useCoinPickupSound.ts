@@ -7,6 +7,8 @@ const SAMPLE_RATE = 44100;
 const DURATION_SECONDS = 0.24;
 const FILE_NAME = 'pirates-plunder-coin-premium-plink.wav';
 const EFFECT_VOLUME = 0.8;
+const PLAYER_POOL_SIZE = 4;
+const REWIND_DELAY_MS = Math.ceil(DURATION_SECONDS * 1000) + 40;
 
 let soundPromise: Promise<string> | null = null;
 
@@ -96,7 +98,9 @@ function prepareSound(): Promise<string> {
 
 export function useCoinPickupSound(): () => void {
   const [uri, setUri] = useState<string | null>(null);
-  const playerRef = useRef<AudioPlayer | null>(null);
+  const playersRef = useRef<AudioPlayer[]>([]);
+  const nextPlayerRef = useRef(0);
+  const rewindTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -118,21 +122,41 @@ export function useCoinPickupSound(): () => void {
   useEffect(() => {
     if (uri === null) return undefined;
 
-    const player = createAudioPlayer({ uri });
-    player.volume = EFFECT_VOLUME;
-    playerRef.current = player;
+    const players = Array.from({ length: PLAYER_POOL_SIZE }, () => {
+      const player = createAudioPlayer({ uri });
+      player.volume = EFFECT_VOLUME;
+      return player;
+    });
+
+    playersRef.current = players;
+    nextPlayerRef.current = 0;
 
     return () => {
-      playerRef.current = null;
-      player.remove();
+      rewindTimersRef.current.forEach(clearTimeout);
+      rewindTimersRef.current = [];
+      playersRef.current = [];
+      players.forEach((player) => player.remove());
     };
   }, [uri]);
 
   return useCallback(() => {
-    const player = playerRef.current;
-    if (player === null) return;
+    const players = playersRef.current;
+    if (players.length === 0) return;
 
-    void player.seekTo(0);
+    const index = nextPlayerRef.current;
+    const player = players[index];
+    nextPlayerRef.current = (index + 1) % players.length;
+
+    // Play immediately. Rewinding before play caused a noticeable delay because
+    // seekTo is asynchronous. Each player is instead rewound after its sound has
+    // finished, so the next pickup starts with no seek on the critical path.
     player.play();
+
+    const timer = setTimeout(() => {
+      void player.seekTo(0);
+      rewindTimersRef.current = rewindTimersRef.current.filter((t) => t !== timer);
+    }, REWIND_DELAY_MS);
+
+    rewindTimersRef.current.push(timer);
   }, []);
 }
