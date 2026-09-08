@@ -297,53 +297,53 @@ export const CoinArt = memo(function CoinArt({ tier, size }: { tier: number; siz
 
 const WHIRLPOOL_VISUAL_RADIUS = 70;
 const WHIRLPOOL_ARMS = [
-  { rotate: 0, opacity: 0.95, width: 7.5 },
-  { rotate: 58, opacity: 0.82, width: 6.2 },
-  { rotate: 118, opacity: 0.74, width: 5.6 },
-  { rotate: 181, opacity: 0.68, width: 5.1 },
-  { rotate: 242, opacity: 0.62, width: 4.6 },
-  { rotate: 302, opacity: 0.56, width: 4.1 },
+  { rotate: 0, opacity: 0.92, width: 7.2 },
+  { rotate: 58, opacity: 0.84, width: 6.6 },
+  { rotate: 118, opacity: 0.76, width: 6.0 },
+  { rotate: 181, opacity: 0.68, width: 5.4 },
+  { rotate: 242, opacity: 0.60, width: 4.8 },
+  { rotate: 302, opacity: 0.52, width: 4.2 },
 ] as const;
 
 export const WhirlpoolArt = memo(function WhirlpoolArt() {
   const box = SPRITE_BOX.whirlpool;
   const half = box / 2;
-  const eye = GAME.whirlpoolCore;
   const outer = WHIRLPOOL_VISUAL_RADIUS;
+  const eye = Math.max(5, GAME.whirlpoolCore * 0.48);
 
   return (
     <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
       <Defs>
-        <RadialGradient id="whirlpoolWater" cx="48%" cy="46%" r="54%">
-          <Stop offset="0%" stopColor="#010b11" stopOpacity={0.98} />
-          <Stop offset="17%" stopColor="#031b26" stopOpacity={0.98} />
-          <Stop offset="39%" stopColor="#07506a" stopOpacity={0.92} />
-          <Stop offset="67%" stopColor="#0b86a7" stopOpacity={0.72} />
-          <Stop offset="88%" stopColor="#3cc3dc" stopOpacity={0.28} />
-          <Stop offset="100%" stopColor="#7fe9f5" stopOpacity={0} />
+        <RadialGradient id="whirlpoolWater" cx="47%" cy="45%" r="56%">
+          <Stop offset="0%" stopColor="#00070c" stopOpacity={1} />
+          <Stop offset="13%" stopColor="#01131e" stopOpacity={1} />
+          <Stop offset="32%" stopColor="#032f43" stopOpacity={0.99} />
+          <Stop offset="56%" stopColor="#075a75" stopOpacity={0.94} />
+          <Stop offset="78%" stopColor="#0b7792" stopOpacity={0.78} />
+          <Stop offset="100%" stopColor="#42bfd0" stopOpacity={0} />
         </RadialGradient>
-        <RadialGradient id="whirlpoolEye" cx="43%" cy="38%" r="68%">
+        <RadialGradient id="whirlpoolEye" cx="46%" cy="43%" r="58%">
           <Stop offset="0%" stopColor="#000000" stopOpacity={1} />
-          <Stop offset="58%" stopColor="#020b10" stopOpacity={1} />
-          <Stop offset="100%" stopColor="#063447" stopOpacity={0.96} />
+          <Stop offset="60%" stopColor="#00070b" stopOpacity={1} />
+          <Stop offset="100%" stopColor="#063247" stopOpacity={0.96} />
         </RadialGradient>
       </Defs>
 
       <Circle cx={0} cy={0} r={outer} fill="url(#whirlpoolWater)" />
 
       <Path
-        d="M -68 -7 C -52 -31 -21 -49 18 -46 C 47 -44 66 -27 69 -7"
-        stroke="#9ff6ff"
-        strokeOpacity={0.25}
-        strokeWidth={4.5}
+        d="M -68 -16 C -50 -41 -19 -56 18 -52 C 43 -49 60 -36 68 -18"
+        stroke="#e7fbff"
+        strokeOpacity={0.42}
+        strokeWidth={3.8}
         strokeLinecap="round"
         fill="none"
       />
       <Path
-        d="M -66 19 C -42 43 -8 51 26 38 C 50 29 62 13 63 -4"
-        stroke="#b9f8ff"
+        d="M -64 28 C -43 49 -13 57 18 49 C 42 43 58 28 65 11"
+        stroke="#c6f3f8"
         strokeOpacity={0.34}
-        strokeWidth={3.5}
+        strokeWidth={3.1}
         strokeLinecap="round"
         fill="none"
       />
@@ -351,18 +351,18 @@ export const WhirlpoolArt = memo(function WhirlpoolArt() {
       {WHIRLPOOL_ARMS.map((arm, index) => (
         <G key={index} transform={`rotate(${arm.rotate})`}>
           <Path
-            d="M 66 -4 C 49 15 31 24 14 22 C -1 20 -10 12 -13 5"
-            stroke="#dffbff"
+            d="M 67 -3 C 53 12 43 23 27 28 C 11 33 -3 25 -10 14 C -14 8 -14 3 -11 -2"
+            stroke="#e5fbff"
             strokeOpacity={arm.opacity}
             strokeWidth={arm.width}
             strokeLinecap="round"
             fill="none"
           />
           <Path
-            d="M 61 2 C 44 21 27 30 10 27 C -1 25 -8 20 -11 15"
-            stroke="#57d6ed"
-            strokeOpacity={Math.max(0.28, arm.opacity - 0.32)}
-            strokeWidth={Math.max(2.2, arm.width * 0.52)}
+            d="M 64 4 C 50 19 38 29 22 32 C 9 34 -2 29 -9 20"
+            stroke="#4cbfd4"
+            strokeOpacity={Math.max(0.26, arm.opacity - 0.34)}
+            strokeWidth={Math.max(2.2, arm.width * 0.46)}
             strokeLinecap="round"
             fill="none"
           />
@@ -370,39 +370,49 @@ export const WhirlpoolArt = memo(function WhirlpoolArt() {
       ))}
 
       <Path
-        d="M 43 -42 C 25 -51 3 -53 -18 -45"
+        d="M 42 -43 C 25 -51 4 -54 -18 -46"
         stroke="#ffffff"
-        strokeOpacity={0.62}
-        strokeWidth={3.3}
+        strokeOpacity={0.58}
+        strokeWidth={3.1}
         strokeLinecap="round"
         fill="none"
       />
       <Path
-        d="M -55 28 C -40 43 -22 49 -5 47"
+        d="M -56 29 C -41 44 -23 50 -6 48"
         stroke="#ffffff"
-        strokeOpacity={0.5}
-        strokeWidth={2.8}
+        strokeOpacity={0.46}
+        strokeWidth={2.7}
         strokeLinecap="round"
         fill="none"
       />
       <Path
-        d="M 17 51 C 36 46 49 37 56 26"
+        d="M 16 52 C 35 47 49 38 56 27"
         stroke="#dffcff"
-        strokeOpacity={0.44}
-        strokeWidth={2.4}
+        strokeOpacity={0.4}
+        strokeWidth={2.3}
         strokeLinecap="round"
         fill="none"
       />
 
-      <Circle cx={0} cy={0} r={eye * 1.55} fill="url(#whirlpoolEye)" />
-      <Circle cx={0} cy={0} r={eye * 0.72} fill="#000000" opacity={0.98} />
-      <Circle cx={2} cy={-2} r={eye * 1.92} fill="none" stroke="#6bd9ed" strokeOpacity={0.34} strokeWidth={3} />
+      <Circle cx={0} cy={0} r={eye * 1.85} fill="url(#whirlpoolEye)" />
+      <Circle cx={0} cy={0} r={eye} fill="#000000" opacity={0.99} />
+      <Circle
+        cx={0}
+        cy={0}
+        r={eye * 2.25}
+        fill="none"
+        stroke="#5bb8ca"
+        strokeOpacity={0.28}
+        strokeWidth={2.4}
+      />
 
-      <Circle cx={58} cy={-29} r={2.1} fill="#e7fdff" opacity={0.72} />
-      <Circle cx={-61} cy={9} r={1.7} fill="#bff8ff" opacity={0.62} />
-      <Circle cx={46} cy={39} r={1.4} fill="#e8feff" opacity={0.6} />
-      <Circle cx={-31} cy={-55} r={1.5} fill="#d9fbff" opacity={0.58} />
-      <Circle cx={12} cy={-62} r={1.2} fill="#ffffff" opacity={0.54} />
+      <Circle cx={-67} cy={-18} r={2.2} fill="#dffbff" opacity={0.72} />
+      <Circle cx={-70} cy={15} r={1.6} fill="#a9eaf3" opacity={0.68} />
+      <Circle cx={61} cy={-31} r={2.4} fill="#e8fdff" opacity={0.75} />
+      <Circle cx={68} cy={12} r={1.8} fill="#bceff6" opacity={0.72} />
+      <Circle cx={49} cy={49} r={1.7} fill="#e7fdff" opacity={0.66} />
+      <Circle cx={-39} cy={57} r={1.9} fill="#c8f5fa" opacity={0.64} />
+      <Circle cx={8} cy={-69} r={1.5} fill="#ffffff" opacity={0.7} />
     </Svg>
   );
 });
