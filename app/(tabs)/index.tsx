@@ -12,7 +12,6 @@ import { MusicToggle } from '@/components/game/MusicToggle';
 import { ScorePopup, type Popup } from '@/components/game/ScorePopup';
 import { OceanBackground } from '@/components/game/Sprites';
 import { useBackgroundMusic } from '@/hooks/useBackgroundMusic';
-import { useCoinPickupSound } from '@/hooks/useCoinPickupSound';
 import { trackCoinPickup, trackGameEnded, trackGameStarted } from '@/lib/analytics';
 import { useGameStore } from '@/lib/game/store';
 
@@ -37,7 +36,6 @@ export default function Home() {
   const [popups, setPopups] = useState<Popup[]>([]);
   const popupId = useRef(0);
   const runStartedAt = useRef<number | null>(null);
-  const playCoinPickupSound = useCoinPickupSound();
 
   // Keep the entire interactive game layer inside the device safe area.
   // GameCanvas already reserves its top HUD zone and bottom joystick zone,
@@ -76,13 +74,12 @@ export default function Home() {
 
   const handlePickup = useCallback(
     (points: number, x: number, y: number) => {
-      playCoinPickupSound();
       popupId.current += 1;
       const next: Popup = { id: popupId.current, points, x, y: y + gameTop };
       setPopups((current) => [...current, next]);
       void trackCoinPickup(points);
     },
-    [gameTop, playCoinPickupSound],
+    [gameTop],
   );
 
   const handlePopupDone = useCallback((id: number) => {
