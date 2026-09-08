@@ -1,3 +1,5 @@
+using PiratesPlunder.Core;
+using PiratesPlunder.Gameplay;
 using UnityEngine;
 
 namespace PiratesPlunder.Player
@@ -5,12 +7,11 @@ namespace PiratesPlunder.Player
     [RequireComponent(typeof(Rigidbody2D))]
     public sealed class BoatController : MonoBehaviour
     {
-        [SerializeField] private float speed = 5.2f;
-        [SerializeField] private float acceleration = 14f;
-        [SerializeField] private float turnSpeed = 12f;
+        [SerializeField] private float pixelsPerUnit = 30f;
 
         private Rigidbody2D body;
         private Vector2 input;
+        private float heading = -Mathf.PI / 2f;
 
         private void Awake()
         {
@@ -23,15 +24,33 @@ namespace PiratesPlunder.Player
 
         private void FixedUpdate()
         {
-            Vector2 targetVelocity = input * speed;
-            body.linearVelocity = Vector2.MoveTowards(body.linearVelocity, targetVelocity, acceleration * Time.fixedDeltaTime);
+            if (GameManager.Instance != null && GameManager.Instance.Phase != GamePhase.Playing) return;
 
-            if (input.sqrMagnitude > 0.01f)
+            float dt = Time.fixedDeltaTime;
+            Vector2 velocityPx = body.linearVelocity * pixelsPerUnit;
+            float speed = velocityPx.magnitude;
+            float speedFrac = Mathf.Min(1f, speed / GameRules.MaxSpeed);
+            float magnitude = input.magnitude;
+
+            if (magnitude > 0f)
             {
-                float targetAngle = Mathf.Atan2(input.y, input.x) * Mathf.Rad2Deg - 90f;
-                float angle = Mathf.LerpAngle(transform.eulerAngles.z, targetAngle, turnSpeed * Time.fixedDeltaTime);
-                transform.rotation = Quaternion.Euler(0f, 0f, angle);
+                float target = Mathf.Atan2(input.y, input.x);
+                float diff = Mathf.DeltaAngle(heading * Mathf.Rad2Deg, target * Mathf.Rad2Deg) * Mathf.Deg2Rad;
+                float rate = GameRules.TurnRate * (1f - GameRules.TurnAtSpeed * speedFrac) * dt;
+                heading += Mathf.Abs(diff) <= rate ? diff : Mathf.Sign(diff) * rate;
+                velocityPx += new Vector2(Mathf.Cos(heading), Mathf.Sin(heading)) * GameRules.Thrust * magnitude * dt;
             }
+
+            Vector2 forward = new(Mathf.Cos(heading), Mathf.Sin(heading));
+            float along = Vector2.Dot(velocityPx, forward);
+            Vector2 sideways = velocityPx - along * forward;
+            float damp = Mathf.Exp(-GameRules.Drag * dt);
+            float grip = Mathf.Exp(-GameRules.LateralGrip * dt);
+            velocityPx = along * damp * forward + sideways * grip;
+            velocityPx = Vector2.ClampMagnitude(velocityPx, GameRules.MaxSpeed);
+
+            body.linearVelocity = velocityPx / pixelsPerUnit;
+            transform.rotation = Quaternion.Euler(0f, 0f, heading * Mathf.Rad2Deg - 90f);
         }
     }
 }
