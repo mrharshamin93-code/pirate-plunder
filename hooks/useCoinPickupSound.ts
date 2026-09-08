@@ -4,11 +4,12 @@ import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import { File, Paths } from 'expo-file-system';
 
 const SAMPLE_RATE = 44100;
-const DURATION_SECONDS = 0.18;
-const FILE_NAME = 'pirates-plunder-coin-premium-plink.wav';
+const DURATION_SECONDS = 0.12;
+const FILE_NAME = 'pirates-plunder-coin-single-plink.wav';
 const EFFECT_VOLUME = 0.8;
-const PLAYER_POOL_SIZE = 4;
-const REWIND_DELAY_MS = Math.ceil(DURATION_SECONDS * 1000) + 40;
+const PLAYER_POOL_SIZE = 3;
+const REWIND_DELAY_MS = Math.ceil(DURATION_SECONDS * 1000) + 35;
+const DUPLICATE_GUARD_MS = 90;
 
 let soundPromise: Promise<string> | null = null;
 
@@ -18,25 +19,17 @@ function writeAscii(view: DataView, offset: number, value: string) {
   }
 }
 
-/**
- * Builds one short premium plink with no delayed second note.
- */
-function buildPremiumPlinkWav(): Uint8Array {
+/** A single clean plink: one tone, one envelope, no second accent or overtone. */
+function buildSinglePlinkWav(): Uint8Array {
   const sampleCount = Math.floor(SAMPLE_RATE * DURATION_SECONDS);
   const pcm = new Int16Array(sampleCount);
 
   for (let i = 0; i < sampleCount; i += 1) {
     const t = i / SAMPLE_RATE;
-
-    const envelope = Math.exp(-t / 0.055);
-    const attack = Math.min(1, t / 0.002);
-
-    const sample =
-      0.5 * Math.sin(2 * Math.PI * 1320 * t) * envelope +
-      0.15 * Math.sin(2 * Math.PI * 2640 * t) * Math.exp(-t / 0.03);
-
-    const value = Math.max(-1, Math.min(1, sample * attack));
-    pcm[i] = Math.round(value * 32767);
+    const attack = Math.min(1, t / 0.0015);
+    const envelope = Math.exp(-t / 0.035);
+    const sample = 0.62 * Math.sin(2 * Math.PI * 1450 * t) * attack * envelope;
+    pcm[i] = Math.round(Math.max(-1, Math.min(1, sample)) * 32767);
   }
 
   const dataBytes = pcm.length * 2;
@@ -68,7 +61,7 @@ function prepareSound(): Promise<string> {
   soundPromise ??= new Promise<string>((resolve, reject) => {
     setTimeout(() => {
       try {
-        const bytes = buildPremiumPlinkWav();
+        const bytes = buildSinglePlinkWav();
 
         if (Platform.OS === 'web') {
           resolve(URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' })));
@@ -93,6 +86,7 @@ export function useCoinPickupSound(): () => void {
   const [uri, setUri] = useState<string | null>(null);
   const playersRef = useRef<AudioPlayer[]>([]);
   const nextPlayerRef = useRef(0);
+  const lastPlayAtRef = useRef(0);
   const rewindTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
@@ -133,6 +127,10 @@ export function useCoinPickupSound(): () => void {
   }, [uri]);
 
   return useCallback(() => {
+    const now = Date.now();
+    if (now - lastPlayAtRef.current < DUPLICATE_GUARD_MS) return;
+    lastPlayAtRef.current = now;
+
     const players = playersRef.current;
     if (players.length === 0) return;
 
