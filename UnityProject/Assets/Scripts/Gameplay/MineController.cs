@@ -1,11 +1,15 @@
+using PiratesPlunder.Art;
 using PiratesPlunder.Core;
 using UnityEngine;
 
 namespace PiratesPlunder.Gameplay
 {
     [RequireComponent(typeof(Rigidbody2D))]
+    [RequireComponent(typeof(SpriteRenderer))]
+    [RequireComponent(typeof(CircleCollider2D))]
     public sealed class MineController : MonoBehaviour
     {
+        private const float PixelsPerUnit = 30f;
         private Rigidbody2D body;
         private Transform target;
         private float armTimer;
@@ -17,6 +21,9 @@ namespace PiratesPlunder.Gameplay
         {
             body = GetComponent<Rigidbody2D>();
             body.gravityScale = 0f;
+            GetComponent<CircleCollider2D>().isTrigger = true;
+            GetComponent<CircleCollider2D>().radius = GameRules.MineSpikeRadius / PixelsPerUnit;
+            RuntimeVisualSetup.ApplyMine(GetComponent<SpriteRenderer>());
             phase = Random.value * Mathf.PI * 2f;
         }
 
@@ -34,14 +41,14 @@ namespace PiratesPlunder.Gameplay
             armTimer -= Time.fixedDeltaTime;
 
             Vector2 delta = (Vector2)target.position - body.position;
-            float distance = Mathf.Max(0.01f, delta.magnitude);
-            Vector2 direction = delta / distance;
-            float t = Mathf.InverseLerp(GameRules.MineFarRange, GameRules.MineNearRange, distance);
-            float speed = Mathf.Lerp(GameRules.MineFarSpeed, GameRules.MineNearSpeed, t);
+            float distancePx = Mathf.Max(0.01f, delta.magnitude * PixelsPerUnit);
+            Vector2 direction = delta.normalized;
+            float t = Mathf.InverseLerp(GameRules.MineFarRange, GameRules.MineNearRange, distancePx);
+            float speedPx = Mathf.Lerp(GameRules.MineFarSpeed, GameRules.MineNearSpeed, t);
             phase += Time.fixedDeltaTime * 2.4f;
             Vector2 tangent = new Vector2(-direction.y, direction.x);
-            Vector2 weave = tangent * Mathf.Sin(phase) * speed * GameRules.MineWander;
-            body.linearVelocity = direction * speed + weave;
+            Vector2 weavePx = tangent * Mathf.Sin(phase) * speedPx * GameRules.MineWander;
+            body.linearVelocity = (direction * speedPx + weavePx) / PixelsPerUnit;
         }
 
         private void OnTriggerEnter2D(Collider2D other)
