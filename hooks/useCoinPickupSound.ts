@@ -4,7 +4,7 @@ import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import { File, Paths } from 'expo-file-system';
 
 const SAMPLE_RATE = 44100;
-const DURATION_SECONDS = 0.24;
+const DURATION_SECONDS = 0.18;
 const FILE_NAME = 'pirates-plunder-coin-premium-plink.wav';
 const EFFECT_VOLUME = 0.8;
 const PLAYER_POOL_SIZE = 4;
@@ -19,9 +19,7 @@ function writeAscii(view: DataView, offset: number, value: string) {
 }
 
 /**
- * Builds the selected Premium Plink coin pickup sound entirely in-app so no
- * binary asset needs to be bundled. It is a short two-tone bell/plink designed
- * to stay clear above the background music without becoming harsh.
+ * Builds one short premium plink with no delayed second note.
  */
 function buildPremiumPlinkWav(): Uint8Array {
   const sampleCount = Math.floor(SAMPLE_RATE * DURATION_SECONDS);
@@ -30,18 +28,13 @@ function buildPremiumPlinkWav(): Uint8Array {
   for (let i = 0; i < sampleCount; i += 1) {
     const t = i / SAMPLE_RATE;
 
-    const firstEnvelope = Math.exp(-t / 0.07);
-    let sample =
-      0.48 * Math.sin(2 * Math.PI * 1320 * t) * firstEnvelope +
-      0.18 * Math.sin(2 * Math.PI * 2640 * t) * Math.exp(-t / 0.04);
+    const envelope = Math.exp(-t / 0.055);
+    const attack = Math.min(1, t / 0.002);
 
-    if (t >= 0.065) {
-      const accentT = t - 0.065;
-      sample +=
-        0.25 * Math.sin(2 * Math.PI * 1760 * accentT) * Math.exp(-accentT / 0.06);
-    }
+    const sample =
+      0.5 * Math.sin(2 * Math.PI * 1320 * t) * envelope +
+      0.15 * Math.sin(2 * Math.PI * 2640 * t) * Math.exp(-t / 0.03);
 
-    const attack = Math.min(1, t / 0.0025);
     const value = Math.max(-1, Math.min(1, sample * attack));
     pcm[i] = Math.round(value * 32767);
   }
@@ -147,9 +140,6 @@ export function useCoinPickupSound(): () => void {
     const player = players[index];
     nextPlayerRef.current = (index + 1) % players.length;
 
-    // Play immediately. Rewinding before play caused a noticeable delay because
-    // seekTo is asynchronous. Each player is instead rewound after its sound has
-    // finished, so the next pickup starts with no seek on the critical path.
     player.play();
 
     const timer = setTimeout(() => {
