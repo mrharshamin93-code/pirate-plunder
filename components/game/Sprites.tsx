@@ -171,106 +171,27 @@ export const BoatArt = memo(function BoatArt() {
   return (
     <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
       <G>
-        <Path
-          d="M -4 -9 L -17 -30"
-          stroke={PALETTE.oar}
-          strokeWidth={4}
-          strokeLinecap="round"
-          fill="none"
-        />
-        <Ellipse
-          cx={-19}
-          cy={-34}
-          rx={4}
-          ry={7}
-          fill={PALETTE.woodLight}
-          stroke={PALETTE.woodDark}
-          strokeWidth={2}
-          transform="rotate(30 -19 -34)"
-        />
-        <Path
-          d="M -4 9 L -17 30"
-          stroke={PALETTE.oar}
-          strokeWidth={4}
-          strokeLinecap="round"
-          fill="none"
-        />
-        <Ellipse
-          cx={-19}
-          cy={34}
-          rx={4}
-          ry={7}
-          fill={PALETTE.woodLight}
-          stroke={PALETTE.woodDark}
-          strokeWidth={2}
-          transform="rotate(-30 -19 34)"
-        />
+        <Path d="M -4 -9 L -17 -30" stroke={PALETTE.oar} strokeWidth={4} strokeLinecap="round" fill="none" />
+        <Ellipse cx={-19} cy={-34} rx={4} ry={7} fill={PALETTE.woodLight} stroke={PALETTE.woodDark} strokeWidth={2} transform="rotate(30 -19 -34)" />
+        <Path d="M -4 9 L -17 30" stroke={PALETTE.oar} strokeWidth={4} strokeLinecap="round" fill="none" />
+        <Ellipse cx={-19} cy={34} rx={4} ry={7} fill={PALETTE.woodLight} stroke={PALETTE.woodDark} strokeWidth={2} transform="rotate(-30 -19 34)" />
       </G>
-
-      <Path
-        d={HULL_PATH}
-        fill={PALETTE.woodDark}
-        stroke={PALETTE.ink}
-        strokeWidth={2.5}
-        strokeLinejoin="round"
-      />
+      <Path d={HULL_PATH} fill={PALETTE.woodDark} stroke={PALETTE.ink} strokeWidth={2.5} strokeLinejoin="round" />
       <Path d={DECK_PATH} fill={PALETTE.deck} />
-
-      <Path
-        d="M -14 -9 L -14 9 M -6 -10.5 L -6 10.5 M 4 -10 L 4 10 M 13 -7.5 L 13 7.5"
-        stroke={PALETTE.woodDark}
-        strokeWidth={1.6}
-        opacity={0.55}
-      />
-
+      <Path d="M -14 -9 L -14 9 M -6 -10.5 L -6 10.5 M 4 -10 L 4 10 M 13 -7.5 L 13 7.5" stroke={PALETTE.woodDark} strokeWidth={1.6} opacity={0.55} />
       <Rect x={-2} y={-11} width={5} height={22} rx={1.5} fill={PALETTE.wood} />
       <Rect x={14} y={-8} width={4} height={16} rx={1.5} fill={PALETTE.wood} />
-
-      <Path
-        d="M 24 -6 C 16 -12, 2 -14.5, -11 -13.5"
-        stroke={PALETTE.woodLight}
-        strokeWidth={2}
-        strokeLinecap="round"
-        fill="none"
-        opacity={0.85}
-      />
-
+      <Path d="M 24 -6 C 16 -12, 2 -14.5, -11 -13.5" stroke={PALETTE.woodLight} strokeWidth={2} strokeLinecap="round" fill="none" opacity={0.85} />
       <G>
         <Ellipse cx={-8} cy={0} rx={7} ry={8} fill={PALETTE.sailorDark} />
-        <Circle
-          cx={-4}
-          cy={0}
-          r={6.2}
-          fill={PALETTE.sailor}
-          stroke={PALETTE.ink}
-          strokeWidth={1.8}
-        />
-        <Path
-          d="M 1 -3 Q 7 0 1 3 Z"
-          fill={PALETTE.sailorDark}
-          stroke={PALETTE.ink}
-          strokeWidth={1.4}
-        />
+        <Circle cx={-4} cy={0} r={6.2} fill={PALETTE.sailor} stroke={PALETTE.ink} strokeWidth={1.8} />
+        <Path d="M 1 -3 Q 7 0 1 3 Z" fill={PALETTE.sailorDark} stroke={PALETTE.ink} strokeWidth={1.4} />
         <Path d="M -10.2 -4.6 A 6.2 6.2 0 0 1 -10.2 4.6 Z" fill={PALETTE.bandana} />
-        <Path
-          d="M -10 -1 L -16 -5 M -10 1 L -16 5"
-          stroke={PALETTE.bandana}
-          strokeWidth={2.4}
-          strokeLinecap="round"
-        />
+        <Path d="M -10 -1 L -16 -5 M -10 1 L -16 5" stroke={PALETTE.bandana} strokeWidth={2.4} strokeLinecap="round" />
         <Circle cx={-2.5} cy={-3} r={1.2} fill={PALETTE.ink} />
         <Circle cx={-2.5} cy={3} r={1.2} fill={PALETTE.ink} />
       </G>
-
-      <Ellipse
-        cx={-17}
-        cy={0}
-        rx={4.6}
-        ry={5.4}
-        fill="#c9a227"
-        stroke={PALETTE.woodDark}
-        strokeWidth={1.6}
-      />
+      <Ellipse cx={-17} cy={0} rx={4.6} ry={5.4} fill="#c9a227" stroke={PALETTE.woodDark} strokeWidth={1.6} />
     </Svg>
   );
 });
@@ -288,22 +209,8 @@ export const WakeArt = memo(function WakeArt() {
           <Stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
         </LinearGradient>
       </Defs>
-
-      <Path
-        d="M -14 0 C -9 -4.5, 0 -5.5, 14 0"
-        stroke="url(#wakeFade)"
-        strokeWidth={3.2}
-        strokeLinecap="round"
-        fill="none"
-      />
-      <Path
-        d="M -11 5 C -4 1.5, 4 1, 11 3"
-        stroke={PALETTE.foam}
-        strokeOpacity={0.42}
-        strokeWidth={1.8}
-        strokeLinecap="round"
-        fill="none"
-      />
+      <Path d="M -14 0 C -9 -4.5, 0 -5.5, 14 0" stroke="url(#wakeFade)" strokeWidth={3.2} strokeLinecap="round" fill="none" />
+      <Path d="M -11 5 C -4 1.5, 4 1, 11 3" stroke={PALETTE.foam} strokeOpacity={0.42} strokeWidth={1.8} strokeLinecap="round" fill="none" />
       <Circle cx={4} cy={-5} r={1.4} fill={PALETTE.foam} fillOpacity={0.7} />
       <Circle cx={9} cy={3} r={1} fill={PALETTE.foam} fillOpacity={0.5} />
       <Circle cx={-2} cy={6} r={0.8} fill={PALETTE.foam} fillOpacity={0.42} />
@@ -318,7 +225,6 @@ export const MineArt = memo(function MineArt({ size }: { size?: number }) {
   const renderedSize = size ?? box;
   const half = box / 2;
   const bodyR = 13;
-
   const spikes = Array.from({ length: SPIKE_COUNT }, (_, i) => {
     const a = (i / SPIKE_COUNT) * Math.PI * 2;
     const baseA = 0.2;
@@ -328,11 +234,7 @@ export const MineArt = memo(function MineArt({ size }: { size?: number }) {
     const b1y = Math.sin(a - baseA) * bodyR;
     const b2x = Math.cos(a + baseA) * bodyR;
     const b2y = Math.sin(a + baseA) * bodyR;
-
-    return {
-      key: i,
-      points: `${tipX},${tipY} ${b1x},${b1y} ${b2x},${b2y}`,
-    };
+    return { key: i, points: `${tipX},${tipY} ${b1x},${b1y} ${b2x},${b2y}` };
   });
 
   return (
@@ -344,61 +246,20 @@ export const MineArt = memo(function MineArt({ size }: { size?: number }) {
           <Stop offset="100%" stopColor={PALETTE.mineShade} />
         </RadialGradient>
       </Defs>
-
       {spikes.map((s) => (
-        <Polygon
-          key={s.key}
-          points={s.points}
-          fill={PALETTE.mineBody}
-          stroke={PALETTE.ink}
-          strokeWidth={1.6}
-          strokeLinejoin="round"
-        />
+        <Polygon key={s.key} points={s.points} fill={PALETTE.mineBody} stroke={PALETTE.ink} strokeWidth={1.6} strokeLinejoin="round" />
       ))}
-
-      <Circle
-        cx={0}
-        cy={0}
-        r={bodyR}
-        fill="url(#mineBody)"
-        stroke={PALETTE.ink}
-        strokeWidth={2.2}
-      />
-
-      <Path
-        d={`M ${-bodyR + 1} 2 A ${bodyR} ${bodyR} 0 0 0 ${bodyR - 1} 2`}
-        stroke={PALETTE.mineRust}
-        strokeWidth={2.6}
-        fill="none"
-        opacity={0.85}
-      />
-
+      <Circle cx={0} cy={0} r={bodyR} fill="url(#mineBody)" stroke={PALETTE.ink} strokeWidth={2.2} />
+      <Path d={`M ${-bodyR + 1} 2 A ${bodyR} ${bodyR} 0 0 0 ${bodyR - 1} 2`} stroke={PALETTE.mineRust} strokeWidth={2.6} fill="none" opacity={0.85} />
       <Circle cx={-6} cy={6} r={1.3} fill={PALETTE.mineLight} opacity={0.7} />
       <Circle cx={6} cy={6} r={1.3} fill={PALETTE.mineLight} opacity={0.7} />
-
-      <Circle
-        cx={0}
-        cy={-4}
-        r={3.2}
-        fill={PALETTE.mineLamp}
-        stroke={PALETTE.ink}
-        strokeWidth={1.6}
-      />
-
-      <Path
-        d="M -8 -7 Q -3 -11 3 -9.5"
-        stroke="#ffffff"
-        strokeOpacity={0.45}
-        strokeWidth={2}
-        strokeLinecap="round"
-        fill="none"
-      />
+      <Circle cx={0} cy={-4} r={3.2} fill={PALETTE.mineLamp} stroke={PALETTE.ink} strokeWidth={1.6} />
+      <Path d="M -8 -7 Q -3 -11 3 -9.5" stroke="#ffffff" strokeOpacity={0.45} strokeWidth={2} strokeLinecap="round" fill="none" />
     </Svg>
   );
 });
 
 const COIN_SHEET_SIZE = 1254;
-
 const COIN_SPRITES = [
   { cx: 164, cy: 427, diameter: 306 },
   { cx: 474, cy: 427, diameter: 302 },
@@ -408,16 +269,9 @@ const COIN_SPRITES = [
   { cx: 1090, cy: 427, diameter: 302 },
   { cx: 872, cy: 844, diameter: 386 },
 ] as const;
-
 const COIN_SHEET = require('../../assets/images/treasure-coins-3d-v10.png');
 
-export const CoinArt = memo(function CoinArt({
-  tier,
-  size,
-}: {
-  tier: number;
-  size?: number;
-}) {
+export const CoinArt = memo(function CoinArt({ tier, size }: { tier: number; size?: number }) {
   const index = Math.max(0, Math.min(COIN_TIERS.length - 1, tier));
   const renderedSize = size ?? SPRITE_BOX.coin;
   const sprite = COIN_SPRITES[index];
@@ -441,86 +295,114 @@ export const CoinArt = memo(function CoinArt({
   );
 });
 
-const ARM_COUNT = 5;
+const WHIRLPOOL_VISUAL_RADIUS = 70;
+const WHIRLPOOL_ARMS = [
+  { rotate: 0, opacity: 0.95, width: 7.5 },
+  { rotate: 58, opacity: 0.82, width: 6.2 },
+  { rotate: 118, opacity: 0.74, width: 5.6 },
+  { rotate: 181, opacity: 0.68, width: 5.1 },
+  { rotate: 242, opacity: 0.62, width: 4.6 },
+  { rotate: 302, opacity: 0.56, width: 4.1 },
+] as const;
 
 export const WhirlpoolArt = memo(function WhirlpoolArt() {
   const box = SPRITE_BOX.whirlpool;
   const half = box / 2;
-  const reach = GAME.whirlpoolRange;
   const eye = GAME.whirlpoolCore;
-  const outer = reach * 0.83;
+  const outer = WHIRLPOOL_VISUAL_RADIUS;
 
   return (
     <Svg width={box} height={box} viewBox={`${-half} ${-half} ${box} ${box}`}>
       <Defs>
-        <RadialGradient id="vortex" cx="50%" cy="50%" r="50%">
-          <Stop offset="0%" stopColor="#03151d" stopOpacity={0.95} />
-          <Stop offset="42%" stopColor={PALETTE.seaDeep} stopOpacity={0.72} />
-          <Stop offset="100%" stopColor={PALETTE.seaDeep} stopOpacity={0} />
+        <RadialGradient id="whirlpoolWater" cx="48%" cy="46%" r="54%">
+          <Stop offset="0%" stopColor="#010b11" stopOpacity={0.98} />
+          <Stop offset="17%" stopColor="#031b26" stopOpacity={0.98} />
+          <Stop offset="39%" stopColor="#07506a" stopOpacity={0.92} />
+          <Stop offset="67%" stopColor="#0b86a7" stopOpacity={0.72} />
+          <Stop offset="88%" stopColor="#3cc3dc" stopOpacity={0.28} />
+          <Stop offset="100%" stopColor="#7fe9f5" stopOpacity={0} />
+        </RadialGradient>
+        <RadialGradient id="whirlpoolEye" cx="43%" cy="38%" r="68%">
+          <Stop offset="0%" stopColor="#000000" stopOpacity={1} />
+          <Stop offset="58%" stopColor="#020b10" stopOpacity={1} />
+          <Stop offset="100%" stopColor="#063447" stopOpacity={0.96} />
         </RadialGradient>
       </Defs>
 
-      <Circle cx={0} cy={0} r={reach} fill="url(#vortex)" />
+      <Circle cx={0} cy={0} r={outer} fill="url(#whirlpoolWater)" />
 
-      {Array.from({ length: ARM_COUNT }, (_, i) => {
-        const a = (i / ARM_COUNT) * Math.PI * 2;
-        const deg = (a * 180) / Math.PI;
+      <Path
+        d="M -68 -7 C -52 -31 -21 -49 18 -46 C 47 -44 66 -27 69 -7"
+        stroke="#9ff6ff"
+        strokeOpacity={0.25}
+        strokeWidth={4.5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <Path
+        d="M -66 19 C -42 43 -8 51 26 38 C 50 29 62 13 63 -4"
+        stroke="#b9f8ff"
+        strokeOpacity={0.34}
+        strokeWidth={3.5}
+        strokeLinecap="round"
+        fill="none"
+      />
 
-        return (
+      {WHIRLPOOL_ARMS.map((arm, index) => (
+        <G key={index} transform={`rotate(${arm.rotate})`}>
           <Path
-            key={i}
-            d={`M ${outer - 4} 0 C ${outer * 0.6} ${outer * 0.42} ${outer * 0.2} ${
-              outer * 0.4
-            } ${eye * 0.6} 3`}
-            stroke={PALETTE.foam}
-            strokeOpacity={0.5}
-            strokeWidth={3}
+            d="M 66 -4 C 49 15 31 24 14 22 C -1 20 -10 12 -13 5"
+            stroke="#dffbff"
+            strokeOpacity={arm.opacity}
+            strokeWidth={arm.width}
             strokeLinecap="round"
             fill="none"
-            transform={`rotate(${deg})`}
           />
-        );
-      })}
+          <Path
+            d="M 61 2 C 44 21 27 30 10 27 C -1 25 -8 20 -11 15"
+            stroke="#57d6ed"
+            strokeOpacity={Math.max(0.28, arm.opacity - 0.32)}
+            strokeWidth={Math.max(2.2, arm.width * 0.52)}
+            strokeLinecap="round"
+            fill="none"
+          />
+        </G>
+      ))}
 
-      <Circle
-        cx={0}
-        cy={0}
-        r={reach - 2}
+      <Path
+        d="M 43 -42 C 25 -51 3 -53 -18 -45"
+        stroke="#ffffff"
+        strokeOpacity={0.62}
+        strokeWidth={3.3}
+        strokeLinecap="round"
         fill="none"
-        stroke={PALETTE.foam}
-        strokeOpacity={0.22}
-        strokeWidth={2}
       />
-      <Circle
-        cx={0}
-        cy={0}
-        r={outer - 3}
+      <Path
+        d="M -55 28 C -40 43 -22 49 -5 47"
+        stroke="#ffffff"
+        strokeOpacity={0.5}
+        strokeWidth={2.8}
+        strokeLinecap="round"
         fill="none"
-        stroke={PALETTE.crest}
-        strokeOpacity={0.35}
-        strokeWidth={2}
       />
-      <Circle
-        cx={0}
-        cy={0}
-        r={outer * 0.62}
+      <Path
+        d="M 17 51 C 36 46 49 37 56 26"
+        stroke="#dffcff"
+        strokeOpacity={0.44}
+        strokeWidth={2.4}
+        strokeLinecap="round"
         fill="none"
-        stroke={PALETTE.crest}
-        strokeOpacity={0.28}
-        strokeWidth={1.8}
       />
 
-      <Circle cx={0} cy={0} r={eye} fill="#02121a" />
-      <Circle
-        cx={0}
-        cy={0}
-        r={eye}
-        fill="none"
-        stroke={PALETTE.foam}
-        strokeOpacity={0.6}
-        strokeWidth={2}
-      />
-      <Circle cx={0} cy={0} r={eye * 0.46} fill="#000000" opacity={0.85} />
+      <Circle cx={0} cy={0} r={eye * 1.55} fill="url(#whirlpoolEye)" />
+      <Circle cx={0} cy={0} r={eye * 0.72} fill="#000000" opacity={0.98} />
+      <Circle cx={2} cy={-2} r={eye * 1.92} fill="none" stroke="#6bd9ed" strokeOpacity={0.34} strokeWidth={3} />
+
+      <Circle cx={58} cy={-29} r={2.1} fill="#e7fdff" opacity={0.72} />
+      <Circle cx={-61} cy={9} r={1.7} fill="#bff8ff" opacity={0.62} />
+      <Circle cx={46} cy={39} r={1.4} fill="#e8feff" opacity={0.6} />
+      <Circle cx={-31} cy={-55} r={1.5} fill="#d9fbff" opacity={0.58} />
+      <Circle cx={12} cy={-62} r={1.2} fill="#ffffff" opacity={0.54} />
     </Svg>
   );
 });
@@ -539,31 +421,19 @@ export const ExplosionArt = memo(function ExplosionArt() {
         const a = (i / BURST_COUNT) * Math.PI * 2;
         const spread = 0.14;
         const len = i % 2 === 0 ? outer : outer * 0.72;
-
         return (
           <Polygon
             key={i}
-            points={`${Math.cos(a) * len},${Math.sin(a) * len} ${Math.cos(a - spread) * inner},${
-              Math.sin(a - spread) * inner
-            } ${Math.cos(a + spread) * inner},${Math.sin(a + spread) * inner}`}
+            points={`${Math.cos(a) * len},${Math.sin(a) * len} ${Math.cos(a - spread) * inner},${Math.sin(a - spread) * inner} ${Math.cos(a + spread) * inner},${Math.sin(a + spread) * inner}`}
             fill={PALETTE.blastEdge}
             opacity={0.9}
           />
         );
       })}
-
       <Circle cx={0} cy={0} r={26} fill={PALETTE.blastMid} />
       <Circle cx={0} cy={0} r={16} fill={PALETTE.blast} />
       <Circle cx={0} cy={0} r={7} fill="#ffffff" />
-      <Circle
-        cx={0}
-        cy={0}
-        r={outer}
-        fill="none"
-        stroke={PALETTE.blast}
-        strokeOpacity={0.6}
-        strokeWidth={3}
-      />
+      <Circle cx={0} cy={0} r={outer} fill="none" stroke={PALETTE.blast} strokeOpacity={0.6} strokeWidth={3} />
     </Svg>
   );
 });
