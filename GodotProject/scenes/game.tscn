@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/semi_dynamic_joystick.gd" id="2_joy"]
@@ -8,7 +8,6 @@
 [ext_resource type="Script" path="res://scripts/sunk_screen.gd" id="6_sunk"]
 [ext_resource type="Script" path="res://scripts/procedural_music.gd" id="7_music"]
 [ext_resource type="Script" path="res://scripts/main_menu.gd" id="8_menu"]
-[ext_resource type="Script" path="res://scripts/coin_pickup_audio.gd" id="9_coin_audio"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
@@ -21,9 +20,6 @@ script = ExtResource("3_visuals")
 
 [node name="ProceduralMusic" type="Node" parent="."]
 script = ExtResource("7_music")
-
-[node name="CoinPickupAudio" type="Node" parent="."]
-script = ExtResource("9_coin_audio")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
