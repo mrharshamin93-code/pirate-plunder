@@ -279,10 +279,10 @@ func _refresh_from_game() -> void:
 			_load_leaderboard(false)
 	queue_redraw()
 
-func _load_leaderboard(preload: bool = false) -> void:
+func _load_leaderboard(background_fetch: bool = false) -> void:
 	if http == null or http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
 		return
-	pending_action = "preload" if preload else "load"
+	pending_action = "preload" if background_fetch else "load"
 	var err: Error = http.request("%s?playerId=%s" % [API_URL, player_id])
 	if err != OK:
 		pending_action = ""
