@@ -15,9 +15,9 @@ const MINE_RADIUS: float = 8.0
 const MINE_SPIKE_RADIUS: float = 11.0
 const MAX_MINES: int = 9
 
-# Original/default mine pursuit values.
+# Mine pursuit: gentle at long range, sharply stronger near the boat.
 const MINE_FAR_SPEED: float = 22.0
-const MINE_NEAR_SPEED: float = 100.0
+const MINE_NEAR_SPEED: float = 135.0
 const MINE_FAR_RANGE: float = 400.0
 const MINE_NEAR_RANGE: float = 40.0
 const MINE_WANDER: float = 0.42
@@ -172,12 +172,16 @@ func _update_mines(dt: float) -> void:
 		var delta_vec: Vector2 = boat_pos - mine_pos
 		var dist: float = maxf(0.01, delta_vec.length())
 		var dir: Vector2 = delta_vec / dist
-		var t: float = clampf(inverse_lerp(MINE_FAR_RANGE, MINE_NEAR_RANGE, dist), 0.0, 1.0)
-		var speed: float = lerpf(MINE_FAR_SPEED, MINE_NEAR_SPEED, t)
+		var proximity: float = clampf(inverse_lerp(MINE_FAR_RANGE, MINE_NEAR_RANGE, dist), 0.0, 1.0)
+		# Curve the pursuit so distant mines stay manageable, then accelerate hard near the boat.
+		var close_boost: float = proximity * proximity
+		var speed: float = lerpf(MINE_FAR_SPEED, MINE_NEAR_SPEED, close_boost)
 		var phase: float = float(mine.get("phase", 0.0)) + dt * 2.4
 		mine["phase"] = phase
 		var tangent: Vector2 = Vector2(-dir.y, dir.x)
-		var velocity: Vector2 = dir * speed + tangent * sin(phase) * speed * MINE_WANDER
+		# Reduce wandering as the mine closes in so the attraction becomes more direct.
+		var wander_strength: float = MINE_WANDER * (1.0 - 0.65 * proximity)
+		var velocity: Vector2 = dir * speed + tangent * sin(phase) * speed * wander_strength
 
 		if bool(whirlpool.get("active", false)):
 			var wpos: Vector2 = whirlpool.get("pos", Vector2.ZERO) as Vector2
