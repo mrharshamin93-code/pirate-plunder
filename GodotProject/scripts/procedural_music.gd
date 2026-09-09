@@ -45,7 +45,6 @@ var player: AudioStreamPlayer
 var toggle_button: Button
 var music_enabled: bool = true
 var noise_state: int = 20250813
-var was_game_over: bool = false
 
 func _ready() -> void:
 	_load_setting()
@@ -59,16 +58,7 @@ func _ready() -> void:
 	set_process(true)
 
 func _process(_delta: float) -> void:
-	var game: Node = get_parent()
-	var game_over_now: bool = bool(game.get("game_over"))
-	if game_over_now:
-		if player != null and player.playing:
-			player.stop()
-	elif was_game_over and music_enabled:
-		# Starting a new run restarts the shanty from the beginning.
-		if player != null and not player.playing:
-			player.play()
-	was_game_over = game_over_now
+	_apply_enabled_state()
 
 func _load_setting() -> void:
 	var cfg: ConfigFile = ConfigFile.new()
@@ -106,12 +96,18 @@ func _apply_enabled_state() -> void:
 	if player == null:
 		return
 	var game: Node = get_parent()
+	var game_started_now: bool = bool(game.get("game_started"))
 	var game_over_now: bool = bool(game.get("game_over"))
-	if music_enabled and not game_over_now:
+	var should_play: bool = music_enabled and game_started_now and not game_over_now
+	if should_play:
 		if not player.playing:
+			# Music starts from the beginning only after Set Sail / Play Again.
 			player.play()
 	else:
-		player.stop()
+		if player.playing:
+			player.stop()
+	if toggle_button != null:
+		toggle_button.visible = game_started_now and not game_over_now
 	_update_toggle_text()
 
 func _update_toggle_text() -> void:
