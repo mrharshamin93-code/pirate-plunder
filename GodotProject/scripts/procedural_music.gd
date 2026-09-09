@@ -77,12 +77,17 @@ func _build_toggle() -> void:
 		return
 	toggle_button = Button.new()
 	toggle_button.name = "MusicToggle"
-	toggle_button.position = Vector2(171.0, 22.0)
-	toggle_button.size = Vector2(48.0, 38.0)
+	toggle_button.position = Vector2(174.0, 24.0)
+	toggle_button.size = Vector2(42.0, 32.0)
 	toggle_button.flat = true
 	toggle_button.focus_mode = Control.FOCUS_NONE
-	toggle_button.add_theme_font_size_override("font_size", 22)
-	toggle_button.add_theme_color_override("font_color", Color(0.90, 0.98, 1.0, 0.92))
+	toggle_button.add_theme_font_size_override("font_size", 18)
+	toggle_button.add_theme_color_override("font_color", Color("f4c64d"))
+	toggle_button.add_theme_color_override("font_hover_color", Color("ffd96a"))
+	toggle_button.add_theme_color_override("font_pressed_color", Color("b97822"))
+	toggle_button.add_theme_color_override("font_focus_color", Color("f4c64d"))
+	toggle_button.add_theme_color_override("font_outline_color", Color("0a1a20"))
+	toggle_button.add_theme_constant_override("outline_size", 2)
 	toggle_button.pressed.connect(_toggle_music)
 	canvas.add_child(toggle_button)
 	_update_toggle_text()
@@ -112,7 +117,9 @@ func _apply_enabled_state() -> void:
 
 func _update_toggle_text() -> void:
 	if toggle_button != null:
-		toggle_button.text = "🔊" if music_enabled else "🔇"
+		# Text glyphs avoid the platform-colored white emoji speaker icon.
+		toggle_button.text = "♪" if music_enabled else "×"
+		toggle_button.tooltip_text = "Music on" if music_enabled else "Music off"
 
 func _midi_to_freq(midi: int) -> float:
 	return 440.0 * pow(2.0, (float(midi) - 69.0) / 12.0)
