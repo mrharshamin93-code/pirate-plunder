@@ -1,18 +1,24 @@
 extends Node
 
-# Premium Treasure pickup SFX. Generated in-engine so no compressed asset/import delay is needed.
+# Premium treasure pickup SFX. Common coins keep the generated in-engine sound;
+# 500 and 1000 point coins use richer authored jackpot sounds.
 const SAMPLE_RATE: int = 44100
 const DURATION: float = 0.34
+const COIN_500_STREAM: AudioStream = preload("res://assets/audio/coin_500_rich_sample_3.ogg")
+const COIN_1000_STREAM: AudioStream = preload("res://assets/audio/coin_1000_STRONG_jackpot_4.ogg")
 
 var pickup_player: AudioStreamPlayer
+var default_stream: AudioStreamWAV
 var last_coin_count: int = 0
+var last_score: int = 0
 var tracked_game: Node = null
 
 func _ready() -> void:
+	default_stream = _build_premium_treasure_stream()
 	pickup_player = AudioStreamPlayer.new()
 	pickup_player.name = "CoinPickupSFX"
 	pickup_player.volume_db = -2.0
-	pickup_player.stream = _build_premium_treasure_stream()
+	pickup_player.stream = default_stream
 	add_child(pickup_player)
 	set_process(true)
 
@@ -21,12 +27,36 @@ func _process(_delta: float) -> void:
 		tracked_game = get_tree().current_scene
 		if tracked_game != null:
 			last_coin_count = int(tracked_game.get("coins_collected"))
+			last_score = int(tracked_game.get("score"))
 		return
+
 	var game_started: bool = bool(tracked_game.get("game_started"))
 	var current_count: int = int(tracked_game.get("coins_collected"))
+	var current_score: int = int(tracked_game.get("score"))
+
 	if game_started and current_count > last_coin_count:
-		pickup_player.play()
+		var collected_points: int = maxi(0, current_score - last_score)
+		_play_pickup(collected_points)
+
 	last_coin_count = current_count
+	last_score = current_score
+
+func _play_pickup(points: int) -> void:
+	if pickup_player.playing:
+		pickup_player.stop()
+
+	match points:
+		500:
+			pickup_player.stream = COIN_500_STREAM
+			pickup_player.volume_db = 0.0
+		1000:
+			pickup_player.stream = COIN_1000_STREAM
+			pickup_player.volume_db = 1.0
+		_:
+			pickup_player.stream = default_stream
+			pickup_player.volume_db = -2.0
+
+	pickup_player.play()
 
 func _envelope(t: float, duration: float, decay: float) -> float:
 	if t < 0.0:
