@@ -15,8 +15,11 @@ var active: bool = false
 var touch_id: int = -1
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	set_process_input(true)
+	# This control owns the joystick zone. Using GUI input is more reliable than
+	# global _input when running inside Godot's embedded game window.
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	clip_contents = false
+	focus_mode = Control.FOCUS_NONE
 	call_deferred("_reset_home")
 
 func _notification(what: int) -> void:
@@ -29,47 +32,48 @@ func _reset_home() -> void:
 	knob_offset = Vector2.ZERO
 	queue_redraw()
 
-func _input(event: InputEvent) -> void:
+func _gui_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
-		if touch.pressed and touch_id == -1 and _inside_zone(touch.position):
+		if touch.pressed and touch_id == -1:
 			touch_id = touch.index
 			_begin(touch.position)
+			accept_event()
 		elif not touch.pressed and touch.index == touch_id:
 			_end()
+			accept_event()
 	elif event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
 		if drag.index == touch_id:
 			_apply(drag.position)
+			accept_event()
 	elif event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
 		if button.button_index == MOUSE_BUTTON_LEFT:
-			if button.pressed and _inside_zone(button.position):
+			if button.pressed:
 				_begin(button.position)
-			elif not button.pressed and active:
+			else:
 				_end()
-	elif event is InputEventMouseMotion and active and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		var motion := event as InputEventMouseMotion
-		_apply(motion.position)
+			accept_event()
+	elif event is InputEventMouseMotion:
+		if active and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+			var motion := event as InputEventMouseMotion
+			_apply(motion.position)
+			accept_event()
 
-func _inside_zone(screen_pos: Vector2) -> bool:
-	var local := screen_pos - global_position
-	return local.x >= 0.0 and local.x <= size.x and local.y >= 0.0 and local.y <= size.y
-
-func _begin(screen_pos: Vector2) -> void:
+func _begin(local_pos: Vector2) -> void:
 	active = true
-	var p: Vector2 = screen_pos - global_position
-	var delta: Vector2 = p - home
-	if delta.length() <= BASE_SHIFT or is_zero_approx(delta.length()):
-		origin = p
+	var delta: Vector2 = local_pos - home
+	var dist: float = delta.length()
+	if dist <= BASE_SHIFT or is_zero_approx(dist):
+		origin = local_pos
 	else:
 		origin = home + delta.normalized() * BASE_SHIFT
 	knob_offset = Vector2.ZERO
-	_apply(screen_pos)
+	_apply(local_pos)
 
-func _apply(screen_pos: Vector2) -> void:
-	var p: Vector2 = screen_pos - global_position
-	var delta: Vector2 = p - origin
+func _apply(local_pos: Vector2) -> void:
+	var delta: Vector2 = local_pos - origin
 	var dist: float = delta.length()
 	if dist < DEAD_ZONE:
 		knob_offset = delta
@@ -82,6 +86,8 @@ func _apply(screen_pos: Vector2) -> void:
 	queue_redraw()
 
 func _end() -> void:
+	if not active and touch_id == -1:
+		return
 	touch_id = -1
 	active = false
 	origin = home
