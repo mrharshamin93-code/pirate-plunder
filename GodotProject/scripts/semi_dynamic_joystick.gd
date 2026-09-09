@@ -90,12 +90,23 @@ func _end() -> void:
 	queue_redraw()
 
 func _draw() -> void:
-	var base_alpha: float = 0.78 if active else 0.52
-	var knob_alpha: float = 1.0 if active else 0.72
-	draw_circle(origin, BASE_DIAMETER * 0.5 - 3.0, Color(0.024, 0.125, 0.165, base_alpha))
-	draw_arc(origin, BASE_DIAMETER * 0.5 - 3.0, 0.0, TAU, 48, Color(0.85, 0.96, 0.98, 0.30), 3.0)
-	draw_arc(origin, BASE_DIAMETER * 0.5 - 16.0, 0.0, TAU, 48, Color(0.85, 0.96, 0.98, 0.12), 1.5)
+	var magnitude: float = minf(1.0, knob_offset.length() / THROW_RADIUS)
+	var base_alpha: float = 0.78 + 0.22 * magnitude if active else 0.52
+	var knob_alpha: float = 0.78 + 0.22 * magnitude if active else 0.72
+	var outer_r: float = BASE_DIAMETER * 0.5 - 3.0
+	var inner_r: float = BASE_DIAMETER * 0.5 - 16.0
+	draw_circle(origin, outer_r, Color(0.024, 0.125, 0.165, 0.42 * base_alpha / 0.52))
+	draw_arc(origin, outer_r, 0.0, TAU, 64, Color(0.85, 0.96, 0.98, 0.30), 3.0, true)
+	draw_arc(origin, inner_r, 0.0, TAU, 64, Color(0.85, 0.96, 0.98, 0.12), 1.5, true)
+	for deg in [0.0, 90.0, 180.0, 270.0]:
+		var a: float = deg_to_rad(deg)
+		var tip: Vector2 = origin + Vector2(outer_r - 6.0, 0).rotated(a)
+		var b1: Vector2 = origin + Vector2(outer_r - 14.0, -5.0).rotated(a)
+		var b2: Vector2 = origin + Vector2(outer_r - 14.0, 5.0).rotated(a)
+		draw_colored_polygon(PackedVector2Array([tip, b1, b2]), Color(0.85, 0.96, 0.98, 0.32))
 	var knob_pos: Vector2 = origin + knob_offset
-	draw_circle(knob_pos, KNOB_DIAMETER * 0.5 - 2.0, Color(0.85, 0.96, 0.98, knob_alpha))
-	draw_arc(knob_pos, KNOB_DIAMETER * 0.5 - 2.0, 0.0, TAU, 36, Color(0.024, 0.125, 0.165, 0.35), 2.0)
+	var kr: float = KNOB_DIAMETER * 0.5 - 2.0
+	draw_circle(knob_pos, kr, Color(0.85, 0.96, 0.98, 0.90 * knob_alpha / 0.72))
+	draw_arc(knob_pos, kr, 0.0, TAU, 48, Color(0.024, 0.125, 0.165, 0.35), 2.0, true)
 	draw_circle(knob_pos + Vector2(-5.0, -6.0), 7.0, Color(1.0, 1.0, 1.0, 0.85))
+	draw_circle(knob_pos, 5.0, Color(0.024, 0.125, 0.165, 0.22))
