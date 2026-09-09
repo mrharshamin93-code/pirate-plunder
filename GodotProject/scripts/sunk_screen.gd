@@ -38,7 +38,6 @@ func _ready() -> void:
 	_setup_http()
 	_load_identity()
 	visibility_changed.connect(_on_visibility_changed)
-	# Fetch while gameplay is already happening so the SUNK screen can render instantly.
 	_load_leaderboard(true)
 	queue_redraw()
 
@@ -72,7 +71,6 @@ func _on_visibility_changed() -> void:
 		restart_in_progress = false
 		_refresh_from_game()
 	elif is_node_ready():
-		# Refresh the cache quietly during the next run.
 		call_deferred("_refresh_leaderboard_cache")
 
 func _refresh_leaderboard_cache() -> void:
@@ -259,8 +257,8 @@ func _layout_ui() -> void:
 		board_title.position = Vector2(62.0*sx, 376.0)
 		board_title.size = Vector2(w-124.0*sx, 40.0)
 	if leaderboard_box:
-		leaderboard_box.position = Vector2(52.0*sx, 420.0)
-		leaderboard_box.size = Vector2(w-104.0*sx, 270.0)
+		leaderboard_box.position = Vector2(52.0*sx, 416.0)
+		leaderboard_box.size = Vector2(w-104.0*sx, 260.0)
 	if footer_label:
 		footer_label.position = Vector2(42.0*sx, 708.0)
 		footer_label.size = Vector2(w-84.0*sx, 22.0)
@@ -361,7 +359,7 @@ func _build_leaderboard() -> void:
 		var entry: Dictionary = leaderboard[i]
 		var is_you: bool = submitted_score >= 0 and String(entry.get("name", "")) == submitted_name and int(entry.get("score", -1)) == submitted_score
 		var row: PanelContainer = PanelContainer.new()
-		row.custom_minimum_size = Vector2(0, 27)
+		row.custom_minimum_size = Vector2(0, 25)
 		if is_you:
 			row.add_theme_stylebox_override("panel", _button_box(Color(0.20,0.13,0.08,0.82), GOLD_DARK, 1, 4))
 		else:
