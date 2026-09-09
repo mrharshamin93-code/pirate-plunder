@@ -11,6 +11,7 @@ const BARS: int = 8
 const TOTAL_EIGHTHS: int = BARS * EIGHTHS_PER_BAR
 const LOOP_SAMPLES: int = int(round(TOTAL_EIGHTHS * EIGHTH * SAMPLE_RATE))
 const SAVE_PATH: String = "user://music.cfg"
+const MUSIC_TOGGLE_BUTTON = preload("res://scripts/music_toggle_button.gd")
 
 const MELODY: Array[Vector2i] = [
 	Vector2i(62,2), Vector2i(65,1), Vector2i(69,2), Vector2i(65,1),
@@ -75,22 +76,14 @@ func _build_toggle() -> void:
 	var canvas: CanvasLayer = game.get_node_or_null("CanvasLayer") as CanvasLayer
 	if canvas == null:
 		return
-	toggle_button = Button.new()
+	toggle_button = MUSIC_TOGGLE_BUTTON.new() as Button
 	toggle_button.name = "MusicToggle"
 	toggle_button.position = Vector2(174.0, 24.0)
 	toggle_button.size = Vector2(42.0, 32.0)
-	toggle_button.flat = true
-	toggle_button.focus_mode = Control.FOCUS_NONE
-	toggle_button.add_theme_font_size_override("font_size", 18)
-	toggle_button.add_theme_color_override("font_color", Color("f4c64d"))
-	toggle_button.add_theme_color_override("font_hover_color", Color("ffd96a"))
-	toggle_button.add_theme_color_override("font_pressed_color", Color("b97822"))
-	toggle_button.add_theme_color_override("font_focus_color", Color("f4c64d"))
-	toggle_button.add_theme_color_override("font_outline_color", Color("0a1a20"))
-	toggle_button.add_theme_constant_override("outline_size", 2)
+	toggle_button.text = ""
 	toggle_button.pressed.connect(_toggle_music)
 	canvas.add_child(toggle_button)
-	_update_toggle_text()
+	_update_toggle_icon()
 
 func _toggle_music() -> void:
 	music_enabled = not music_enabled
@@ -113,13 +106,14 @@ func _apply_enabled_state() -> void:
 			player.stop()
 	if toggle_button != null:
 		toggle_button.visible = game_started_now and not game_over_now
-	_update_toggle_text()
+	_update_toggle_icon()
 
-func _update_toggle_text() -> void:
-	if toggle_button != null:
-		# Off state uses the same music note with a diagonal strike-through.
-		toggle_button.text = "♪" if music_enabled else "♪̸"
-		toggle_button.tooltip_text = "Music on" if music_enabled else "Music off"
+func _update_toggle_icon() -> void:
+	if toggle_button == null:
+		return
+	if toggle_button.has_method("set_music_enabled"):
+		toggle_button.call("set_music_enabled", music_enabled)
+	toggle_button.tooltip_text = "Music on" if music_enabled else "Music off"
 
 func _midi_to_freq(midi: int) -> float:
 	return 440.0 * pow(2.0, (float(midi) - 69.0) / 12.0)
