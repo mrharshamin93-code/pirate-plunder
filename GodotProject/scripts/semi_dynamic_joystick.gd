@@ -13,13 +13,15 @@ var origin: Vector2 = Vector2.ZERO
 var knob_offset: Vector2 = Vector2.ZERO
 var active: bool = false
 var touch_id: int = -1
+var mouse_active: bool = false
 
 func _ready() -> void:
-	# This control owns the joystick zone. Using GUI input is more reliable than
-	# global _input when running inside Godot's embedded game window.
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	# Read input at viewport level so the joystick also works reliably in Godot's
+	# embedded game window. The control itself must not swallow/require GUI events.
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	clip_contents = false
 	focus_mode = Control.FOCUS_NONE
+	set_process_input(true)
 	call_deferred("_reset_home")
 
 func _notification(what: int) -> void:
@@ -32,34 +34,47 @@ func _reset_home() -> void:
 	knob_offset = Vector2.ZERO
 	queue_redraw()
 
-func _gui_input(event: InputEvent) -> void:
+func _screen_to_local(screen_pos: Vector2) -> Vector2:
+	# CanvasLayer has no transform in this scene, so this is stable for desktop
+	# mouse input and mobile touch input.
+	return screen_pos - global_position
+
+func _inside_zone(screen_pos: Vector2) -> bool:
+	var p: Vector2 = _screen_to_local(screen_pos)
+	return p.x >= 0.0 and p.x <= size.x and p.y >= 0.0 and p.y <= size.y
+
+func _input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
-		if touch.pressed and touch_id == -1:
-			touch_id = touch.index
-			_begin(touch.position)
-			accept_event()
-		elif not touch.pressed and touch.index == touch_id:
+		if touch.pressed:
+			if touch_id == -1 and _inside_zone(touch.position):
+				touch_id = touch.index
+				_begin(_screen_to_local(touch.position))
+				get_viewport().set_input_as_handled()
+		elif touch.index == touch_id:
 			_end()
-			accept_event()
+			get_viewport().set_input_as_handled()
 	elif event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
 		if drag.index == touch_id:
-			_apply(drag.position)
-			accept_event()
+			_apply(_screen_to_local(drag.position))
+			get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton:
 		var button := event as InputEventMouseButton
 		if button.button_index == MOUSE_BUTTON_LEFT:
-			if button.pressed:
-				_begin(button.position)
-			else:
+			if button.pressed and _inside_zone(button.position):
+				mouse_active = true
+				_begin(_screen_to_local(button.position))
+				get_viewport().set_input_as_handled()
+			elif not button.pressed and mouse_active:
+				mouse_active = false
 				_end()
-			accept_event()
+				get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion:
-		if active and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		if mouse_active and active:
 			var motion := event as InputEventMouseMotion
-			_apply(motion.position)
-			accept_event()
+			_apply(_screen_to_local(motion.position))
+			get_viewport().set_input_as_handled()
 
 func _begin(local_pos: Vector2) -> void:
 	active = true
@@ -86,8 +101,6 @@ func _apply(local_pos: Vector2) -> void:
 	queue_redraw()
 
 func _end() -> void:
-	if not active and touch_id == -1:
-		return
 	touch_id = -1
 	active = false
 	origin = home
