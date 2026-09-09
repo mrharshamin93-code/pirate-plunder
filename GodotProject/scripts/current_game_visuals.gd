@@ -202,43 +202,43 @@ func _draw_whirlpool(w: Dictionary) -> void:
 	var spin: float = float(w.get("spin", 0.0))
 	var pulse: float = 1.0 + sin(spin * 1.7) * 0.035
 
-	# Layered, flattened funnel gives the water actual depth instead of simple circles.
-	draw_colored_polygon(_ellipse_points(p + Vector2(0, 2), 48.0 * pulse, 27.0 * pulse, 0.0, 48), Color(0.03, 0.25, 0.31, 0.30))
-	draw_colored_polygon(_ellipse_points(p + Vector2(0, 3), 34.0 * pulse, 18.0 * pulse, 0.0, 44), Color(0.02, 0.15, 0.20, 0.48))
-	draw_colored_polygon(_ellipse_points(p + Vector2(0, 4), 20.0 * pulse, 10.5 * pulse, 0.0, 40), Color(0.01, 0.07, 0.10, 0.72))
-	draw_colored_polygon(_ellipse_points(p + Vector2(0, 5), 9.0, 4.8, 0.0, 32), Color(0.0, 0.015, 0.025, 0.96))
+	# True top-down view: every funnel layer stays circular rather than flattened.
+	draw_circle(p, 50.0 * pulse, Color(0.04, 0.31, 0.37, 0.22))
+	draw_circle(p, 38.0 * pulse, Color(0.025, 0.23, 0.29, 0.34))
+	draw_circle(p, 27.0 * pulse, Color(0.018, 0.15, 0.20, 0.52))
+	draw_circle(p, 17.0 * pulse, Color(0.008, 0.075, 0.105, 0.76))
+	draw_circle(p, 8.0, Color(0.0, 0.012, 0.02, 0.98))
 
-	# Several tapered spiral arms simulate rotating foam being pulled into the funnel.
-	for arm in range(5):
+	# Curved foam streams spiral evenly inward in 360 degrees.
+	for arm in range(6):
 		var pts: PackedVector2Array = PackedVector2Array()
-		for step in range(34):
-			var t: float = float(step) / 33.0
-			var radius: float = lerpf(50.0, 7.0, t)
-			var angle: float = spin * 0.85 + float(arm) * TAU / 5.0 + t * 5.4
-			var point := p + Vector2(cos(angle) * radius, sin(angle) * radius * 0.56)
-			pts.append(point)
-		var arm_alpha: float = 0.24 + float(arm % 2) * 0.08
-		draw_polyline(pts, Color(0.77, 0.95, 0.98, arm_alpha), 2.0 + float(arm % 2) * 0.55, true)
+		for step in range(38):
+			var t: float = float(step) / 37.0
+			var radius: float = lerpf(51.0, 7.0, t)
+			var angle: float = spin * 0.9 + float(arm) * TAU / 6.0 + t * 5.7
+			pts.append(p + Vector2(cos(angle), sin(angle)) * radius)
+		var arm_alpha: float = 0.23 + float(arm % 2) * 0.08
+		draw_polyline(pts, Color(0.78, 0.95, 0.98, arm_alpha), 1.9 + float(arm % 2) * 0.45, true)
 
-	# Broken foam ribbons around the outer lip keep it from looking like a perfect icon.
+	# Broken circular whitewater bands make the surface turbulent without looking geometric.
 	for band in range(3):
-		var radius: float = 31.0 + float(band) * 8.0
-		var ry: float = radius * 0.55
-		for seg in range(4):
-			var a0: float = spin * 0.45 + float(seg) * 1.55 + float(band) * 0.38
+		var radius: float = 29.0 + float(band) * 9.0
+		for seg in range(5):
+			var a0: float = spin * 0.48 + float(seg) * TAU / 5.0 + float(band) * 0.31
 			var pts: PackedVector2Array = PackedVector2Array()
 			for k in range(9):
-				var a: float = a0 + float(k) / 8.0 * 0.68
-				pts.append(p + Vector2(cos(a) * radius, sin(a) * ry))
-			draw_polyline(pts, Color(0.88, 0.98, 1.0, 0.22 - float(band) * 0.035), 1.35, true)
+				var a: float = a0 + float(k) / 8.0 * 0.56
+				var wobble: float = sin(a * 5.0 + spin) * 1.1
+				pts.append(p + Vector2(cos(a), sin(a)) * (radius + wobble))
+			draw_polyline(pts, Color(0.90, 0.985, 1.0, 0.23 - float(band) * 0.035), 1.35, true)
 
-	# Small whitecaps/bubbles orbit the lip.
-	for i in range(8):
-		var a: float = spin * 0.65 + float(i) / 8.0 * TAU
-		var r: float = 40.0 + sin(float(i) * 1.7 + spin) * 5.0
-		var bubble := p + Vector2(cos(a) * r, sin(a) * r * 0.56)
-		draw_circle(bubble, 1.2 + float(i % 3) * 0.45, Color(0.86, 0.98, 1.0, 0.42))
+	# Orbiting bubbles/whitecaps reinforce the top-down circular motion.
+	for i in range(10):
+		var a: float = spin * 0.7 + float(i) / 10.0 * TAU
+		var r: float = 40.0 + sin(float(i) * 1.65 + spin) * 6.0
+		var bubble: Vector2 = p + Vector2(cos(a), sin(a)) * r
+		draw_circle(bubble, 1.1 + float(i % 3) * 0.42, Color(0.87, 0.98, 1.0, 0.40))
 
-	# Inner highlight emphasizes the steep funnel wall.
-	draw_polyline(_ellipse_points(p + Vector2(-1, 3), 18.0, 8.5, spin * 0.03, 36), Color(0.45, 0.83, 0.88, 0.26), 1.4, true)
-	draw_polyline(_ellipse_points(p + Vector2(0, 4), 10.5, 5.0, -spin * 0.02, 30), Color(0.72, 0.94, 0.96, 0.22), 1.0, true)
+	# Circular inner-wall highlights preserve depth while keeping a pure overhead perspective.
+	draw_arc(p, 20.0, spin * 0.2, spin * 0.2 + 4.7, 38, Color(0.43, 0.82, 0.88, 0.27), 1.5, true)
+	draw_arc(p, 11.0, -spin * 0.18, -spin * 0.18 + 4.9, 32, Color(0.72, 0.94, 0.97, 0.23), 1.1, true)
