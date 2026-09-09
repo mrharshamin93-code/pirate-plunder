@@ -1,12 +1,16 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/semi_dynamic_joystick.gd" id="2_joy"]
 [ext_resource type="Script" path="res://scripts/current_game_visuals.gd" id="3_visuals"]
 [ext_resource type="Script" path="res://scripts/hud_art.gd" id="4_hudart"]
+[ext_resource type="Script" path="res://scripts/static_game_background.gd" id="5_background"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
+
+[node name="StaticGameBackground" type="Node2D" parent="."]
+script = ExtResource("5_background")
 
 [node name="CurrentGameVisuals" type="Node2D" parent="."]
 script = ExtResource("3_visuals")
