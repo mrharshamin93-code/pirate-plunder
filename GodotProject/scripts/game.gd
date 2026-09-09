@@ -133,12 +133,13 @@ func _update_boat(dt: float) -> void:
 			_end_game()
 			return
 		if dist < WHIRLPOOL_RANGE:
-			var strength: float = 1.0 - dist / WHIRLPOOL_RANGE
-			strength = strength * strength
+			# Mild at the edge, sharply stronger as the boat approaches the center.
+			var proximity: float = clampf(1.0 - dist / WHIRLPOOL_RANGE, 0.0, 1.0)
+			var strength: float = 0.10 * proximity + 1.90 * proximity * proximity * proximity
 			var pull: float = strength * WHIRLPOOL_PULL * dt
 			var inward: Vector2 = offset / dist
 			var tangent: Vector2 = Vector2(-inward.y, inward.x)
-			boat_vel += inward * pull + tangent * pull * 0.34
+			boat_vel += inward * pull + tangent * pull * (0.18 + 0.24 * proximity)
 
 	boat_vel = boat_vel.limit_length(MAX_SPEED)
 	boat_pos += boat_vel * dt
