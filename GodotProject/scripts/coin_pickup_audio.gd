@@ -1,7 +1,7 @@
 extends Node
 
 # Common coin pickup SFX are generated in-engine.
-# 500 and 1000 use the authored sounds the user selected and previewed.
+# 500 and 1000 use the authored sounds selected for the game.
 const SAMPLE_RATE: int = 44100
 const DEFAULT_DURATION: float = 0.34
 const RICH_500_STREAM: AudioStream = preload("res://assets/audio/coin_500_rich_sample_3.ogg")
@@ -9,67 +9,33 @@ const JACKPOT_1000_STREAM: AudioStream = preload("res://assets/audio/coin_1000_S
 
 var pickup_player: AudioStreamPlayer
 var default_stream: AudioStreamWAV
-var last_score: int = 0
-var tracked_game: Node = null
 
 func _ready() -> void:
 	default_stream = _build_default_stream()
-
 	pickup_player = AudioStreamPlayer.new()
-	pickup_player.name = "CoinPickupSFX"
+	pickup_player.name = "CoinPickupSFXPlayer"
 	pickup_player.volume_db = -2.0
 	pickup_player.stream = default_stream
 	add_child(pickup_player)
 
-	tracked_game = get_parent()
-	last_score = _read_score()
-	set_physics_process(true)
-
-func _read_score() -> int:
-	if tracked_game == null or not is_instance_valid(tracked_game):
-		return 0
-	var score_value: Variant = tracked_game.get("score")
-	if score_value == null:
-		return 0
-	if score_value is int:
-		return score_value as int
-	if score_value is float:
-		return int(score_value as float)
-	return 0
-
-func _physics_process(_delta: float) -> void:
-	if tracked_game == null or not is_instance_valid(tracked_game):
-		tracked_game = get_parent()
-		last_score = _read_score()
+# Called directly by game.gd at the exact moment a coin is collected.
+# This avoids score polling, frame-order issues, and Variant conversions.
+func play_coin(points: int) -> void:
+	if pickup_player == null:
 		return
-
-	var current_score: int = _read_score()
-	var started_value: Variant = tracked_game.get("game_started")
-	var game_started: bool = started_value is bool and (started_value as bool)
-
-	if current_score < last_score:
-		last_score = current_score
-		return
-
-	var gained: int = current_score - last_score
-	if game_started and gained > 0:
-		_play_pickup(gained)
-
-	last_score = current_score
-
-func _play_pickup(points: int) -> void:
 	if pickup_player.playing:
 		pickup_player.stop()
 
-	if points == 500:
-		pickup_player.stream = RICH_500_STREAM
-		pickup_player.volume_db = 0.0
-	elif points == 1000:
-		pickup_player.stream = JACKPOT_1000_STREAM
-		pickup_player.volume_db = 0.0
-	else:
-		pickup_player.stream = default_stream
-		pickup_player.volume_db = -2.0
+	match points:
+		500:
+			pickup_player.stream = RICH_500_STREAM
+			pickup_player.volume_db = 1.5
+		1000:
+			pickup_player.stream = JACKPOT_1000_STREAM
+			pickup_player.volume_db = 2.5
+		_:
+			pickup_player.stream = default_stream
+			pickup_player.volume_db = -2.0
 
 	pickup_player.play()
 
