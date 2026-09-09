@@ -5,6 +5,7 @@ config/features=PackedStringArray("4.3")
 
 [autoload]
 CoinPickupAudio="*res://scripts/coin_pickup_audio.gd"
+NativeShareBridge="*res://scripts/native_share_bridge.gd"
 
 [display]
 window/size/viewport_width=390
