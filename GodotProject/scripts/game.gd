@@ -26,9 +26,9 @@ const MINE_ARM_TIME: float = 0.55
 const WHIRLPOOL_CHANCE: float = 0.13
 const WHIRLPOOL_RANGE: float = 170.0
 const WHIRLPOOL_CORE: float = 12.0
-# Boat is pulled harder, while mines resist the whirlpool much more.
-const WHIRLPOOL_PULL: float = 260.0
-const WHIRLPOOL_MINE_PULL: float = 0.35
+# Stronger boat pull; mines remain much less affected.
+const WHIRLPOOL_PULL: float = 340.0
+const WHIRLPOOL_MINE_PULL: float = 0.22
 const WHIRLPOOL_LIFE: float = 6.5
 const WHIRLPOOL_MIN_DISTANCE: float = 110.0
 
