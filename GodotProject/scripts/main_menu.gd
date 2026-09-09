@@ -1,7 +1,9 @@
 extends ColorRect
 
 const SEA_DEEP: Color = Color("082e3c")
-const CREST: Color = Color("4fb6cc")
+const SEA_MENU: Color = Color("0d6173")
+const SEA_GLOW: Color = Color("16859a")
+const CREST: Color = Color("5ac6d8")
 const FOAM: Color = Color("d9f4fb")
 const INK: Color = Color("0a1a20")
 const WOOD: Color = Color("9a6231")
@@ -23,6 +25,7 @@ const COIN_VALUES: Array[int] = [10,25,50,100,250,500,1000]
 
 var play_button: Button
 var coin_sheet: Texture2D
+var starting_game: bool = false
 
 func _ready() -> void:
 	color = Color(0,0,0,0)
@@ -31,7 +34,25 @@ func _ready() -> void:
 	coin_sheet = load("res://assets/treasure-coins-3d-v10.png") as Texture2D
 	_build_ui()
 	_set_gameplay_ui_visible(false)
+	set_process_input(true)
 	queue_redraw()
+
+func _input(event: InputEvent) -> void:
+	if not visible or starting_game or play_button == null:
+		return
+	var pressed: bool = false
+	var pos: Vector2 = Vector2.ZERO
+	if event is InputEventScreenTouch:
+		var touch: InputEventScreenTouch = event as InputEventScreenTouch
+		pressed = touch.pressed
+		pos = touch.position
+	elif event is InputEventMouseButton:
+		var mouse: InputEventMouseButton = event as InputEventMouseButton
+		pressed = mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT
+		pos = mouse.position
+	if pressed and play_button.get_global_rect().has_point(pos):
+		_start_from_menu()
+		get_viewport().set_input_as_handled()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
@@ -44,6 +65,7 @@ func _label(name: String, text: String, font_size: int, color: Color) -> Label:
 	label.text = text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)
 	add_child(label)
@@ -57,7 +79,7 @@ func _build_ui() -> void:
 	var story: Label = _label("Story", "You are Captain Marlow, rowing through the wreckage\nof Blackwake Harbor. Salvage the treasure and stay\nclear of the homing mines fired from the Dreadwake.", 14, Color(0.90,0.97,0.99,0.82))
 	story.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
-	var coin_title: Label = _label("CoinTitle", "C O I N   V A L U E S", 13, Color(0.90,0.97,0.99,0.72))
+	_label("CoinTitle", "C O I N   V A L U E S", 13, Color(0.90,0.97,0.99,0.72))
 	for i in range(COIN_VALUES.size()):
 		_label("CoinValue%d" % i, _comma(COIN_VALUES[i]), 12, Color(0.90,0.97,0.99,0.86))
 
@@ -79,8 +101,9 @@ func _build_ui() -> void:
 	play_button.add_theme_stylebox_override("normal", _round_box(ACCENT, Color(1,1,1,0), 0, 28))
 	play_button.add_theme_stylebox_override("hover", _round_box(Color("ffd454"), Color(1,1,1,0), 0, 28))
 	play_button.add_theme_stylebox_override("pressed", _round_box(Color("dba92b"), Color(1,1,1,0), 0, 28))
-	play_button.pressed.connect(_on_play_pressed)
+	play_button.pressed.connect(_start_from_menu)
 	add_child(play_button)
+	play_button.move_to_front()
 	_layout_ui()
 
 func _layout_ui() -> void:
@@ -114,13 +137,17 @@ func _load_best_score() -> int:
 		return int(cfg.get_value("leaderboard", "personal_best", 0))
 	return 0
 
-func _on_play_pressed() -> void:
-	play_button.disabled = true
+func _start_from_menu() -> void:
+	if starting_game:
+		return
+	starting_game = true
+	if play_button != null:
+		play_button.disabled = true
 	_set_gameplay_ui_visible(true)
-	visible = false
 	var game: Node = get_parent().get_parent()
 	if game != null and game.has_method("_start_game"):
 		game.call("_start_game")
+	visible = false
 
 func _set_gameplay_ui_visible(show_ui: bool) -> void:
 	var canvas: Node = get_parent()
@@ -189,23 +216,27 @@ func _comma(value: int) -> String:
 func _draw() -> void:
 	var w: float = size.x
 	var h: float = size.y
-	draw_rect(Rect2(Vector2.ZERO,Vector2(w,h)),SEA_DEEP)
-	# soft teal center glow, approximating the original OceanBackground
+	draw_rect(Rect2(Vector2.ZERO,Vector2(w,h)),SEA_MENU)
+	# Brighter teal center field like the original web menu reference.
 	for r in range(9,0,-1):
 		var radius: float = float(r)*58.0
-		draw_circle(Vector2(w*0.5,h*0.48),radius,Color(0.05,0.48,0.58,0.012))
+		var alpha: float = 0.010 + float(10-r)*0.0025
+		draw_circle(Vector2(w*0.5,h*0.48),radius,Color(SEA_GLOW,alpha))
+	# Keep the very top and bottom subtly darker for depth.
+	draw_rect(Rect2(0,0,w,110.0),Color(SEA_DEEP,0.20))
+	draw_rect(Rect2(0,h-100.0,w,100.0),Color(SEA_DEEP,0.16))
 	for i in range(12):
 		var y: float = 55.0+float(i)*65.0
 		var x: float = 18.0+float((i*83)%330)
 		var width: float = 42.0+float((i*19)%46)
-		draw_arc(Vector2(x+width*0.5,y),width*0.5,PI+0.28,TAU-0.28,18,Color(CREST,0.28),2.4,true)
+		draw_arc(Vector2(x+width*0.5,y),width*0.5,PI+0.28,TAU-0.28,18,Color(CREST,0.34),2.4,true)
 	for i in range(8):
-		draw_circle(Vector2(30.0+float((i*71)%335),72.0+float((i*97)%690)),2.5,Color(FOAM,0.30))
+		draw_circle(Vector2(30.0+float((i*71)%335),72.0+float((i*97)%690)),2.5,Color(FOAM,0.34))
 	_draw_boat(Vector2(w*0.23,130.0),0.82)
 	_draw_mine(Vector2(w*0.48,128.0),0.92)
 	_draw_raider(Vector2(w*0.75,112.0),0.78)
 	var card: Rect2 = Rect2(16.0,423.0,w-32.0,126.0)
-	draw_style_box(_round_box(Color(SEA_DEEP,0.50),Color(0.90,0.97,0.99,0.18),1,20),card)
+	draw_style_box(_round_box(Color(SEA_DEEP,0.42),Color(0.90,0.97,0.99,0.20),1,20),card)
 	if coin_sheet:
 		var coin_left: float = 23.0
 		var coin_width: float = w-46.0
@@ -216,4 +247,4 @@ func _draw() -> void:
 			var cx: float = coin_left+slot*(float(i)+0.5)
 			draw_texture_rect_region(coin_sheet,Rect2(cx-18.0,470.0,36.0,36.0),src)
 	var best_card: Rect2 = Rect2(101.0,666.0,w-202.0,100.0)
-	draw_style_box(_round_box(Color(SEA_DEEP,0.48),Color(0.90,0.97,0.99,0.16),1,18),best_card)
+	draw_style_box(_round_box(Color(SEA_DEEP,0.40),Color(0.90,0.97,0.99,0.18),1,18),best_card)
