@@ -29,8 +29,9 @@ const WHIRLPOOL_RANGE: float = 240.0
 const WHIRLPOOL_MINE_RANGE: float = 190.0
 const WHIRLPOOL_CORE: float = 12.0
 const WHIRLPOOL_PULL: float = 340.0
-# Whirlpool attraction on mines is deliberately stronger than boat attraction.
-const WHIRLPOOL_MINE_PULL: float = 1.10
+# Whirlpool still wins over boat attraction, but close-range mine speed is capped for a slower sink-in.
+const WHIRLPOOL_MINE_PULL: float = 0.82
+const WHIRLPOOL_MINE_MAX_SPEED: float = 150.0
 const WHIRLPOOL_LIFE: float = 6.5
 const WHIRLPOOL_MIN_DISTANCE: float = 110.0
 
@@ -133,7 +134,6 @@ func _update_boat(dt: float) -> void:
 			_end_game()
 			return
 		if dist < WHIRLPOOL_RANGE:
-			# Mild at the edge, sharply stronger as the boat approaches the center.
 			var proximity: float = clampf(1.0 - dist / WHIRLPOOL_RANGE, 0.0, 1.0)
 			var strength: float = 0.10 * proximity + 1.90 * proximity * proximity * proximity
 			var pull: float = strength * WHIRLPOOL_PULL * dt
@@ -173,7 +173,6 @@ func _update_mines(dt: float) -> void:
 		var dist: float = maxf(0.01, delta_vec.length())
 		var dir: Vector2 = delta_vec / dist
 		var proximity: float = clampf(inverse_lerp(MINE_FAR_RANGE, MINE_NEAR_RANGE, dist), 0.0, 1.0)
-		# Still stronger near the boat, but eased slightly compared with the previous close-range pull.
 		var close_boost: float = proximity * proximity
 		var speed: float = lerpf(MINE_FAR_SPEED, MINE_NEAR_SPEED, close_boost)
 		var phase: float = float(mine.get("phase", 0.0)) + dt * 2.4
@@ -189,14 +188,18 @@ func _update_mines(dt: float) -> void:
 			if wd < WHIRLPOOL_CORE:
 				mine["active"] = false
 				active_mine_count = maxi(0, active_mine_count - 1)
+				# Mine detonates at the exact center once it is swallowed by the whirlpool.
+				explosion_requested.emit(wpos, 1.0)
+				_refresh_hud()
 				continue
 			if wd < WHIRLPOOL_MINE_RANGE:
-				# Whirlpool wins over the boat once the mine enters its influence zone.
 				var wp_proximity: float = clampf(1.0 - wd / WHIRLPOOL_MINE_RANGE, 0.0, 1.0)
-				var wp_strength: float = 0.22 * wp_proximity + 1.45 * wp_proximity * wp_proximity
-				var wp_pull: float = maxf(speed * 1.25, wp_strength * WHIRLPOOL_PULL * WHIRLPOOL_MINE_PULL)
+				# Keep the whirlpool dominant, but flatten the close-range acceleration.
+				var wp_strength: float = 0.18 * wp_proximity + 0.95 * wp_proximity * wp_proximity
+				var desired_pull: float = maxf(speed * 1.15, wp_strength * WHIRLPOOL_PULL * WHIRLPOOL_MINE_PULL)
+				var wp_pull: float = minf(desired_pull, WHIRLPOOL_MINE_MAX_SPEED)
 				var wp_dir: Vector2 = woff / wd
-				velocity *= 1.0 - 0.82 * wp_proximity
+				velocity *= 1.0 - 0.70 * wp_proximity
 				velocity += wp_dir * wp_pull
 
 		var next_pos: Vector2 = mine_pos + velocity * dt
@@ -257,7 +260,6 @@ func _check_collisions() -> void:
 				continue
 			var apos: Vector2 = a.get("pos", Vector2.ZERO) as Vector2
 			var bpos: Vector2 = b.get("pos", Vector2.ZERO) as Vector2
-			# Visual spikes reach 15.5 px from each center, so explode on the first visible overlap.
 			if apos.distance_to(bpos) < MINE_SPIKE_RADIUS * 2.0:
 				a["active"] = false
 				b["active"] = false
