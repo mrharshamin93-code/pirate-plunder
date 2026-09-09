@@ -23,6 +23,8 @@ var pending_action: String = ""
 var submitted_name: String = ""
 var submitted_score: int = -1
 var restart_in_progress: bool = false
+var leaderboard_ready: bool = false
+var cached_personal_best: int = 0
 
 func _ready() -> void:
 	color = Color(0, 0, 0, 0)
@@ -36,6 +38,8 @@ func _ready() -> void:
 	_setup_http()
 	_load_identity()
 	visibility_changed.connect(_on_visibility_changed)
+	# Fetch while gameplay is already happening so the SUNK screen can render instantly.
+	_load_leaderboard(true)
 	queue_redraw()
 
 func _input(event: InputEvent) -> void:
@@ -67,6 +71,13 @@ func _on_visibility_changed() -> void:
 	if visible:
 		restart_in_progress = false
 		_refresh_from_game()
+	elif is_node_ready():
+		# Refresh the cache quietly during the next run.
+		call_deferred("_refresh_leaderboard_cache")
+
+func _refresh_leaderboard_cache() -> void:
+	if http != null and http.get_http_client_status() == HTTPClient.STATUS_DISCONNECTED:
+		_load_leaderboard(true)
 
 func _setup_http() -> void:
 	http = HTTPRequest.new()
@@ -138,8 +149,6 @@ func _restart_game() -> void:
 	if restart_in_progress:
 		return
 	restart_in_progress = true
-	if http != null and http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
-		http.cancel_request()
 	var game: Node = get_parent().get_parent()
 	if game != null and game.has_method("_start_game"):
 		game.call_deferred("_start_game")
@@ -263,18 +272,24 @@ func _refresh_from_game() -> void:
 	var game: Node = get_parent().get_parent()
 	var current_score: int = int(game.get("score"))
 	$Score.text = _comma(current_score)
-	footer_label.text = "Loading global leaderboard..."
-	_clear_leaderboard()
-	_load_leaderboard()
+	if leaderboard_ready:
+		_build_leaderboard()
+		footer_label.text = "Global top 10 • Personal best: %s" % _comma(cached_personal_best)
+	else:
+		footer_label.text = "Loading global leaderboard..."
+		if http.get_http_client_status() == HTTPClient.STATUS_DISCONNECTED:
+			_load_leaderboard(false)
 	queue_redraw()
 
-func _load_leaderboard() -> void:
-	if http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
-		http.cancel_request()
-	pending_action = "load"
+func _load_leaderboard(preload: bool = false) -> void:
+	if http == null or http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
+		return
+	pending_action = "preload" if preload else "load"
 	var err: Error = http.request("%s?playerId=%s" % [API_URL, player_id])
 	if err != OK:
-		footer_label.text = "Leaderboard unavailable"
+		pending_action = ""
+		if visible and not leaderboard_ready:
+			footer_label.text = "Leaderboard unavailable"
 
 func _submit_score() -> void:
 	var player_name: String = name_entry.text.strip_edges().substr(0, 20)
@@ -287,6 +302,8 @@ func _submit_score() -> void:
 	submitted_name = player_name
 	submitted_score = current_score
 	_save_identity()
+	if http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
+		http.cancel_request()
 	submit_button.disabled = true
 	footer_label.text = "Submitting score..."
 	pending_action = "submit"
@@ -299,12 +316,16 @@ func _submit_score() -> void:
 
 func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	submit_button.disabled = false
+	var action: String = pending_action
+	pending_action = ""
 	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
-		footer_label.text = "Leaderboard unavailable — check your connection"
+		if visible and not leaderboard_ready:
+			footer_label.text = "Leaderboard unavailable — check your connection"
 		return
 	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
 	if not (parsed is Dictionary):
-		footer_label.text = "Leaderboard returned invalid data"
+		if visible and not leaderboard_ready:
+			footer_label.text = "Leaderboard returned invalid data"
 		return
 	var data: Dictionary = parsed as Dictionary
 	var raw_board: Variant = data.get("leaderboard", [])
@@ -314,13 +335,14 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 			if item is Dictionary:
 				var d: Dictionary = item as Dictionary
 				leaderboard.append({"name":String(d.get("name", "Pirate")), "score":int(d.get("score", 0)), "coins":int(d.get("coins", 0))})
+	cached_personal_best = int(data.get("personalBest", 0))
+	leaderboard_ready = true
 	_build_leaderboard()
-	var personal_best: int = int(data.get("personalBest", 0))
-	if pending_action == "submit":
-		footer_label.text = "Score submitted! Personal best: %s" % _comma(personal_best)
-	else:
-		footer_label.text = "Global top 10 • Personal best: %s" % _comma(personal_best)
-	pending_action = ""
+	if visible:
+		if action == "submit":
+			footer_label.text = "Score submitted! Personal best: %s" % _comma(cached_personal_best)
+		else:
+			footer_label.text = "Global top 10 • Personal best: %s" % _comma(cached_personal_best)
 
 func _share_score() -> void:
 	var game: Node = get_parent().get_parent()
