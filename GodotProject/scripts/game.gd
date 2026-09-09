@@ -21,6 +21,7 @@ const MINE_FAR_RANGE: float = 400.0
 const MINE_NEAR_RANGE: float = 40.0
 const MINE_WANDER: float = 0.42
 const MINE_ARM_TIME: float = 1.0
+const MINE_SLOW_TIME: float = 0.5
 const MINE_UNARMED_SPEED: float = 12.0
 
 const WHIRLPOOL_CHANCE: float = 0.13
@@ -198,14 +199,15 @@ func _update_mines(dt: float) -> void:
 		if not bool(mine.get("active", false)):
 			continue
 		mine["arm"] = float(mine.get("arm", 0.0)) - dt
-		var is_unarmed: bool = float(mine.get("arm", 0.0)) > 0.0
+		var arm_remaining: float = float(mine.get("arm", 0.0))
+		var is_slow: bool = arm_remaining > MINE_ARM_TIME - MINE_SLOW_TIME
 		var mine_pos: Vector2 = mine.get("pos", Vector2.ZERO) as Vector2
 		var delta_vec: Vector2 = boat_pos - mine_pos
 		var dist: float = maxf(0.01, delta_vec.length())
 		var dir: Vector2 = delta_vec / dist
 		var proximity: float = clampf(inverse_lerp(MINE_FAR_RANGE, MINE_NEAR_RANGE, dist), 0.0, 1.0)
 		var close_boost: float = proximity * proximity
-		var speed: float = MINE_UNARMED_SPEED if is_unarmed else lerpf(MINE_FAR_SPEED, MINE_NEAR_SPEED, close_boost)
+		var speed: float = MINE_UNARMED_SPEED if is_slow else lerpf(MINE_FAR_SPEED, MINE_NEAR_SPEED, close_boost)
 		var phase: float = float(mine.get("phase", 0.0)) + dt * 2.4
 		mine["phase"] = phase
 		var tangent: Vector2 = Vector2(-dir.y, dir.x)
