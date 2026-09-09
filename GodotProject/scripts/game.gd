@@ -23,12 +23,10 @@ const MINE_WANDER: float = 0.42
 const MINE_ARM_TIME: float = 0.55
 
 const WHIRLPOOL_CHANCE: float = 0.13
-const WHIRLPOOL_RANGE: float = 240.0
-const WHIRLPOOL_MINE_RANGE: float = 190.0
 const WHIRLPOOL_CORE: float = 12.0
-const WHIRLPOOL_PULL: float = 340.0
-const WHIRLPOOL_MINE_PULL: float = 0.82
-const WHIRLPOOL_MINE_MAX_SPEED: float = 150.0
+const WHIRLPOOL_PULL: float = 500.0
+const WHIRLPOOL_MINE_PULL: float = 0.34
+const WHIRLPOOL_MINE_MAX_SPEED: float = 105.0
 const WHIRLPOOL_LIFE: float = 6.5
 const WHIRLPOOL_MIN_DISTANCE: float = 110.0
 
@@ -155,13 +153,14 @@ func _update_boat(dt: float) -> void:
 		if dist < WHIRLPOOL_CORE:
 			_end_game()
 			return
-		if dist < WHIRLPOOL_RANGE:
-			var proximity: float = clampf(1.0 - dist / WHIRLPOOL_RANGE, 0.0, 1.0)
-			var strength: float = 0.10 * proximity + 1.90 * proximity * proximity * proximity
-			var pull: float = strength * WHIRLPOOL_PULL * dt
-			var inward: Vector2 = offset / dist
-			var tangent: Vector2 = Vector2(-inward.y, inward.x)
-			boat_vel += inward * pull + tangent * pull * (0.18 + 0.24 * proximity)
+		var viewport_size: Vector2 = get_viewport_rect().size
+		var full_field_range: float = maxf(1.0, viewport_size.length())
+		var proximity: float = clampf(1.0 - dist / full_field_range, 0.08, 1.0)
+		var strength: float = 0.22 + 2.35 * proximity * proximity * proximity
+		var pull: float = strength * WHIRLPOOL_PULL * dt
+		var inward: Vector2 = offset / dist
+		var tangent: Vector2 = Vector2(-inward.y, inward.x)
+		boat_vel += inward * pull + tangent * pull * (0.16 + 0.22 * proximity)
 
 	boat_vel = boat_vel.limit_length(MAX_SPEED)
 	boat_pos += boat_vel * dt
@@ -182,6 +181,7 @@ func _update_coin(dt: float) -> void:
 
 func _update_mines(dt: float) -> void:
 	var field_size: Vector2 = get_viewport_rect().size
+	var full_field_range: float = maxf(1.0, field_size.length())
 	var min_x: float = FIELD_INSET_SIDE + MINE_SPIKE_RADIUS
 	var max_x: float = field_size.x - FIELD_INSET_SIDE - MINE_SPIKE_RADIUS
 	var min_y: float = FIELD_INSET_TOP + MINE_SPIKE_RADIUS
@@ -213,14 +213,13 @@ func _update_mines(dt: float) -> void:
 				explosion_requested.emit(wpos, 1.0)
 				_refresh_hud()
 				continue
-			if wd < WHIRLPOOL_MINE_RANGE:
-				var wp_proximity: float = clampf(1.0 - wd / WHIRLPOOL_MINE_RANGE, 0.0, 1.0)
-				var wp_strength: float = 0.18 * wp_proximity + 0.95 * wp_proximity * wp_proximity
-				var desired_pull: float = maxf(speed * 1.15, wp_strength * WHIRLPOOL_PULL * WHIRLPOOL_MINE_PULL)
-				var wp_pull: float = minf(desired_pull, WHIRLPOOL_MINE_MAX_SPEED)
-				var wp_dir: Vector2 = woff / wd
-				velocity *= 1.0 - 0.70 * wp_proximity
-				velocity += wp_dir * wp_pull
+			var wp_proximity: float = clampf(1.0 - wd / full_field_range, 0.06, 1.0)
+			var wp_strength: float = 0.10 + 1.15 * wp_proximity * wp_proximity
+			var desired_pull: float = maxf(12.0, wp_strength * WHIRLPOOL_PULL * WHIRLPOOL_MINE_PULL)
+			var wp_pull: float = minf(desired_pull, WHIRLPOOL_MINE_MAX_SPEED)
+			var wp_dir: Vector2 = woff / wd
+			velocity *= 1.0 - 0.52 * wp_proximity
+			velocity += wp_dir * wp_pull
 
 		var next_pos: Vector2 = mine_pos + velocity * dt
 		var hit_x: bool = next_pos.x < min_x or next_pos.x > max_x
