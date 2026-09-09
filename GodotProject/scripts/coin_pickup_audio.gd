@@ -1,22 +1,19 @@
 extends Node
 
-# Coin pickup SFX are generated in-engine so they work in Godot exports.
+# Common coin pickup SFX are generated in-engine.
+# 500 and 1000 use the authored sounds the user selected and previewed.
 const SAMPLE_RATE: int = 44100
 const DEFAULT_DURATION: float = 0.34
-const RICH_500_DURATION: float = 0.95
-const JACKPOT_1000_DURATION: float = 1.85
+const RICH_500_STREAM: AudioStream = preload("res://assets/audio/coin_500_rich_sample_3.ogg")
+const JACKPOT_1000_STREAM: AudioStream = preload("res://assets/audio/coin_1000_STRONG_jackpot_4.ogg")
 
 var pickup_player: AudioStreamPlayer
 var default_stream: AudioStreamWAV
-var rich_500_stream: AudioStreamWAV
-var jackpot_1000_stream: AudioStreamWAV
 var last_score: int = 0
 var tracked_game: Node = null
 
 func _ready() -> void:
-	default_stream = _build_stream(0)
-	rich_500_stream = _build_stream(500)
-	jackpot_1000_stream = _build_stream(1000)
+	default_stream = _build_default_stream()
 
 	pickup_player = AudioStreamPlayer.new()
 	pickup_player.name = "CoinPickupSFX"
@@ -65,11 +62,11 @@ func _play_pickup(points: int) -> void:
 		pickup_player.stop()
 
 	if points == 500:
-		pickup_player.stream = rich_500_stream
-		pickup_player.volume_db = 3.0
+		pickup_player.stream = RICH_500_STREAM
+		pickup_player.volume_db = 0.0
 	elif points == 1000:
-		pickup_player.stream = jackpot_1000_stream
-		pickup_player.volume_db = 5.0
+		pickup_player.stream = JACKPOT_1000_STREAM
+		pickup_player.volume_db = 0.0
 	else:
 		pickup_player.stream = default_stream
 		pickup_player.volume_db = -2.0
@@ -94,62 +91,14 @@ func _default_sample(t: float) -> float:
 	value += _tone(t, 2100.0, 0.15, 0.12, 25.0)
 	return value
 
-func _rich_500_sample(t: float) -> float:
-	var value: float = 0.0
-	value += _tone(t, 220.0, 0.34, 0.00, 5.0)
-	value += _tone(t, 440.0, 0.34, 0.00, 5.8)
-	value += _tone(t, 660.0, 0.28, 0.025, 6.2)
-	value += _tone(t, 880.0, 0.24, 0.060, 6.8)
-	value += _tone(t, 1320.0, 0.20, 0.100, 8.0)
-	value += _tone(t, 1760.0, 0.16, 0.145, 9.0)
-	value += _tone(t, 1046.5, 0.17, 0.20, 7.5)
-	value += _tone(t, 1318.5, 0.16, 0.27, 8.0)
-	value += _tone(t, 1568.0, 0.14, 0.34, 8.5)
-	return value
-
-func _jackpot_1000_sample(t: float) -> float:
-	var value: float = 0.0
-	value += _tone(t, 110.0, 0.46, 0.00, 2.8)
-	value += _tone(t, 220.0, 0.34, 0.00, 3.5)
-	value += _tone(t, 440.0, 0.35, 0.015, 4.0)
-	value += _tone(t, 660.0, 0.31, 0.030, 4.1)
-	value += _tone(t, 880.0, 0.28, 0.045, 4.3)
-	value += _tone(t, 1320.0, 0.25, 0.060, 4.6)
-	value += _tone(t, 1760.0, 0.21, 0.080, 4.8)
-	value += _tone(t, 1046.5, 0.22, 0.26, 5.2)
-	value += _tone(t, 1318.5, 0.22, 0.34, 5.2)
-	value += _tone(t, 1568.0, 0.21, 0.42, 5.4)
-	value += _tone(t, 2093.0, 0.20, 0.50, 5.7)
-	value += _tone(t, 2637.0, 0.18, 0.59, 6.0)
-	value += _tone(t, 3136.0, 0.16, 0.68, 6.2)
-	value += _tone(t, 4186.0, 0.14, 0.78, 6.7)
-	value += _tone(t, 261.6, 0.18, 0.20, 2.4)
-	value += _tone(t, 523.25, 0.18, 0.20, 2.6)
-	value += _tone(t, 784.0, 0.16, 0.20, 2.8)
-	return value
-
-func _build_stream(points: int) -> AudioStreamWAV:
-	var duration: float = DEFAULT_DURATION
-	if points == 500:
-		duration = RICH_500_DURATION
-	elif points == 1000:
-		duration = JACKPOT_1000_DURATION
-
-	var sample_count: int = int(round(duration * SAMPLE_RATE))
+func _build_default_stream() -> AudioStreamWAV:
+	var sample_count: int = int(round(DEFAULT_DURATION * SAMPLE_RATE))
 	var pcm: PackedByteArray = PackedByteArray()
 	pcm.resize(sample_count * 2)
 
 	for i in range(sample_count):
 		var t: float = float(i) / float(SAMPLE_RATE)
-		var sample: float = 0.0
-		if points == 500:
-			sample = _rich_500_sample(t)
-		elif points == 1000:
-			sample = _jackpot_1000_sample(t)
-		else:
-			sample = _default_sample(t)
-
-		sample = tanh(sample * 1.35)
+		var sample: float = tanh(_default_sample(t) * 1.35)
 		var value: int = clampi(int(round(sample * 30000.0)), -32768, 32767)
 		pcm[i * 2] = value & 0xff
 		pcm[i * 2 + 1] = (value >> 8) & 0xff
