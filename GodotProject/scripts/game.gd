@@ -26,9 +26,9 @@ const MINE_ARM_TIME: float = 0.55
 const WHIRLPOOL_CHANCE: float = 0.13
 const WHIRLPOOL_RANGE: float = 170.0
 const WHIRLPOOL_CORE: float = 12.0
-# Keep the gentler whirlpool pull from the latest tuning.
-const WHIRLPOOL_PULL: float = 175.0
-const WHIRLPOOL_MINE_PULL: float = 1.15
+# Boat is pulled harder, while mines resist the whirlpool much more.
+const WHIRLPOOL_PULL: float = 260.0
+const WHIRLPOOL_MINE_PULL: float = 0.35
 const WHIRLPOOL_LIFE: float = 6.5
 const WHIRLPOOL_MIN_DISTANCE: float = 110.0
 
@@ -181,7 +181,7 @@ func _update_mines(dt: float) -> void:
 				continue
 			if wd < WHIRLPOOL_RANGE:
 				var strength: float = 1.0 - wd / WHIRLPOOL_RANGE
-				strength = strength * strength
+				strength = strength * strength * strength
 				var pull: float = strength * WHIRLPOOL_PULL * WHIRLPOOL_MINE_PULL
 				velocity += woff.normalized() * pull
 
