@@ -22,6 +22,7 @@ var player_id: String = ""
 var pending_action: String = ""
 var submitted_name: String = ""
 var submitted_score: int = -1
+var restart_in_progress: bool = false
 
 func _ready() -> void:
 	color = Color(0, 0, 0, 0)
@@ -37,6 +38,26 @@ func _ready() -> void:
 	visibility_changed.connect(_on_visibility_changed)
 	queue_redraw()
 
+func _input(event: InputEvent) -> void:
+	if not visible or restart_in_progress:
+		return
+	var pressed: bool = false
+	var pos: Vector2 = Vector2.ZERO
+	if event is InputEventScreenTouch:
+		var touch: InputEventScreenTouch = event as InputEventScreenTouch
+		pressed = touch.pressed
+		pos = touch.position
+	elif event is InputEventMouseButton:
+		var mouse: InputEventMouseButton = event as InputEventMouseButton
+		pressed = mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT
+		pos = mouse.position
+	if not pressed:
+		return
+	var play_button: Button = $PlayAgain
+	if play_button.get_global_rect().has_point(pos):
+		_restart_game()
+		get_viewport().set_input_as_handled()
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		call_deferred("_layout_ui")
@@ -44,6 +65,7 @@ func _notification(what: int) -> void:
 
 func _on_visibility_changed() -> void:
 	if visible:
+		restart_in_progress = false
 		_refresh_from_game()
 
 func _setup_http() -> void:
@@ -100,11 +122,27 @@ func _style_play_again() -> void:
 	b.offset_right = 328.0
 	b.offset_bottom = 792.0
 	b.text = "⚔  PLAY AGAIN"
+	b.mouse_filter = Control.MOUSE_FILTER_STOP
+	b.focus_mode = Control.FOCUS_NONE
+	b.z_index = 100
 	b.add_theme_font_size_override("font_size", 25)
 	b.add_theme_color_override("font_color", Color("fff2b2"))
 	b.add_theme_stylebox_override("normal", _button_box(RED, GOLD, 4, 12))
 	b.add_theme_stylebox_override("hover", _button_box(Color("a51e1f"), Color("ffd86a"), 4, 12))
 	b.add_theme_stylebox_override("pressed", _button_box(Color("671011"), GOLD_DARK, 4, 12))
+	if not b.pressed.is_connected(_restart_game):
+		b.pressed.connect(_restart_game)
+	b.move_to_front()
+
+func _restart_game() -> void:
+	if restart_in_progress:
+		return
+	restart_in_progress = true
+	if http != null and http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
+		http.cancel_request()
+	var game: Node = get_parent().get_parent()
+	if game != null and game.has_method("_start_game"):
+		game.call_deferred("_start_game")
 
 func _build_ui() -> void:
 	var sunk: Label = Label.new()
@@ -183,6 +221,7 @@ func _build_ui() -> void:
 	footer_label.add_theme_font_size_override("font_size", 12)
 	footer_label.add_theme_color_override("font_color", Color("ffffff"))
 	add_child(footer_label)
+	$PlayAgain.move_to_front()
 	_layout_ui()
 
 func _layout_ui() -> void:
