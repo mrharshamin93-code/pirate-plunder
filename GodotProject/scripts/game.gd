@@ -50,6 +50,7 @@ const COIN_WEIGHTS: Array[int] = [38, 26, 17, 10, 5, 3, 1]
 @onready var sunk_panel: Control = $CanvasLayer/SunkPanel
 @onready var sunk_score: Label = $CanvasLayer/SunkPanel/Score
 @onready var play_again: Button = $CanvasLayer/SunkPanel/PlayAgain
+@onready var coin_audio: Node = $CoinPickupAudio
 
 var boat_pos: Vector2 = Vector2.ZERO
 var boat_vel: Vector2 = Vector2.ZERO
@@ -299,9 +300,12 @@ func _check_collisions() -> void:
 
 func _collect_coin() -> void:
 	var tier: int = int(coin.get("tier", 0))
-	score += COIN_POINTS[tier]
+	var points: int = COIN_POINTS[tier]
+	score += points
 	coins_collected += 1
 	coin["active"] = false
+	if coin_audio != null and coin_audio.has_method("play_coin"):
+		coin_audio.call("play_coin", points)
 	_spawn_mine()
 	if randf() < WHIRLPOOL_CHANCE:
 		_spawn_whirlpool()
