@@ -181,7 +181,7 @@ func _build_ui() -> void:
 	footer_label.name = "Footer"
 	footer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	footer_label.add_theme_font_size_override("font_size", 12)
-	footer_label.add_theme_color_override("font_color", Color("000000"))
+	footer_label.add_theme_color_override("font_color", Color("ffffff"))
 	add_child(footer_label)
 	_layout_ui()
 
