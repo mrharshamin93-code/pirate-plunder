@@ -25,6 +25,7 @@ var submitted_score: int = -1
 var restart_in_progress: bool = false
 var leaderboard_ready: bool = false
 var cached_personal_best: int = 0
+var local_personal_best: int = 0
 
 func _ready() -> void:
 	color = Color(0, 0, 0, 0)
@@ -88,6 +89,8 @@ func _load_identity() -> void:
 	if cfg.load(SAVE_PATH) == OK:
 		player_id = String(cfg.get_value("player", "id", ""))
 		var saved_name: String = String(cfg.get_value("player", "name", ""))
+		local_personal_best = int(cfg.get_value("player", "personal_best", 0))
+		cached_personal_best = local_personal_best
 		if not saved_name.is_empty():
 			name_entry.text = saved_name
 	if player_id.is_empty():
@@ -98,6 +101,7 @@ func _save_identity() -> void:
 	var cfg: ConfigFile = ConfigFile.new()
 	cfg.set_value("player", "id", player_id)
 	cfg.set_value("player", "name", name_entry.text.strip_edges())
+	cfg.set_value("player", "personal_best", local_personal_best)
 	cfg.save(SAVE_PATH)
 
 func _make_uuid_v4() -> String:
@@ -270,11 +274,15 @@ func _refresh_from_game() -> void:
 	var game: Node = get_parent().get_parent()
 	var current_score: int = int(game.get("score"))
 	$Score.text = _comma(current_score)
+	if current_score > local_personal_best:
+		local_personal_best = current_score
+		cached_personal_best = maxi(cached_personal_best, local_personal_best)
+		_save_identity()
 	if leaderboard_ready:
 		_build_leaderboard()
 		footer_label.text = "Global top 10 • Personal best: %s" % _comma(cached_personal_best)
 	else:
-		footer_label.text = "Loading global leaderboard..."
+		footer_label.text = "Loading global leaderboard... • Personal best: %s" % _comma(cached_personal_best)
 		if http.get_http_client_status() == HTTPClient.STATUS_DISCONNECTED:
 			_load_leaderboard(false)
 	queue_redraw()
@@ -287,7 +295,7 @@ func _load_leaderboard(background_fetch: bool = false) -> void:
 	if err != OK:
 		pending_action = ""
 		if visible and not leaderboard_ready:
-			footer_label.text = "Leaderboard unavailable"
+			footer_label.text = "Leaderboard unavailable • Personal best: %s" % _comma(cached_personal_best)
 
 func _submit_score() -> void:
 	var player_name: String = name_entry.text.strip_edges().substr(0, 20)
@@ -310,7 +318,7 @@ func _submit_score() -> void:
 	var err: Error = http.request("%s?playerId=%s" % [API_URL, player_id], headers, HTTPClient.METHOD_POST, body)
 	if err != OK:
 		submit_button.disabled = false
-		footer_label.text = "Could not submit score"
+		footer_label.text = "Could not submit score • Personal best: %s" % _comma(cached_personal_best)
 
 func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	submit_button.disabled = false
@@ -318,12 +326,12 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 	pending_action = ""
 	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
 		if visible and not leaderboard_ready:
-			footer_label.text = "Leaderboard unavailable — check your connection"
+			footer_label.text = "Leaderboard unavailable — Personal best: %s" % _comma(cached_personal_best)
 		return
 	var parsed: Variant = JSON.parse_string(body.get_string_from_utf8())
 	if not (parsed is Dictionary):
 		if visible and not leaderboard_ready:
-			footer_label.text = "Leaderboard returned invalid data"
+			footer_label.text = "Leaderboard unavailable — Personal best: %s" % _comma(cached_personal_best)
 		return
 	var data: Dictionary = parsed as Dictionary
 	var raw_board: Variant = data.get("leaderboard", [])
@@ -333,7 +341,11 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 			if item is Dictionary:
 				var d: Dictionary = item as Dictionary
 				leaderboard.append({"name":String(d.get("name", "Pirate")), "score":int(d.get("score", 0)), "coins":int(d.get("coins", 0))})
-	cached_personal_best = int(data.get("personalBest", 0))
+	var server_personal_best: int = int(data.get("personalBest", 0))
+	if server_personal_best > local_personal_best:
+		local_personal_best = server_personal_best
+		_save_identity()
+	cached_personal_best = maxi(local_personal_best, server_personal_best)
 	leaderboard_ready = true
 	_build_leaderboard()
 	if visible:
