@@ -117,8 +117,8 @@ func _apply_enabled_state() -> void:
 
 func _update_toggle_text() -> void:
 	if toggle_button != null:
-		# Text glyphs avoid the platform-colored white emoji speaker icon.
-		toggle_button.text = "♪" if music_enabled else "×"
+		# Off state uses the same music note with a diagonal strike-through.
+		toggle_button.text = "♪" if music_enabled else "♪̸"
 		toggle_button.tooltip_text = "Music on" if music_enabled else "Music off"
 
 func _midi_to_freq(midi: int) -> float:
