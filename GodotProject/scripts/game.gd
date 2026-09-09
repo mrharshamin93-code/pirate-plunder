@@ -15,9 +15,9 @@ const MINE_RADIUS: float = 8.0
 const MINE_SPIKE_RADIUS: float = 11.0
 const MAX_MINES: int = 9
 
-# Mine pursuit: gentle at long range, sharply stronger near the boat.
+# Mine pursuit: gentle at long range, stronger near the boat without snapping in too aggressively.
 const MINE_FAR_SPEED: float = 22.0
-const MINE_NEAR_SPEED: float = 135.0
+const MINE_NEAR_SPEED: float = 120.0
 const MINE_FAR_RANGE: float = 400.0
 const MINE_NEAR_RANGE: float = 40.0
 const MINE_WANDER: float = 0.42
@@ -26,11 +26,11 @@ const MINE_ARM_TIME: float = 0.55
 const WHIRLPOOL_CHANCE: float = 0.13
 # Boat feels the current well beyond the visible whirlpool art.
 const WHIRLPOOL_RANGE: float = 240.0
-const WHIRLPOOL_MINE_RANGE: float = 170.0
+const WHIRLPOOL_MINE_RANGE: float = 190.0
 const WHIRLPOOL_CORE: float = 12.0
-# Stronger boat pull; mines remain much less affected.
 const WHIRLPOOL_PULL: float = 340.0
-const WHIRLPOOL_MINE_PULL: float = 0.22
+# Whirlpool attraction on mines is deliberately stronger than boat attraction.
+const WHIRLPOOL_MINE_PULL: float = 1.10
 const WHIRLPOOL_LIFE: float = 6.5
 const WHIRLPOOL_MIN_DISTANCE: float = 110.0
 
@@ -173,14 +173,13 @@ func _update_mines(dt: float) -> void:
 		var dist: float = maxf(0.01, delta_vec.length())
 		var dir: Vector2 = delta_vec / dist
 		var proximity: float = clampf(inverse_lerp(MINE_FAR_RANGE, MINE_NEAR_RANGE, dist), 0.0, 1.0)
-		# Curve the pursuit so distant mines stay manageable, then accelerate hard near the boat.
+		# Still stronger near the boat, but eased slightly compared with the previous close-range pull.
 		var close_boost: float = proximity * proximity
 		var speed: float = lerpf(MINE_FAR_SPEED, MINE_NEAR_SPEED, close_boost)
 		var phase: float = float(mine.get("phase", 0.0)) + dt * 2.4
 		mine["phase"] = phase
 		var tangent: Vector2 = Vector2(-dir.y, dir.x)
-		# Reduce wandering as the mine closes in so the attraction becomes more direct.
-		var wander_strength: float = MINE_WANDER * (1.0 - 0.65 * proximity)
+		var wander_strength: float = MINE_WANDER * (1.0 - 0.55 * proximity)
 		var velocity: Vector2 = dir * speed + tangent * sin(phase) * speed * wander_strength
 
 		if bool(whirlpool.get("active", false)):
@@ -192,10 +191,13 @@ func _update_mines(dt: float) -> void:
 				active_mine_count = maxi(0, active_mine_count - 1)
 				continue
 			if wd < WHIRLPOOL_MINE_RANGE:
-				var strength: float = 1.0 - wd / WHIRLPOOL_MINE_RANGE
-				strength = strength * strength * strength
-				var pull: float = strength * WHIRLPOOL_PULL * WHIRLPOOL_MINE_PULL
-				velocity += woff.normalized() * pull
+				# Whirlpool wins over the boat once the mine enters its influence zone.
+				var wp_proximity: float = clampf(1.0 - wd / WHIRLPOOL_MINE_RANGE, 0.0, 1.0)
+				var wp_strength: float = 0.22 * wp_proximity + 1.45 * wp_proximity * wp_proximity
+				var wp_pull: float = maxf(speed * 1.25, wp_strength * WHIRLPOOL_PULL * WHIRLPOOL_MINE_PULL)
+				var wp_dir: Vector2 = woff / wd
+				velocity *= 1.0 - 0.82 * wp_proximity
+				velocity += wp_dir * wp_pull
 
 		var next_pos: Vector2 = mine_pos + velocity * dt
 		var hit_x: bool = next_pos.x < min_x or next_pos.x > max_x
