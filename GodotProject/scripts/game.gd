@@ -156,7 +156,7 @@ func _update_coin(dt: float) -> void:
 	coin["phase"] = float(coin.get("phase", 0.0)) + dt * 4.0
 
 func _update_mines(dt: float) -> void:
-	for mine: Dictionary in mines:
+	for mine in mines:
 		if not bool(mine.get("active", false)):
 			continue
 		mine["arm"] = float(mine.get("arm", 0.0)) - dt
@@ -170,7 +170,6 @@ func _update_mines(dt: float) -> void:
 		mine["phase"] = phase
 		var tangent: Vector2 = Vector2(-dir.y, dir.x)
 		var velocity: Vector2 = dir * speed + tangent * sin(phase) * speed * MINE_WANDER
-
 		if bool(whirlpool.get("active", false)):
 			var wpos: Vector2 = whirlpool.get("pos", Vector2.ZERO) as Vector2
 			var woff: Vector2 = wpos - mine_pos
@@ -196,9 +195,9 @@ func _update_whirlpool(dt: float) -> void:
 		whirlpool["active"] = false
 
 func _update_wakes(dt: float) -> void:
-	for wake: Dictionary in wakes:
+	for wake in wakes:
 		wake["life"] = float(wake.get("life", 0.0)) - dt
-	for i: int in range(wakes.size() - 1, -1, -1):
+	for i in range(wakes.size() - 1, -1, -1):
 		if float(wakes[i].get("life", 0.0)) <= 0.0:
 			wakes.remove_at(i)
 
@@ -207,8 +206,7 @@ func _check_collisions() -> void:
 		var coin_pos: Vector2 = coin.get("pos", Vector2.ZERO) as Vector2
 		if boat_pos.distance_to(coin_pos) < BOAT_RADIUS + COIN_RADIUS:
 			_collect_coin()
-
-	for mine: Dictionary in mines:
+	for mine in mines:
 		if not bool(mine.get("active", false)):
 			continue
 		if float(mine.get("arm", 0.0)) > 0.0:
@@ -217,12 +215,11 @@ func _check_collisions() -> void:
 		if boat_pos.distance_to(mine_pos) < BOAT_RADIUS + MINE_RADIUS:
 			_end_game()
 			return
-
-	for i: int in range(mines.size()):
+	for i in range(mines.size()):
 		var a: Dictionary = mines[i]
 		if not bool(a.get("active", false)) or float(a.get("arm", 0.0)) > 0.0:
 			continue
-		for j: int in range(i + 1, mines.size()):
+		for j in range(i + 1, mines.size()):
 			var b: Dictionary = mines[j]
 			if not bool(b.get("active", false)) or float(b.get("arm", 0.0)) > 0.0:
 				continue
@@ -245,17 +242,12 @@ func _collect_coin() -> void:
 	_refresh_hud()
 
 func _place_coin() -> void:
-	coin = {
-		"active": true,
-		"pos": _spawn_point(COIN_MIN_DISTANCE),
-		"tier": _pick_coin_tier(),
-		"phase": 0.0
-	}
+	coin = {"active": true, "pos": _spawn_point(COIN_MIN_DISTANCE), "tier": _pick_coin_tier(), "phase": 0.0}
 
 func _spawn_mine() -> void:
 	if active_mine_count >= MAX_MINES:
 		return
-	for mine: Dictionary in mines:
+	for mine in mines:
 		if not bool(mine.get("active", false)):
 			mine["active"] = true
 			mine["pos"] = _spawn_point(46.0)
@@ -267,32 +259,24 @@ func _spawn_mine() -> void:
 	active_mine_count += 1
 
 func _spawn_whirlpool() -> void:
-	whirlpool = {
-		"active": true,
-		"pos": _spawn_point(WHIRLPOOL_MIN_DISTANCE),
-		"life": WHIRLPOOL_LIFE,
-		"spin": 0.0
-	}
+	whirlpool = {"active": true, "pos": _spawn_point(WHIRLPOOL_MIN_DISTANCE), "life": WHIRLPOOL_LIFE, "spin": 0.0}
 
 func _spawn_point(min_distance: float) -> Vector2:
 	var size: Vector2 = get_viewport_rect().size
 	var p: Vector2 = Vector2.ZERO
-	for _i: int in range(24):
-		p = Vector2(
-			randf_range(FIELD_INSET_SIDE + 28.0, size.x - FIELD_INSET_SIDE - 28.0),
-			randf_range(FIELD_INSET_TOP + 28.0, size.y - FIELD_INSET_BOTTOM - 28.0)
-		)
+	for _i in range(24):
+		p = Vector2(randf_range(FIELD_INSET_SIDE + 28.0, size.x - FIELD_INSET_SIDE - 28.0), randf_range(FIELD_INSET_TOP + 28.0, size.y - FIELD_INSET_BOTTOM - 28.0))
 		if p.distance_to(boat_pos) >= min_distance:
 			break
 	return p
 
 func _pick_coin_tier() -> int:
 	var total: int = 0
-	for weight: int in COIN_WEIGHTS:
+	for weight in COIN_WEIGHTS:
 		total += weight
 	var roll: int = randi_range(0, total - 1)
 	var cumulative: int = 0
-	for i: int in range(COIN_WEIGHTS.size()):
+	for i in range(COIN_WEIGHTS.size()):
 		cumulative += COIN_WEIGHTS[i]
 		if roll < cumulative:
 			return i
@@ -321,13 +305,13 @@ func _comma(value: int) -> String:
 
 func _draw() -> void:
 	_draw_ocean()
-	for wake: Dictionary in wakes:
+	for wake in wakes:
 		_draw_wake(wake)
 	if bool(whirlpool.get("active", false)):
 		_draw_whirlpool()
 	if bool(coin.get("active", false)):
 		_draw_coin()
-	for mine: Dictionary in mines:
+	for mine in mines:
 		if bool(mine.get("active", false)):
 			_draw_mine(mine)
 	if not game_over:
@@ -336,8 +320,8 @@ func _draw() -> void:
 func _draw_ocean() -> void:
 	var size: Vector2 = get_viewport_rect().size
 	draw_rect(Rect2(Vector2.ZERO, size), Color("125a6e"))
-	for y: int in range(80, int(size.y), 90):
-		for x: int in range(25, int(size.x), 110):
+	for y in range(80, int(size.y), 90):
+		for x in range(25, int(size.x), 110):
 			var pts := PackedVector2Array([Vector2(x, y), Vector2(x + 18, y - 3), Vector2(x + 36, y)])
 			draw_polyline(pts, Color(0.31, 0.71, 0.80, 0.18), 2.0)
 
@@ -364,7 +348,7 @@ func _draw_coin() -> void:
 
 func _draw_mine(mine: Dictionary) -> void:
 	var p: Vector2 = mine.get("pos", Vector2.ZERO) as Vector2
-	for i: int in range(10):
+	for i in range(10):
 		var a: float = float(i) / 10.0 * TAU
 		var dir: Vector2 = Vector2(cos(a), sin(a))
 		draw_line(p + dir * 7.0, p + dir * 12.0, Color("25292e"), 3.0)
@@ -384,7 +368,7 @@ func _draw_wake(wake: Dictionary) -> void:
 func _draw_whirlpool() -> void:
 	var p: Vector2 = whirlpool.get("pos", Vector2.ZERO) as Vector2
 	var spin: float = float(whirlpool.get("spin", 0.0))
-	for i: int in range(7):
+	for i in range(7):
 		var radius: float = 18.0 + float(i) * 8.0
 		var start: float = spin + float(i) * 0.55
 		var end_angle: float = start + 4.9
