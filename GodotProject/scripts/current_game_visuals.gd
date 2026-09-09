@@ -126,7 +126,6 @@ func _draw_coin(c: Dictionary) -> void:
 	var phase: float = float(c.get("phase",0.0))
 	var pulse: float = 1.0 + sin(phase) * 0.045
 	var size: float = COIN_SIZE * pulse
-	# Coin stays completely normal until collected.
 	if coin_sheet:
 		var sp: Vector3 = COIN_SPRITES[tier]
 		var src := Rect2(sp.x-sp.z*0.5,sp.y-sp.z*0.5,sp.z,sp.z)
@@ -151,19 +150,18 @@ func _draw_pickup_burst(burst: Dictionary) -> void:
 	var amount: int = int(burst.get("amount", 0))
 	var value_strength: float = float(tier) / 6.0
 
-	# Immediate impact glow/flash only after the coin is hit.
+	# Every coin collection effect uses only warm gold/yellow/orange tones.
 	if progress < 0.24:
 		var flash_t: float = progress / 0.24
 		var flash_alpha: float = (1.0 - flash_t) * (0.72 + value_strength * 0.22)
-		draw_circle(p, lerpf(9.0, 30.0 + value_strength * 8.0, flash_t), Color(1.0,0.94,0.52,flash_alpha))
+		draw_circle(p, lerpf(9.0, 30.0 + value_strength * 8.0, flash_t), Color(1.0,0.91,0.34,flash_alpha))
 		for ray in range(12):
 			var ray_angle: float = float(ray) / 12.0 * TAU + float(tier) * 0.11
 			var ray_inner: float = lerpf(8.0, 13.0, flash_t)
 			var ray_outer: float = lerpf(22.0, 44.0 + value_strength * 14.0, flash_t)
 			var ray_alpha: float = flash_alpha * (0.70 if ray % 2 == 0 else 0.42)
-			draw_line(p + Vector2(cos(ray_angle),sin(ray_angle))*ray_inner, p + Vector2(cos(ray_angle),sin(ray_angle))*ray_outer, Color(1.0,0.82,0.20,ray_alpha), 1.3 + value_strength*0.7, true)
+			draw_line(p + Vector2(cos(ray_angle),sin(ray_angle))*ray_inner, p + Vector2(cos(ray_angle),sin(ray_angle))*ray_outer, Color(1.0,0.72,0.05,ray_alpha), 1.3 + value_strength*0.7, true)
 
-	# Gold sparkle outburst.
 	var particle_count: int = 10 + tier * 2
 	for i in range(particle_count):
 		var a: float = float(i) / float(particle_count) * TAU + float(tier) * 0.17
@@ -171,44 +169,41 @@ func _draw_pickup_burst(burst: Dictionary) -> void:
 		var dist: float = lerpf(5.0, (34.0 + value_strength * 25.0) * speed_scale, progress)
 		var particle_pos: Vector2 = p + Vector2(cos(a), sin(a)) * dist
 		var radius: float = (1.3 + float(i % 3) * 0.55 + value_strength * 0.8) * fade + 0.25
-		draw_circle(particle_pos, radius, Color(1.0,0.82,0.16,0.92*fade))
+		draw_circle(particle_pos, radius, Color(1.0,0.74,0.04,0.94*fade))
 		if i % 3 == 0:
-			_draw_star(particle_pos, 2.0 + value_strength * 1.8, Color(1.0,0.97,0.68,1.0), 0.78*fade)
+			_draw_star(particle_pos, 2.0 + value_strength * 1.8, Color(1.0,0.94,0.42,1.0), 0.82*fade)
 
-	# 25+ coins get a visible expanding ring; high-value coins get a stronger ring.
 	if amount >= 25:
 		var ring_radius: float = lerpf(11.0, 40.0 + value_strength * 18.0, progress)
-		var ring_alpha: float = (0.70 + value_strength * 0.18) * fade
-		draw_arc(p, ring_radius, 0.0, TAU, 36, Color(1.0,0.79,0.16,ring_alpha), 2.0 + value_strength*1.5, true)
+		var ring_alpha: float = (0.72 + value_strength * 0.18) * fade
+		draw_arc(p, ring_radius, 0.0, TAU, 36, Color(1.0,0.72,0.04,ring_alpha), 2.0 + value_strength*1.5, true)
 		if amount >= 500:
-			draw_arc(p, ring_radius * 0.72, 0.0, TAU, 32, Color(1.0,0.94,0.55,0.42*fade), 1.2, true)
+			draw_arc(p, ring_radius * 0.72, 0.0, TAU, 32, Color(1.0,0.91,0.34,0.48*fade), 1.2, true)
 
-	# 500/1000 coins throw additional starbursts and gold shard streaks.
 	if amount >= 500:
 		for i in range(8):
 			var a: float = float(i) / 8.0 * TAU + 0.28
 			var d: float = lerpf(12.0, 54.0 + value_strength * 16.0, progress)
 			var star_pos: Vector2 = p + Vector2(cos(a), sin(a)) * d
-			_draw_star(star_pos, (3.5 + float(i % 3)) * fade + 0.8, Color(1.0,0.88,0.28,1.0), 0.88*fade)
+			_draw_star(star_pos, (3.5 + float(i % 3)) * fade + 0.8, Color(1.0,0.82,0.10,1.0), 0.92*fade)
 			var shard_start: Vector2 = p + Vector2(cos(a),sin(a)) * (d - 8.0)
-			draw_line(shard_start, star_pos, Color(1.0,0.66,0.08,0.64*fade), 1.7, true)
+			draw_line(shard_start, star_pos, Color(1.0,0.58,0.02,0.70*fade), 1.7, true)
 
-	# 1000 coin: short premium multicolor celebration layered over the gold burst.
+	# 1000 keeps the premium scale, but its stars and jackpot beam are gold-only too.
 	if amount >= 1000:
-		var premium_colors: Array[Color] = [
-			Color(1.0,0.32,0.78,1.0), Color(0.42,0.78,1.0,1.0),
-			Color(0.72,0.48,1.0,1.0), Color(1.0,0.88,0.28,1.0)
+		var premium_gold: Array[Color] = [
+			Color(1.0,0.62,0.02,1.0), Color(1.0,0.78,0.06,1.0),
+			Color(1.0,0.90,0.30,1.0), Color(1.0,0.97,0.66,1.0)
 		]
 		for i in range(12):
 			var a: float = float(i) / 12.0 * TAU + 0.16
 			var d: float = lerpf(10.0, 62.0 + float(i % 3) * 7.0, progress)
 			var premium_pos: Vector2 = p + Vector2(cos(a), sin(a)) * d
-			var premium_color: Color = premium_colors[i % premium_colors.size()]
-			_draw_star(premium_pos, 4.2 * fade + 1.0, premium_color, 0.92*fade)
-		# Brief vertical jackpot beam.
-		var beam_alpha: float = maxf(0.0, 1.0 - progress * 1.35) * 0.34
-		draw_rect(Rect2(p + Vector2(-7.0,-82.0), Vector2(14.0,164.0)), Color(1.0,0.76,0.18,beam_alpha))
-		draw_rect(Rect2(p + Vector2(-3.0,-96.0), Vector2(6.0,192.0)), Color(1.0,0.96,0.72,beam_alpha*0.85))
+			var premium_color: Color = premium_gold[i % premium_gold.size()]
+			_draw_star(premium_pos, 4.2 * fade + 1.0, premium_color, 0.94*fade)
+		var beam_alpha: float = maxf(0.0, 1.0 - progress * 1.35) * 0.38
+		draw_rect(Rect2(p + Vector2(-7.0,-82.0), Vector2(14.0,164.0)), Color(1.0,0.66,0.03,beam_alpha))
+		draw_rect(Rect2(p + Vector2(-3.0,-96.0), Vector2(6.0,192.0)), Color(1.0,0.94,0.54,beam_alpha*0.90))
 
 func _draw_popup(pop: Dictionary) -> void:
 	var t: float = clampf(float(pop.get("life",0.0))/POPUP_LIFE,0.0,1.0)
@@ -220,7 +215,7 @@ func _draw_popup(pop: Dictionary) -> void:
 		popup_size = 22
 	if amount >= 1000:
 		popup_size = 26
-	_draw_text("+%d" % amount,p,popup_size,Color("ffd34a"),t)
+	_draw_text("+%d" % amount,p,popup_size,Color("ffd21f"),t)
 
 func _draw_text(text: String, center: Vector2, font_size: int, color: Color, alpha: float) -> void:
 	var font := ThemeDB.fallback_font
