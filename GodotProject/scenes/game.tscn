@@ -1,10 +1,15 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/semi_dynamic_joystick.gd" id="2_joy"]
+[ext_resource type="Script" path="res://scripts/current_game_visuals.gd" id="3_visuals"]
+[ext_resource type="Script" path="res://scripts/hud_art.gd" id="4_hudart"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
+
+[node name="CurrentGameVisuals" type="Node2D" parent="."]
+script = ExtResource("3_visuals")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
@@ -46,9 +51,7 @@ offset_left = 298.0
 offset_top = 22.0
 offset_right = 330.0
 offset_bottom = 52.0
-theme_override_colors/font_color = Color(1, 0.82, 0.28, 1)
-theme_override_font_sizes/font_size = 24
-text = "●"
+text = ""
 
 [node name="CoinCount" type="Label" parent="CanvasLayer/HUD"]
 offset_left = 338.0
@@ -65,9 +68,7 @@ offset_left = 298.0
 offset_top = 55.0
 offset_right = 330.0
 offset_bottom = 88.0
-theme_override_colors/font_color = Color(0.85, 0.9, 0.94, 1)
-theme_override_font_sizes/font_size = 22
-text = "✹"
+text = ""
 
 [node name="MineCount" type="Label" parent="CanvasLayer/HUD"]
 offset_left = 330.0
@@ -78,6 +79,9 @@ theme_override_colors/font_color = Color(0.93, 0.98, 1, 0.9)
 theme_override_font_sizes/font_size = 14
 text = "0/9"
 horizontal_alignment = 2
+
+[node name="HudArt" type="Node2D" parent="CanvasLayer"]
+script = ExtResource("4_hudart")
 
 [node name="Joystick" type="Control" parent="CanvasLayer"]
 layout_mode = 3
