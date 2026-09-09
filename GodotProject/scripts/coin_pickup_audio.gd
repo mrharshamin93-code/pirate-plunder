@@ -1,11 +1,11 @@
 extends Node
 
 # Coin pickup audio lives as an autoload so there is exactly one playback owner.
-# 500 and 1000 each have a dedicated player with the authored selected sound.
+# 500 and 1000 each have a dedicated player with the authored selected WAV sound.
 const SAMPLE_RATE: int = 44100
 const DEFAULT_DURATION: float = 0.34
-const RICH_500_STREAM: AudioStream = preload("res://assets/audio/coin_500_rich_sample_3.ogg")
-const JACKPOT_1000_STREAM: AudioStream = preload("res://assets/audio/coin_1000_STRONG_jackpot_4.ogg")
+const RICH_500_STREAM: AudioStream = preload("res://assets/audio/coin_500_rich_sample_3.wav")
+const JACKPOT_1000_STREAM: AudioStream = preload("res://assets/audio/coin_1000_STRONG_jackpot_4.wav")
 
 var default_player: AudioStreamPlayer
 var rich_500_player: AudioStreamPlayer
