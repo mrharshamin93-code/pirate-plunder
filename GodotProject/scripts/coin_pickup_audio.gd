@@ -1,43 +1,58 @@
 extends Node
 
-# Common coin pickup SFX are generated in-engine.
-# 500 and 1000 use the authored sounds selected for the game.
+# Coin pickup audio lives as an autoload so there is exactly one playback owner.
+# 500 and 1000 each have a dedicated player with the authored selected sound.
 const SAMPLE_RATE: int = 44100
 const DEFAULT_DURATION: float = 0.34
 const RICH_500_STREAM: AudioStream = preload("res://assets/audio/coin_500_rich_sample_3.ogg")
 const JACKPOT_1000_STREAM: AudioStream = preload("res://assets/audio/coin_1000_STRONG_jackpot_4.ogg")
 
-var pickup_player: AudioStreamPlayer
+var default_player: AudioStreamPlayer
+var rich_500_player: AudioStreamPlayer
+var jackpot_1000_player: AudioStreamPlayer
 var default_stream: AudioStreamWAV
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	default_stream = _build_default_stream()
-	pickup_player = AudioStreamPlayer.new()
-	pickup_player.name = "CoinPickupSFXPlayer"
-	pickup_player.volume_db = -2.0
-	pickup_player.stream = default_stream
-	add_child(pickup_player)
 
-# Called directly by game.gd at the exact moment a coin is collected.
-# This avoids score polling, frame-order issues, and Variant conversions.
+	default_player = AudioStreamPlayer.new()
+	default_player.name = "DefaultCoinPickupSFX"
+	default_player.stream = default_stream
+	default_player.volume_db = -2.0
+	default_player.bus = "Master"
+	add_child(default_player)
+
+	rich_500_player = AudioStreamPlayer.new()
+	rich_500_player.name = "Rich500CoinSFX"
+	rich_500_player.stream = RICH_500_STREAM
+	rich_500_player.volume_db = 2.0
+	rich_500_player.bus = "Master"
+	add_child(rich_500_player)
+
+	jackpot_1000_player = AudioStreamPlayer.new()
+	jackpot_1000_player.name = "Jackpot1000CoinSFX"
+	jackpot_1000_player.stream = JACKPOT_1000_STREAM
+	jackpot_1000_player.volume_db = 3.0
+	jackpot_1000_player.bus = "Master"
+	add_child(jackpot_1000_player)
+
 func play_coin(points: int) -> void:
-	if pickup_player == null:
-		return
-	if pickup_player.playing:
-		pickup_player.stop()
-
 	match points:
 		500:
-			pickup_player.stream = RICH_500_STREAM
-			pickup_player.volume_db = 1.5
+			_play_player(rich_500_player)
 		1000:
-			pickup_player.stream = JACKPOT_1000_STREAM
-			pickup_player.volume_db = 2.5
+			_play_player(jackpot_1000_player)
 		_:
-			pickup_player.stream = default_stream
-			pickup_player.volume_db = -2.0
+			_play_player(default_player)
 
-	pickup_player.play()
+func _play_player(player: AudioStreamPlayer) -> void:
+	if player == null or player.stream == null:
+		return
+	player.stream_paused = false
+	if player.playing:
+		player.stop()
+	player.play(0.0)
 
 func _envelope(t: float, attack: float, decay: float) -> float:
 	if t < 0.0:
