@@ -1,10 +1,11 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/semi_dynamic_joystick.gd" id="2_joy"]
 [ext_resource type="Script" path="res://scripts/current_game_visuals.gd" id="3_visuals"]
 [ext_resource type="Script" path="res://scripts/hud_art.gd" id="4_hudart"]
 [ext_resource type="Script" path="res://scripts/static_game_background.gd" id="5_background"]
+[ext_resource type="Script" path="res://scripts/sunk_screen.gd" id="6_sunk"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
@@ -106,7 +107,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.02, 0.08, 0.11, 0.94)
+color = Color(0, 0, 0, 0)
+script = ExtResource("6_sunk")
 
 [node name="Title" type="Label" parent="CanvasLayer/SunkPanel"]
 layout_mode = 0
@@ -127,7 +129,7 @@ offset_right = 320.0
 offset_bottom = 350.0
 theme_override_colors/font_color = Color(0.93, 0.98, 1, 1)
 theme_override_font_sizes/font_size = 24
-text = "Score: 0"
+text = "0"
 horizontal_alignment = 1
 
 [node name="LeaderboardTitle" type="Label" parent="CanvasLayer/SunkPanel"]
