@@ -50,7 +50,7 @@ const COIN_WEIGHTS: Array[int] = [38, 26, 17, 10, 5, 3, 1]
 @onready var sunk_panel: Control = $CanvasLayer/SunkPanel
 @onready var sunk_score: Label = $CanvasLayer/SunkPanel/Score
 @onready var play_again: Button = $CanvasLayer/SunkPanel/PlayAgain
-@onready var coin_audio: Node = $CoinPickupAudio
+@onready var coin_audio: Node = get_node("/root/CoinPickupAudio")
 
 var boat_pos: Vector2 = Vector2.ZERO
 var boat_vel: Vector2 = Vector2.ZERO
