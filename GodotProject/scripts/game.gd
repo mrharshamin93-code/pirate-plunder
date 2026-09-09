@@ -1,5 +1,7 @@
 extends Node2D
 
+signal explosion_requested(position: Vector2, scale: float)
+
 const BOAT_RADIUS: float = 8.0
 const TURN_RATE: float = 9.0
 const TURN_AT_SPEED: float = 0.28
@@ -12,19 +14,24 @@ const COIN_MIN_DISTANCE: float = 90.0
 const MINE_RADIUS: float = 8.0
 const MINE_SPIKE_RADIUS: float = 11.0
 const MAX_MINES: int = 9
-const MINE_FAR_SPEED: float = 22.0
-const MINE_NEAR_SPEED: float = 100.0
+
+# Slower, more readable mine pursuit than the first Godot pass.
+const MINE_FAR_SPEED: float = 14.0
+const MINE_NEAR_SPEED: float = 62.0
 const MINE_FAR_RANGE: float = 400.0
 const MINE_NEAR_RANGE: float = 40.0
-const MINE_WANDER: float = 0.42
+const MINE_WANDER: float = 0.38
 const MINE_ARM_TIME: float = 0.55
+
 const WHIRLPOOL_CHANCE: float = 0.13
 const WHIRLPOOL_RANGE: float = 170.0
 const WHIRLPOOL_CORE: float = 12.0
-const WHIRLPOOL_PULL: float = 340.0
-const WHIRLPOOL_MINE_PULL: float = 2.6
+# Pull ramps gently. Close range is dangerous, but objects no longer snap inward.
+const WHIRLPOOL_PULL: float = 175.0
+const WHIRLPOOL_MINE_PULL: float = 1.15
 const WHIRLPOOL_LIFE: float = 6.5
 const WHIRLPOOL_MIN_DISTANCE: float = 110.0
+
 const FIELD_INSET_TOP: float = 106.0
 const FIELD_INSET_BOTTOM: float = 158.0
 const FIELD_INSET_SIDE: float = 8.0
@@ -34,10 +41,6 @@ const WAKE_INTERVAL: float = 0.055
 
 const COIN_POINTS: Array[int] = [10, 25, 50, 100, 250, 500, 1000]
 const COIN_WEIGHTS: Array[int] = [38, 26, 17, 10, 5, 3, 1]
-const COIN_COLORS: Array[Color] = [
-	Color("d5a535"), Color("dcae3c"), Color("e4b945"),
-	Color("edc550"), Color("f2cf5b"), Color("f6d96b"), Color("ffe07a")
-]
 
 @onready var joystick: Control = $CanvasLayer/Joystick
 @onready var score_label: Label = $CanvasLayer/HUD/Score
@@ -85,7 +88,6 @@ func _start_game() -> void:
 	sunk_panel.visible = false
 	_place_coin()
 	_refresh_hud()
-	queue_redraw()
 
 func _on_joystick_changed(value: Vector2) -> void:
 	input_vector = value
@@ -94,7 +96,6 @@ func _physics_process(delta: float) -> void:
 	var dt: float = minf(delta, 0.05)
 	if game_over:
 		_update_wakes(dt)
-		queue_redraw()
 		return
 	_update_boat(dt)
 	_update_coin(dt)
@@ -102,7 +103,6 @@ func _physics_process(delta: float) -> void:
 	_update_whirlpool(dt)
 	_update_wakes(dt)
 	_check_collisions()
-	queue_redraw()
 
 func _update_boat(dt: float) -> void:
 	var speed: float = boat_vel.length()
@@ -132,11 +132,12 @@ func _update_boat(dt: float) -> void:
 			return
 		if dist < WHIRLPOOL_RANGE:
 			var strength: float = 1.0 - dist / WHIRLPOOL_RANGE
-			strength *= strength
+			# Cubic falloff makes the outer pull subtle and the inner pull progressive.
+			strength = strength * strength * strength
 			var pull: float = strength * WHIRLPOOL_PULL * dt
 			var inward: Vector2 = offset / dist
 			var tangent: Vector2 = Vector2(-inward.y, inward.x)
-			boat_vel += inward * pull + tangent * pull * 0.45
+			boat_vel += inward * pull + tangent * pull * 0.34
 
 	boat_vel = boat_vel.limit_length(MAX_SPEED)
 	boat_pos += boat_vel * dt
@@ -165,11 +166,14 @@ func _update_mines(dt: float) -> void:
 		var dist: float = maxf(0.01, delta_vec.length())
 		var dir: Vector2 = delta_vec / dist
 		var t: float = clampf(inverse_lerp(MINE_FAR_RANGE, MINE_NEAR_RANGE, dist), 0.0, 1.0)
+		# Smoothstep keeps mine acceleration from feeling abrupt.
+		t = t * t * (3.0 - 2.0 * t)
 		var speed: float = lerpf(MINE_FAR_SPEED, MINE_NEAR_SPEED, t)
-		var phase: float = float(mine.get("phase", 0.0)) + dt * 2.4
+		var phase: float = float(mine.get("phase", 0.0)) + dt * 2.1
 		mine["phase"] = phase
 		var tangent: Vector2 = Vector2(-dir.y, dir.x)
 		var velocity: Vector2 = dir * speed + tangent * sin(phase) * speed * MINE_WANDER
+
 		if bool(whirlpool.get("active", false)):
 			var wpos: Vector2 = whirlpool.get("pos", Vector2.ZERO) as Vector2
 			var woff: Vector2 = wpos - mine_pos
@@ -180,8 +184,10 @@ func _update_mines(dt: float) -> void:
 				continue
 			if wd < WHIRLPOOL_RANGE:
 				var strength: float = 1.0 - wd / WHIRLPOOL_RANGE
+				strength = strength * strength
 				var pull: float = strength * WHIRLPOOL_PULL * WHIRLPOOL_MINE_PULL
 				velocity += woff.normalized() * pull
+
 		mine["pos"] = mine_pos + velocity * dt
 
 func _update_whirlpool(dt: float) -> void:
@@ -206,6 +212,7 @@ func _check_collisions() -> void:
 		var coin_pos: Vector2 = coin.get("pos", Vector2.ZERO) as Vector2
 		if boat_pos.distance_to(coin_pos) < BOAT_RADIUS + COIN_RADIUS:
 			_collect_coin()
+
 	for mine in mines:
 		if not bool(mine.get("active", false)):
 			continue
@@ -213,8 +220,13 @@ func _check_collisions() -> void:
 			continue
 		var mine_pos: Vector2 = mine.get("pos", Vector2.ZERO) as Vector2
 		if boat_pos.distance_to(mine_pos) < BOAT_RADIUS + MINE_RADIUS:
+			mine["active"] = false
+			active_mine_count = maxi(0, active_mine_count - 1)
+			explosion_requested.emit(mine_pos, 1.25)
+			_refresh_hud()
 			_end_game()
 			return
+
 	for i in range(mines.size()):
 		var a: Dictionary = mines[i]
 		if not bool(a.get("active", false)) or float(a.get("arm", 0.0)) > 0.0:
@@ -229,6 +241,8 @@ func _check_collisions() -> void:
 				a["active"] = false
 				b["active"] = false
 				active_mine_count = maxi(0, active_mine_count - 2)
+				explosion_requested.emit((apos + bpos) * 0.5, 1.0)
+				_refresh_hud()
 
 func _collect_coin() -> void:
 	var tier: int = int(coin.get("tier", 0))
@@ -265,7 +279,10 @@ func _spawn_point(min_distance: float) -> Vector2:
 	var size: Vector2 = get_viewport_rect().size
 	var p: Vector2 = Vector2.ZERO
 	for _i in range(24):
-		p = Vector2(randf_range(FIELD_INSET_SIDE + 28.0, size.x - FIELD_INSET_SIDE - 28.0), randf_range(FIELD_INSET_TOP + 28.0, size.y - FIELD_INSET_BOTTOM - 28.0))
+		p = Vector2(
+			randf_range(FIELD_INSET_SIDE + 28.0, size.x - FIELD_INSET_SIDE - 28.0),
+			randf_range(FIELD_INSET_TOP + 28.0, size.y - FIELD_INSET_BOTTOM - 28.0)
+		)
 		if p.distance_to(boat_pos) >= min_distance:
 			break
 	return p
@@ -302,76 +319,3 @@ func _comma(value: int) -> String:
 		out = "," + s.substr(s.length() - 3, 3) + out
 		s = s.substr(0, s.length() - 3)
 	return s + out
-
-func _draw() -> void:
-	_draw_ocean()
-	for wake in wakes:
-		_draw_wake(wake)
-	if bool(whirlpool.get("active", false)):
-		_draw_whirlpool()
-	if bool(coin.get("active", false)):
-		_draw_coin()
-	for mine in mines:
-		if bool(mine.get("active", false)):
-			_draw_mine(mine)
-	if not game_over:
-		_draw_boat()
-
-func _draw_ocean() -> void:
-	var size: Vector2 = get_viewport_rect().size
-	draw_rect(Rect2(Vector2.ZERO, size), Color("125a6e"))
-	for y in range(80, int(size.y), 90):
-		for x in range(25, int(size.x), 110):
-			var pts := PackedVector2Array([Vector2(x, y), Vector2(x + 18, y - 3), Vector2(x + 36, y)])
-			draw_polyline(pts, Color(0.31, 0.71, 0.80, 0.18), 2.0)
-
-func _draw_boat() -> void:
-	var forward: Vector2 = Vector2(cos(boat_angle), sin(boat_angle))
-	var side: Vector2 = Vector2(-forward.y, forward.x)
-	var nose: Vector2 = boat_pos + forward * 18.0
-	var rear: Vector2 = boat_pos - forward * 16.0
-	var poly := PackedVector2Array([nose, rear + side * 10.0, rear - side * 10.0])
-	draw_colored_polygon(poly, Color("9a6231"))
-	draw_polyline(PackedVector2Array([nose, rear + side * 10.0, rear - side * 10.0, nose]), Color("0a1a20"), 2.0)
-	draw_circle(boat_pos - forward * 3.0, 5.5, Color("57a94a"))
-	draw_circle(boat_pos - forward * 5.0 - side * 2.0, 5.7, Color("c8322f"))
-
-func _draw_coin() -> void:
-	var p: Vector2 = coin.get("pos", Vector2.ZERO) as Vector2
-	var phase: float = float(coin.get("phase", 0.0))
-	var tier: int = int(coin.get("tier", 0))
-	var pulse: float = 1.0 + sin(phase) * 0.06
-	var r: float = COIN_RADIUS * pulse
-	draw_circle(p, r, COIN_COLORS[tier])
-	draw_circle(p, r * 0.72, Color(1.0, 0.86, 0.35, 0.30))
-	draw_arc(p, r, 0.0, TAU, 30, Color("6b3f1c"), 2.0)
-
-func _draw_mine(mine: Dictionary) -> void:
-	var p: Vector2 = mine.get("pos", Vector2.ZERO) as Vector2
-	for i in range(10):
-		var a: float = float(i) / 10.0 * TAU
-		var dir: Vector2 = Vector2(cos(a), sin(a))
-		draw_line(p + dir * 7.0, p + dir * 12.0, Color("25292e"), 3.0)
-	draw_circle(p, 8.0, Color("25292e"))
-	draw_circle(p + Vector2(0.0, -3.0), 2.0, Color("ffd24a"))
-
-func _draw_wake(wake: Dictionary) -> void:
-	var p: Vector2 = wake.get("pos", Vector2.ZERO) as Vector2
-	var angle: float = float(wake.get("angle", 0.0))
-	var life: float = float(wake.get("life", 0.0))
-	var alpha: float = clampf(life / WAKE_LIFE, 0.0, 1.0) * 0.45
-	var forward: Vector2 = Vector2(cos(angle), sin(angle))
-	var side: Vector2 = Vector2(-forward.y, forward.x)
-	draw_line(p + side * 5.0, p - forward * 13.0 + side * 11.0, Color(0.75, 0.95, 1.0, alpha), 2.0)
-	draw_line(p - side * 5.0, p - forward * 13.0 - side * 11.0, Color(0.75, 0.95, 1.0, alpha), 2.0)
-
-func _draw_whirlpool() -> void:
-	var p: Vector2 = whirlpool.get("pos", Vector2.ZERO) as Vector2
-	var spin: float = float(whirlpool.get("spin", 0.0))
-	for i in range(7):
-		var radius: float = 18.0 + float(i) * 8.0
-		var start: float = spin + float(i) * 0.55
-		var end_angle: float = start + 4.9
-		var alpha: float = 0.56 - float(i) * 0.055
-		draw_arc(p, radius, start, end_angle, 42, Color(0.72, 0.93, 0.96, alpha), 3.0)
-	draw_circle(p, WHIRLPOOL_CORE, Color(0.01, 0.05, 0.07, 0.78))
