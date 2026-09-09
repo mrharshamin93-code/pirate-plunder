@@ -126,26 +126,7 @@ func _draw_coin(c: Dictionary) -> void:
 	var phase: float = float(c.get("phase",0.0))
 	var pulse: float = 1.0 + sin(phase) * 0.045
 	var size: float = COIN_SIZE * pulse
-
-	# Soft gold aura. Higher-value coins glow more strongly without obscuring the sprite.
-	var value_strength: float = float(tier) / 6.0
-	var glow_pulse: float = 0.86 + sin(phase * 1.35) * 0.14
-	var glow_radius: float = size * (0.58 + value_strength * 0.12) * glow_pulse
-	draw_circle(p, glow_radius * 1.55, Color(1.0, 0.72, 0.08, 0.045 + value_strength * 0.045))
-	draw_circle(p, glow_radius * 1.15, Color(1.0, 0.82, 0.18, 0.075 + value_strength * 0.065))
-
-	# Orbiting sparkles become richer on 250/500/1000 coins.
-	var sparkle_count: int = 2 + tier / 2
-	for i in range(sparkle_count):
-		var angle: float = phase * (0.48 + float(i % 2) * 0.13) + float(i) * TAU / float(sparkle_count)
-		var radius: float = size * (0.64 + 0.10 * sin(phase * 0.75 + float(i)))
-		var sp_pos: Vector2 = p + Vector2(cos(angle), sin(angle)) * radius
-		var shimmer: float = 0.45 + 0.55 * abs(sin(phase * 1.8 + float(i) * 0.9))
-		var spark_alpha: float = (0.34 + value_strength * 0.36) * shimmer
-		var spark_size: float = 1.2 + value_strength * 1.15
-		draw_line(sp_pos + Vector2(-spark_size,0), sp_pos + Vector2(spark_size,0), Color(1.0,0.95,0.58,spark_alpha), 1.0, true)
-		draw_line(sp_pos + Vector2(0,-spark_size), sp_pos + Vector2(0,spark_size), Color(1.0,0.95,0.58,spark_alpha), 1.0, true)
-
+	# No pre-collection glow or sparkles: coin stays clean until it is hit.
 	if coin_sheet:
 		var sp: Vector3 = COIN_SPRITES[tier]
 		var src := Rect2(sp.x-sp.z*0.5,sp.y-sp.z*0.5,sp.z,sp.z)
@@ -160,15 +141,11 @@ func _draw_pickup_burst(burst: Dictionary) -> void:
 	var p: Vector2 = burst.get("pos", Vector2.ZERO)
 	var tier: int = clampi(int(burst.get("tier", 0)), 0, 6)
 	var value_strength: float = float(tier) / 6.0
-
-	# Quick collection flash and expanding gold ring.
 	if progress < 0.25:
 		var flash_alpha: float = (1.0 - progress / 0.25) * (0.52 + value_strength * 0.30)
 		draw_circle(p, lerpf(9.0, 25.0, progress / 0.25), Color(1.0,0.93,0.48,flash_alpha))
 	var ring_radius: float = lerpf(10.0, 34.0 + value_strength * 10.0, progress)
 	draw_arc(p, ring_radius, 0.0, TAU, 28, Color(1.0,0.78,0.14,0.72*fade), 2.0 + value_strength * 1.2, true)
-
-	# Deterministic radial sparkle burst so it looks consistent and costs little.
 	var particle_count: int = 7 + tier
 	for i in range(particle_count):
 		var a: float = float(i) / float(particle_count) * TAU + float(tier) * 0.17
@@ -270,15 +247,11 @@ func _draw_whirlpool(w: Dictionary) -> void:
 	var p: Vector2 = w.get("pos", Vector2.ZERO)
 	var spin: float = float(w.get("spin", 0.0))
 	var pulse: float = 1.0 + sin(spin * 1.7) * 0.035
-
-	# True top-down view: every funnel layer stays circular rather than flattened.
 	draw_circle(p, 50.0 * pulse, Color(0.04, 0.31, 0.37, 0.22))
 	draw_circle(p, 38.0 * pulse, Color(0.025, 0.23, 0.29, 0.34))
 	draw_circle(p, 27.0 * pulse, Color(0.018, 0.15, 0.20, 0.52))
 	draw_circle(p, 17.0 * pulse, Color(0.008, 0.075, 0.105, 0.76))
 	draw_circle(p, 8.0, Color(0.0, 0.012, 0.02, 0.98))
-
-	# Curved foam streams spiral evenly inward in 360 degrees.
 	for arm in range(6):
 		var pts: PackedVector2Array = PackedVector2Array()
 		for step in range(38):
@@ -288,8 +261,6 @@ func _draw_whirlpool(w: Dictionary) -> void:
 			pts.append(p + Vector2(cos(angle), sin(angle)) * radius)
 		var arm_alpha: float = 0.23 + float(arm % 2) * 0.08
 		draw_polyline(pts, Color(0.78, 0.95, 0.98, arm_alpha), 1.9 + float(arm % 2) * 0.45, true)
-
-	# Broken circular whitewater bands make the surface turbulent without looking geometric.
 	for band in range(3):
 		var radius: float = 29.0 + float(band) * 9.0
 		for seg in range(5):
@@ -300,14 +271,10 @@ func _draw_whirlpool(w: Dictionary) -> void:
 				var wobble: float = sin(a * 5.0 + spin) * 1.1
 				pts.append(p + Vector2(cos(a), sin(a)) * (radius + wobble))
 			draw_polyline(pts, Color(0.90, 0.985, 1.0, 0.23 - float(band) * 0.035), 1.35, true)
-
-	# Orbiting bubbles/whitecaps reinforce the top-down circular motion.
 	for i in range(10):
 		var a: float = spin * 0.7 + float(i) / 10.0 * TAU
 		var r: float = 40.0 + sin(float(i) * 1.65 + spin) * 6.0
 		var bubble: Vector2 = p + Vector2(cos(a), sin(a)) * r
 		draw_circle(bubble, 1.1 + float(i % 3) * 0.42, Color(0.87, 0.98, 1.0, 0.40))
-
-	# Circular inner-wall highlights preserve depth while keeping a pure overhead perspective.
 	draw_arc(p, 20.0, spin * 0.2, spin * 0.2 + 4.7, 38, Color(0.43, 0.82, 0.88, 0.27), 1.5, true)
 	draw_arc(p, 11.0, -spin * 0.18, -spin * 0.18 + 4.9, 32, Color(0.72, 0.94, 0.97, 0.23), 1.1, true)
