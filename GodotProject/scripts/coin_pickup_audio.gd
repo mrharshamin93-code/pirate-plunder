@@ -1,8 +1,6 @@
 extends Node
 
 # Coin pickup SFX are generated in-engine so they work in Godot exports.
-# We detect the exact score increase in the physics tick; this avoids frame-order
-# issues that could cause rare 500/1000 pickups to miss the special sound.
 const SAMPLE_RATE: int = 44100
 const DEFAULT_DURATION: float = 0.34
 const RICH_500_DURATION: float = 0.95
@@ -27,21 +25,31 @@ func _ready() -> void:
 	add_child(pickup_player)
 
 	tracked_game = get_parent()
-	if tracked_game != null:
-		last_score = int(tracked_game.get("score"))
+	last_score = _read_score()
 	set_physics_process(true)
+
+func _read_score() -> int:
+	if tracked_game == null or not is_instance_valid(tracked_game):
+		return 0
+	var score_value: Variant = tracked_game.get("score")
+	if score_value == null:
+		return 0
+	if score_value is int:
+		return score_value as int
+	if score_value is float:
+		return int(score_value as float)
+	return 0
 
 func _physics_process(_delta: float) -> void:
 	if tracked_game == null or not is_instance_valid(tracked_game):
 		tracked_game = get_parent()
-		if tracked_game != null:
-			last_score = int(tracked_game.get("score"))
+		last_score = _read_score()
 		return
 
-	var current_score: int = int(tracked_game.get("score"))
-	var game_started: bool = bool(tracked_game.get("game_started"))
+	var current_score: int = _read_score()
+	var started_value: Variant = tracked_game.get("game_started")
+	var game_started: bool = started_value is bool and (started_value as bool)
 
-	# A new game resets score to zero. Resync without playing anything.
 	if current_score < last_score:
 		last_score = current_score
 		return
