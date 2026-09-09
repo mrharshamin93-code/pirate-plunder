@@ -15,18 +15,18 @@ const MINE_RADIUS: float = 8.0
 const MINE_SPIKE_RADIUS: float = 11.0
 const MAX_MINES: int = 9
 
-# Slower, more readable mine pursuit than the first Godot pass.
-const MINE_FAR_SPEED: float = 14.0
-const MINE_NEAR_SPEED: float = 62.0
+# Original/default mine pursuit values.
+const MINE_FAR_SPEED: float = 22.0
+const MINE_NEAR_SPEED: float = 100.0
 const MINE_FAR_RANGE: float = 400.0
 const MINE_NEAR_RANGE: float = 40.0
-const MINE_WANDER: float = 0.38
+const MINE_WANDER: float = 0.42
 const MINE_ARM_TIME: float = 0.55
 
 const WHIRLPOOL_CHANCE: float = 0.13
 const WHIRLPOOL_RANGE: float = 170.0
 const WHIRLPOOL_CORE: float = 12.0
-# Pull ramps gently. Close range is dangerous, but objects no longer snap inward.
+# Keep the gentler whirlpool pull from the latest tuning.
 const WHIRLPOOL_PULL: float = 175.0
 const WHIRLPOOL_MINE_PULL: float = 1.15
 const WHIRLPOOL_LIFE: float = 6.5
@@ -132,7 +132,6 @@ func _update_boat(dt: float) -> void:
 			return
 		if dist < WHIRLPOOL_RANGE:
 			var strength: float = 1.0 - dist / WHIRLPOOL_RANGE
-			# Cubic falloff makes the outer pull subtle and the inner pull progressive.
 			strength = strength * strength * strength
 			var pull: float = strength * WHIRLPOOL_PULL * dt
 			var inward: Vector2 = offset / dist
@@ -166,10 +165,8 @@ func _update_mines(dt: float) -> void:
 		var dist: float = maxf(0.01, delta_vec.length())
 		var dir: Vector2 = delta_vec / dist
 		var t: float = clampf(inverse_lerp(MINE_FAR_RANGE, MINE_NEAR_RANGE, dist), 0.0, 1.0)
-		# Smoothstep keeps mine acceleration from feeling abrupt.
-		t = t * t * (3.0 - 2.0 * t)
 		var speed: float = lerpf(MINE_FAR_SPEED, MINE_NEAR_SPEED, t)
-		var phase: float = float(mine.get("phase", 0.0)) + dt * 2.1
+		var phase: float = float(mine.get("phase", 0.0)) + dt * 2.4
 		mine["phase"] = phase
 		var tangent: Vector2 = Vector2(-dir.y, dir.x)
 		var velocity: Vector2 = dir * speed + tangent * sin(phase) * speed * MINE_WANDER
@@ -224,7 +221,7 @@ func _check_collisions() -> void:
 			active_mine_count = maxi(0, active_mine_count - 1)
 			explosion_requested.emit(mine_pos, 1.25)
 			_refresh_hud()
-			_end_game()
+			_end_game(0.42)
 			return
 
 	for i in range(mines.size()):
@@ -299,13 +296,16 @@ func _pick_coin_tier() -> int:
 			return i
 	return 0
 
-func _end_game() -> void:
+func _end_game(panel_delay: float = 0.0) -> void:
 	if game_over:
 		return
 	game_over = true
 	input_vector = Vector2.ZERO
 	sunk_score.text = "Score: %s" % _comma(score)
-	sunk_panel.visible = true
+	if panel_delay > 0.0:
+		await get_tree().create_timer(panel_delay).timeout
+	if game_over:
+		sunk_panel.visible = true
 
 func _refresh_hud() -> void:
 	score_label.text = _comma(score)
