@@ -22,21 +22,28 @@ const COIN_SPRITES = [
 const BOAT_SCALE := 0.54
 const COIN_SIZE := 34.0
 const POPUP_LIFE := 0.78
+const EXPLOSION_LIFE := 0.52
 
 var coin_sheet: Texture2D
 var last_score := 0
 var last_coin_pos := Vector2.ZERO
 var pickup_popups: Array[Dictionary] = []
+var explosions: Array[Dictionary] = []
 
 func _ready() -> void:
 	coin_sheet = load("res://assets/treasure-coins-3d-v10.png")
 	z_index = 5
 	var g = get_parent()
-	# Hide the old procedural Game drawing while keeping its physics/state active.
 	g.self_modulate = Color(1,1,1,0)
+	if g.has_signal("explosion_requested"):
+		g.connect("explosion_requested", Callable(self, "_on_explosion_requested"))
 	last_score = int(g.score)
 	if bool(g.coin.get("active", false)):
 		last_coin_pos = g.coin.get("pos", Vector2.ZERO)
+
+func _on_explosion_requested(position: Vector2, scale: float) -> void:
+	explosions.append({"pos": position, "life": EXPLOSION_LIFE, "scale": scale})
+	queue_redraw()
 
 func _process(delta: float) -> void:
 	var g = get_parent()
@@ -51,6 +58,11 @@ func _process(delta: float) -> void:
 	for i in range(pickup_popups.size()-1,-1,-1):
 		if float(pickup_popups[i].get("life",0.0)) <= 0.0:
 			pickup_popups.remove_at(i)
+	for explosion in explosions:
+		explosion["life"] = float(explosion.get("life",0.0)) - delta
+	for i in range(explosions.size()-1,-1,-1):
+		if float(explosions[i].get("life",0.0)) <= 0.0:
+			explosions.remove_at(i)
 	queue_redraw()
 
 func _draw() -> void:
@@ -66,6 +78,8 @@ func _draw() -> void:
 			_draw_mine(mine)
 	for popup in pickup_popups:
 		_draw_popup(popup)
+	for explosion in explosions:
+		_draw_explosion(explosion)
 	if not g.game_over:
 		_draw_boat(g.boat_pos, g.boat_angle)
 
@@ -74,7 +88,6 @@ func _rot(v: Vector2, a: float, p: Vector2, s: float) -> Vector2:
 
 func _draw_boat(p: Vector2, a: float) -> void:
 	var s := BOAT_SCALE
-	# Same top-down wooden boat language as the current game, at the smaller real-game scale.
 	draw_line(_rot(Vector2(-4,-9),a,p,s),_rot(Vector2(-17,-30),a,p,s),OAR,2.4,true)
 	draw_line(_rot(Vector2(-4,9),a,p,s),_rot(Vector2(-17,30),a,p,s),OAR,2.4,true)
 	draw_circle(_rot(Vector2(-19,-34),a,p,s),3.0,WOOD_LIGHT)
@@ -95,9 +108,9 @@ func _draw_boat(p: Vector2, a: float) -> void:
 
 func _draw_coin(c: Dictionary) -> void:
 	var p: Vector2 = c.get("pos",Vector2.ZERO)
-	var tier := clampi(int(c.get("tier",0)),0,6)
-	var pulse := 1.0 + sin(float(c.get("phase",0.0))) * 0.045
-	var size := COIN_SIZE * pulse
+	var tier: int = clampi(int(c.get("tier",0)),0,6)
+	var pulse: float = 1.0 + sin(float(c.get("phase",0.0))) * 0.045
+	var size: float = COIN_SIZE * pulse
 	if coin_sheet:
 		var sp: Vector3 = COIN_SPRITES[tier]
 		var src := Rect2(sp.x-sp.z*0.5,sp.y-sp.z*0.5,sp.z,sp.z)
@@ -106,14 +119,14 @@ func _draw_coin(c: Dictionary) -> void:
 	_draw_text(str(COIN_POINTS[tier]),p+Vector2(0,-size*0.5-4),15,Color("f6cf43"),1.0)
 
 func _draw_popup(pop: Dictionary) -> void:
-	var t := clampf(float(pop.get("life",0.0))/POPUP_LIFE,0.0,1.0)
+	var t: float = clampf(float(pop.get("life",0.0))/POPUP_LIFE,0.0,1.0)
 	var p: Vector2 = pop.get("pos",Vector2.ZERO)
 	p.y -= 27.0 + (1.0-t)*14.0
 	_draw_text("+%d" % int(pop.get("amount",0)),p,18,Color("ffd34a"),t)
 
 func _draw_text(text: String, center: Vector2, font_size: int, color: Color, alpha: float) -> void:
 	var font := ThemeDB.fallback_font
-	var width := font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
+	var width: float = font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
 	var origin := Vector2(center.x-width*0.5,center.y)
 	var shadow := Color(0.015,0.06,0.075,0.95*alpha)
 	for off in [Vector2(-1,-1),Vector2(1,-1),Vector2(-1,1),Vector2(1,1),Vector2(0,2)]:
@@ -124,9 +137,9 @@ func _draw_text(text: String, center: Vector2, font_size: int, color: Color, alp
 
 func _draw_mine(m: Dictionary) -> void:
 	var p: Vector2 = m.get("pos",Vector2.ZERO)
-	var body := 8.6
+	var body: float = 8.6
 	for i in range(10):
-		var a := float(i)/10.0*TAU
+		var a: float = float(i)/10.0*TAU
 		var tip := p+Vector2(cos(a),sin(a))*15.5
 		var b1 := p+Vector2(cos(a-0.22),sin(a-0.22))*body
 		var b2 := p+Vector2(cos(a+0.22),sin(a+0.22))*body
@@ -140,10 +153,36 @@ func _draw_mine(m: Dictionary) -> void:
 	draw_circle(p+Vector2(0,-2.8),2.1,MINE_LAMP)
 	draw_arc(p+Vector2(0,-2.8),2.1,0,TAU,12,INK,1.0,true)
 
+func _draw_explosion(explosion: Dictionary) -> void:
+	var p: Vector2 = explosion.get("pos", Vector2.ZERO)
+	var life: float = float(explosion.get("life", 0.0))
+	var scale_value: float = float(explosion.get("scale", 1.0))
+	var progress: float = 1.0 - clampf(life / EXPLOSION_LIFE, 0.0, 1.0)
+	var fade: float = 1.0 - progress
+	var flash_radius: float = lerpf(5.0, 31.0, progress) * scale_value
+	var ring_radius: float = lerpf(8.0, 42.0, progress) * scale_value
+	if progress < 0.32:
+		var flash_alpha: float = (1.0 - progress / 0.32) * 0.95
+		draw_circle(p, flash_radius, Color(1.0, 0.94, 0.62, flash_alpha))
+	draw_circle(p, flash_radius * 0.68, Color(1.0, 0.34, 0.08, 0.72 * fade))
+	draw_arc(p, ring_radius, 0.0, TAU, 32, Color(1.0, 0.72, 0.18, 0.88 * fade), 3.0 * scale_value, true)
+	for i in range(12):
+		var a: float = float(i) / 12.0 * TAU + 0.17
+		var inner: float = lerpf(5.0, 13.0, progress) * scale_value
+		var outer: float = lerpf(14.0, 50.0, progress) * scale_value
+		var p1 := p + Vector2(cos(a), sin(a)) * inner
+		var p2 := p + Vector2(cos(a), sin(a)) * outer
+		draw_line(p1, p2, Color(1.0, 0.48, 0.10, 0.82 * fade), 2.0 * scale_value, true)
+	for i in range(8):
+		var a: float = float(i) / 8.0 * TAU + 0.39
+		var debris_dist: float = lerpf(9.0, 38.0, progress) * scale_value
+		var debris_pos := p + Vector2(cos(a), sin(a)) * debris_dist
+		draw_circle(debris_pos, 2.2 * scale_value * fade + 0.6, Color(0.12, 0.10, 0.08, 0.85 * fade))
+
 func _draw_wake(w: Dictionary, life_max: float) -> void:
 	var p: Vector2 = w.get("pos",Vector2.ZERO)
-	var a := float(w.get("angle",0.0))
-	var alpha := clampf(float(w.get("life",0.0))/life_max,0.0,1.0)
+	var a: float = float(w.get("angle",0.0))
+	var alpha: float = clampf(float(w.get("life",0.0))/life_max,0.0,1.0)
 	var f := Vector2(cos(a),sin(a))
 	var side := Vector2(-f.y,f.x)
 	draw_line(p-side*5,p-f*18-side*9,Color(FOAM,0.42*alpha),1.7,true)
@@ -152,10 +191,10 @@ func _draw_wake(w: Dictionary, life_max: float) -> void:
 
 func _draw_whirlpool(w: Dictionary) -> void:
 	var p: Vector2 = w.get("pos",Vector2.ZERO)
-	var spin := float(w.get("spin",0.0))
+	var spin: float = float(w.get("spin",0.0))
 	for i in range(7):
-		var r := 16.0+float(i)*7.0
-		var alpha := 0.42-float(i)*0.045
+		var r: float = 16.0+float(i)*7.0
+		var alpha: float = 0.42-float(i)*0.045
 		draw_arc(p,r,spin*0.15+float(i)*0.58,spin*0.15+float(i)*0.58+5.0,34,Color(0.70,0.91,0.94,alpha),2.5,true)
 	draw_circle(p,10.0,Color(0.0,0.02,0.03,0.82))
 	draw_circle(p,4.2,Color.BLACK)
