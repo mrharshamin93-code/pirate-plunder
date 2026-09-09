@@ -22,12 +22,15 @@ const COIN_SPRITES = [
 const BOAT_SCALE := 0.54
 const COIN_SIZE := 34.0
 const POPUP_LIFE := 0.78
+const PICKUP_BURST_LIFE := 0.58
 const EXPLOSION_LIFE := 0.52
 
 var coin_sheet: Texture2D
 var last_score := 0
 var last_coin_pos := Vector2.ZERO
+var last_coin_tier: int = 0
 var pickup_popups: Array[Dictionary] = []
+var pickup_bursts: Array[Dictionary] = []
 var explosions: Array[Dictionary] = []
 
 func _ready() -> void:
@@ -40,6 +43,7 @@ func _ready() -> void:
 	last_score = int(g.score)
 	if bool(g.coin.get("active", false)):
 		last_coin_pos = g.coin.get("pos", Vector2.ZERO)
+		last_coin_tier = clampi(int(g.coin.get("tier", 0)), 0, 6)
 
 func _on_explosion_requested(position: Vector2, scale: float) -> void:
 	explosions.append({"pos": position, "life": EXPLOSION_LIFE, "scale": scale})
@@ -49,15 +53,23 @@ func _process(delta: float) -> void:
 	var g = get_parent()
 	var current_score := int(g.score)
 	if current_score > last_score:
-		pickup_popups.append({"pos":last_coin_pos,"amount":current_score-last_score,"life":POPUP_LIFE})
+		var amount: int = current_score - last_score
+		pickup_popups.append({"pos":last_coin_pos,"amount":amount,"life":POPUP_LIFE})
+		pickup_bursts.append({"pos":last_coin_pos,"amount":amount,"tier":last_coin_tier,"life":PICKUP_BURST_LIFE})
 	last_score = current_score
 	if bool(g.coin.get("active", false)):
 		last_coin_pos = g.coin.get("pos", last_coin_pos)
+		last_coin_tier = clampi(int(g.coin.get("tier", last_coin_tier)), 0, 6)
 	for popup in pickup_popups:
 		popup["life"] = float(popup.get("life",0.0)) - delta
 	for i in range(pickup_popups.size()-1,-1,-1):
 		if float(pickup_popups[i].get("life",0.0)) <= 0.0:
 			pickup_popups.remove_at(i)
+	for burst in pickup_bursts:
+		burst["life"] = float(burst.get("life",0.0)) - delta
+	for i in range(pickup_bursts.size()-1,-1,-1):
+		if float(pickup_bursts[i].get("life",0.0)) <= 0.0:
+			pickup_bursts.remove_at(i)
 	for explosion in explosions:
 		explosion["life"] = float(explosion.get("life",0.0)) - delta
 	for i in range(explosions.size()-1,-1,-1):
@@ -76,6 +88,8 @@ func _draw() -> void:
 	for mine in g.mines:
 		if bool(mine.get("active", false)):
 			_draw_mine(mine)
+	for burst in pickup_bursts:
+		_draw_pickup_burst(burst)
 	for popup in pickup_popups:
 		_draw_popup(popup)
 	for explosion in explosions:
@@ -109,8 +123,29 @@ func _draw_boat(p: Vector2, a: float) -> void:
 func _draw_coin(c: Dictionary) -> void:
 	var p: Vector2 = c.get("pos",Vector2.ZERO)
 	var tier: int = clampi(int(c.get("tier",0)),0,6)
-	var pulse: float = 1.0 + sin(float(c.get("phase",0.0))) * 0.045
+	var phase: float = float(c.get("phase",0.0))
+	var pulse: float = 1.0 + sin(phase) * 0.045
 	var size: float = COIN_SIZE * pulse
+
+	# Soft gold aura. Higher-value coins glow more strongly without obscuring the sprite.
+	var value_strength: float = float(tier) / 6.0
+	var glow_pulse: float = 0.86 + sin(phase * 1.35) * 0.14
+	var glow_radius: float = size * (0.58 + value_strength * 0.12) * glow_pulse
+	draw_circle(p, glow_radius * 1.55, Color(1.0, 0.72, 0.08, 0.045 + value_strength * 0.045))
+	draw_circle(p, glow_radius * 1.15, Color(1.0, 0.82, 0.18, 0.075 + value_strength * 0.065))
+
+	# Orbiting sparkles become richer on 250/500/1000 coins.
+	var sparkle_count: int = 2 + tier / 2
+	for i in range(sparkle_count):
+		var angle: float = phase * (0.48 + float(i % 2) * 0.13) + float(i) * TAU / float(sparkle_count)
+		var radius: float = size * (0.64 + 0.10 * sin(phase * 0.75 + float(i)))
+		var sp_pos: Vector2 = p + Vector2(cos(angle), sin(angle)) * radius
+		var shimmer: float = 0.45 + 0.55 * abs(sin(phase * 1.8 + float(i) * 0.9))
+		var spark_alpha: float = (0.34 + value_strength * 0.36) * shimmer
+		var spark_size: float = 1.2 + value_strength * 1.15
+		draw_line(sp_pos + Vector2(-spark_size,0), sp_pos + Vector2(spark_size,0), Color(1.0,0.95,0.58,spark_alpha), 1.0, true)
+		draw_line(sp_pos + Vector2(0,-spark_size), sp_pos + Vector2(0,spark_size), Color(1.0,0.95,0.58,spark_alpha), 1.0, true)
+
 	if coin_sheet:
 		var sp: Vector3 = COIN_SPRITES[tier]
 		var src := Rect2(sp.x-sp.z*0.5,sp.y-sp.z*0.5,sp.z,sp.z)
@@ -118,11 +153,45 @@ func _draw_coin(c: Dictionary) -> void:
 		draw_texture_rect_region(coin_sheet,dst,src)
 	_draw_text(str(COIN_POINTS[tier]),p+Vector2(0,-size*0.5-4),15,Color("f6cf43"),1.0)
 
+func _draw_pickup_burst(burst: Dictionary) -> void:
+	var life: float = float(burst.get("life", 0.0))
+	var progress: float = 1.0 - clampf(life / PICKUP_BURST_LIFE, 0.0, 1.0)
+	var fade: float = 1.0 - progress
+	var p: Vector2 = burst.get("pos", Vector2.ZERO)
+	var tier: int = clampi(int(burst.get("tier", 0)), 0, 6)
+	var value_strength: float = float(tier) / 6.0
+
+	# Quick collection flash and expanding gold ring.
+	if progress < 0.25:
+		var flash_alpha: float = (1.0 - progress / 0.25) * (0.52 + value_strength * 0.30)
+		draw_circle(p, lerpf(9.0, 25.0, progress / 0.25), Color(1.0,0.93,0.48,flash_alpha))
+	var ring_radius: float = lerpf(10.0, 34.0 + value_strength * 10.0, progress)
+	draw_arc(p, ring_radius, 0.0, TAU, 28, Color(1.0,0.78,0.14,0.72*fade), 2.0 + value_strength * 1.2, true)
+
+	# Deterministic radial sparkle burst so it looks consistent and costs little.
+	var particle_count: int = 7 + tier
+	for i in range(particle_count):
+		var a: float = float(i) / float(particle_count) * TAU + float(tier) * 0.17
+		var dist: float = lerpf(5.0, 30.0 + value_strength * 16.0, progress)
+		var particle_pos: Vector2 = p + Vector2(cos(a), sin(a)) * dist
+		var radius: float = (1.5 + float(i % 3) * 0.45 + value_strength * 0.65) * fade + 0.35
+		draw_circle(particle_pos, radius, Color(1.0,0.83,0.20,0.88*fade))
+		if tier >= 4 and i % 2 == 0:
+			var ray_len: float = 2.2 + value_strength * 2.0
+			draw_line(particle_pos-Vector2(ray_len,0), particle_pos+Vector2(ray_len,0), Color(1.0,0.97,0.65,0.72*fade), 1.0, true)
+			draw_line(particle_pos-Vector2(0,ray_len), particle_pos+Vector2(0,ray_len), Color(1.0,0.97,0.65,0.72*fade), 1.0, true)
+
 func _draw_popup(pop: Dictionary) -> void:
 	var t: float = clampf(float(pop.get("life",0.0))/POPUP_LIFE,0.0,1.0)
 	var p: Vector2 = pop.get("pos",Vector2.ZERO)
 	p.y -= 27.0 + (1.0-t)*14.0
-	_draw_text("+%d" % int(pop.get("amount",0)),p,18,Color("ffd34a"),t)
+	var amount: int = int(pop.get("amount",0))
+	var popup_size: int = 18
+	if amount >= 500:
+		popup_size = 21
+	if amount >= 1000:
+		popup_size = 24
+	_draw_text("+%d" % amount,p,popup_size,Color("ffd34a"),t)
 
 func _draw_text(text: String, center: Vector2, font_size: int, color: Color, alpha: float) -> void:
 	var font := ThemeDB.fallback_font
