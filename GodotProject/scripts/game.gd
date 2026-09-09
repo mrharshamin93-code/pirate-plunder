@@ -190,6 +190,8 @@ func _update_mines(dt: float) -> void:
 		if not bool(mine.get("active", false)):
 			continue
 		mine["arm"] = float(mine.get("arm", 0.0)) - dt
+		if float(mine.get("arm", 0.0)) > 0.0:
+			continue
 		var mine_pos: Vector2 = mine.get("pos", Vector2.ZERO) as Vector2
 		var delta_vec: Vector2 = boat_pos - mine_pos
 		var dist: float = maxf(0.01, delta_vec.length())
