@@ -78,8 +78,8 @@ func _build_toggle() -> void:
 		return
 	toggle_button = MUSIC_TOGGLE_BUTTON.new() as Button
 	toggle_button.name = "MusicToggle"
-	toggle_button.position = Vector2(174.0, 24.0)
-	toggle_button.size = Vector2(42.0, 32.0)
+	toggle_button.position = Vector2(178.0, 23.0)
+	toggle_button.size = Vector2(34.0, 34.0)
 	toggle_button.text = ""
 	toggle_button.pressed.connect(_toggle_music)
 	canvas.add_child(toggle_button)
