@@ -3,6 +3,9 @@ config/name="Pirate's Plunder"
 run/main_scene="res://scenes/game.tscn"
 config/features=PackedStringArray("4.3")
 
+[autoload]
+CoinPickupAudio="*res://scripts/coin_pickup_audio.gd"
+
 [display]
 window/size/viewport_width=390
 window/size/viewport_height=844
