@@ -158,6 +158,11 @@ func _update_coin(dt: float) -> void:
 	coin["phase"] = float(coin.get("phase", 0.0)) + dt * 4.0
 
 func _update_mines(dt: float) -> void:
+	var field_size: Vector2 = get_viewport_rect().size
+	var min_x: float = FIELD_INSET_SIDE + MINE_SPIKE_RADIUS
+	var max_x: float = field_size.x - FIELD_INSET_SIDE - MINE_SPIKE_RADIUS
+	var min_y: float = FIELD_INSET_TOP + MINE_SPIKE_RADIUS
+	var max_y: float = field_size.y - FIELD_INSET_BOTTOM - MINE_SPIKE_RADIUS
 	for mine in mines:
 		if not bool(mine.get("active", false)):
 			continue
@@ -187,7 +192,16 @@ func _update_mines(dt: float) -> void:
 				var pull: float = strength * WHIRLPOOL_PULL * WHIRLPOOL_MINE_PULL
 				velocity += woff.normalized() * pull
 
-		mine["pos"] = mine_pos + velocity * dt
+		var next_pos: Vector2 = mine_pos + velocity * dt
+		var hit_x: bool = next_pos.x < min_x or next_pos.x > max_x
+		var hit_y: bool = next_pos.y < min_y or next_pos.y > max_y
+		next_pos.x = clampf(next_pos.x, min_x, max_x)
+		next_pos.y = clampf(next_pos.y, min_y, max_y)
+		if hit_x:
+			mine["phase"] = float(mine.get("phase", 0.0)) + PI * 0.45
+		if hit_y:
+			mine["phase"] = float(mine.get("phase", 0.0)) - PI * 0.45
+		mine["pos"] = next_pos
 
 func _update_whirlpool(dt: float) -> void:
 	if not bool(whirlpool.get("active", false)):
