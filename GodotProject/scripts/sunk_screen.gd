@@ -96,9 +96,9 @@ func _style_existing_score() -> void:
 func _style_play_again() -> void:
 	var b: Button = $PlayAgain
 	b.offset_left = 62.0
-	b.offset_top = 730.0
+	b.offset_top = 758.0
 	b.offset_right = 328.0
-	b.offset_bottom = 790.0
+	b.offset_bottom = 813.0
 	b.text = "⚔  PLAY AGAIN"
 	b.add_theme_font_size_override("font_size", 25)
 	b.add_theme_color_override("font_color", Color("fff2b2"))
@@ -155,10 +155,12 @@ func _build_ui() -> void:
 
 	share_button = Button.new()
 	share_button.name = "Share"
-	share_button.text = "⇧\nSHARE"
-	share_button.add_theme_font_size_override("font_size", 13)
+	share_button.text = "SHARE  ↗"
+	share_button.add_theme_font_size_override("font_size", 12)
 	share_button.add_theme_color_override("font_color", Color("fff0b5"))
-	share_button.add_theme_stylebox_override("normal", _button_box(WOOD, GOLD, 3, 8))
+	share_button.add_theme_stylebox_override("normal", _button_box(Color("3a2115"), GOLD_DARK, 2, 7))
+	share_button.add_theme_stylebox_override("hover", _button_box(Color("4a2b19"), GOLD, 2, 7))
+	share_button.add_theme_stylebox_override("pressed", _button_box(Color("24150e"), GOLD_DARK, 2, 7))
 	share_button.pressed.connect(_share_score)
 	add_child(share_button)
 
@@ -178,7 +180,7 @@ func _build_ui() -> void:
 	footer_label = Label.new()
 	footer_label.name = "Footer"
 	footer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	footer_label.add_theme_font_size_override("font_size", 13)
+	footer_label.add_theme_font_size_override("font_size", 12)
 	footer_label.add_theme_color_override("font_color", Color("fff1cc"))
 	add_child(footer_label)
 	_layout_ui()
@@ -204,19 +206,19 @@ func _layout_ui() -> void:
 	if submit_button:
 		submit_button.position = Vector2(266.0*sx, 302.0)
 		submit_button.size = Vector2(82.0*sx, 48.0)
-	if share_button:
-		share_button.position = Vector2(w-72.0*sx, 25.0)
-		share_button.size = Vector2(58.0*sx, 62.0)
 	var board_title: Control = get_node_or_null("BoardTitle") as Control
 	if board_title:
 		board_title.position = Vector2(62.0*sx, 376.0)
 		board_title.size = Vector2(w-124.0*sx, 40.0)
 	if leaderboard_box:
 		leaderboard_box.position = Vector2(52.0*sx, 420.0)
-		leaderboard_box.size = Vector2(w-104.0*sx, 285.0)
+		leaderboard_box.size = Vector2(w-104.0*sx, 274.0)
 	if footer_label:
-		footer_label.position = Vector2(40.0*sx, 798.0)
-		footer_label.size = Vector2(w-80.0*sx, 24.0)
+		footer_label.position = Vector2(42.0*sx, 698.0)
+		footer_label.size = Vector2(w-84.0*sx, 22.0)
+	if share_button:
+		share_button.position = Vector2((w-94.0*sx)*0.5, 724.0)
+		share_button.size = Vector2(94.0*sx, 28.0)
 
 func _refresh_from_game() -> void:
 	var game: Node = get_parent().get_parent()
