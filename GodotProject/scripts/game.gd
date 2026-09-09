@@ -24,7 +24,9 @@ const MINE_WANDER: float = 0.42
 const MINE_ARM_TIME: float = 0.55
 
 const WHIRLPOOL_CHANCE: float = 0.13
-const WHIRLPOOL_RANGE: float = 170.0
+# Boat feels the current well beyond the visible whirlpool art.
+const WHIRLPOOL_RANGE: float = 240.0
+const WHIRLPOOL_MINE_RANGE: float = 170.0
 const WHIRLPOOL_CORE: float = 12.0
 # Stronger boat pull; mines remain much less affected.
 const WHIRLPOOL_PULL: float = 340.0
@@ -132,7 +134,7 @@ func _update_boat(dt: float) -> void:
 			return
 		if dist < WHIRLPOOL_RANGE:
 			var strength: float = 1.0 - dist / WHIRLPOOL_RANGE
-			strength = strength * strength * strength
+			strength = strength * strength
 			var pull: float = strength * WHIRLPOOL_PULL * dt
 			var inward: Vector2 = offset / dist
 			var tangent: Vector2 = Vector2(-inward.y, inward.x)
@@ -179,8 +181,8 @@ func _update_mines(dt: float) -> void:
 				mine["active"] = false
 				active_mine_count = maxi(0, active_mine_count - 1)
 				continue
-			if wd < WHIRLPOOL_RANGE:
-				var strength: float = 1.0 - wd / WHIRLPOOL_RANGE
+			if wd < WHIRLPOOL_MINE_RANGE:
+				var strength: float = 1.0 - wd / WHIRLPOOL_MINE_RANGE
 				strength = strength * strength * strength
 				var pull: float = strength * WHIRLPOOL_PULL * WHIRLPOOL_MINE_PULL
 				velocity += woff.normalized() * pull
