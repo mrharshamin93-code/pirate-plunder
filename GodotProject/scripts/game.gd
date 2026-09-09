@@ -15,7 +15,6 @@ const MINE_RADIUS: float = 8.0
 const MINE_SPIKE_RADIUS: float = 15.5
 const MAX_MINES: int = 9
 
-# Mine pursuit: gentle at long range, stronger near the boat without snapping in too aggressively.
 const MINE_FAR_SPEED: float = 22.0
 const MINE_NEAR_SPEED: float = 120.0
 const MINE_FAR_RANGE: float = 400.0
@@ -24,12 +23,10 @@ const MINE_WANDER: float = 0.42
 const MINE_ARM_TIME: float = 0.55
 
 const WHIRLPOOL_CHANCE: float = 0.13
-# Boat feels the current well beyond the visible whirlpool art.
 const WHIRLPOOL_RANGE: float = 240.0
 const WHIRLPOOL_MINE_RANGE: float = 190.0
 const WHIRLPOOL_CORE: float = 12.0
 const WHIRLPOOL_PULL: float = 340.0
-# Whirlpool still wins over boat attraction, but close-range mine speed is capped for a slower sink-in.
 const WHIRLPOOL_MINE_PULL: float = 0.82
 const WHIRLPOOL_MINE_MAX_SPEED: float = 150.0
 const WHIRLPOOL_LIFE: float = 6.5
@@ -66,12 +63,33 @@ var wakes: Array[Dictionary] = []
 var whirlpool: Dictionary = {}
 var wake_timer: float = 0.0
 var game_over: bool = false
+var game_started: bool = false
 
 func _ready() -> void:
 	randomize()
 	joystick.connect("changed", Callable(self, "_on_joystick_changed"))
-	play_again.pressed.connect(_start_game)
-	_start_game()
+	if not play_again.pressed.is_connected(_start_game):
+		play_again.pressed.connect(_start_game)
+	_prepare_idle_state()
+
+func _prepare_idle_state() -> void:
+	var viewport_size: Vector2 = get_viewport_rect().size
+	boat_pos = viewport_size * 0.5
+	boat_vel = Vector2.ZERO
+	boat_angle = -PI / 2.0
+	input_vector = Vector2.ZERO
+	score = 0
+	coins_collected = 0
+	active_mine_count = 0
+	mines.clear()
+	wakes.clear()
+	coin = {"active": false, "pos": Vector2.ZERO, "tier": 0, "phase": 0.0}
+	whirlpool = {"active": false, "pos": Vector2.ZERO, "life": 0.0, "spin": 0.0}
+	wake_timer = 0.0
+	game_over = false
+	game_started = false
+	sunk_panel.visible = false
+	_refresh_hud()
 
 func _start_game() -> void:
 	var viewport_size: Vector2 = get_viewport_rect().size
@@ -88,14 +106,18 @@ func _start_game() -> void:
 	whirlpool = {"active": false, "pos": Vector2.ZERO, "life": 0.0, "spin": 0.0}
 	wake_timer = 0.0
 	game_over = false
+	game_started = true
 	sunk_panel.visible = false
 	_place_coin()
 	_refresh_hud()
 
 func _on_joystick_changed(value: Vector2) -> void:
-	input_vector = value
+	if game_started and not game_over:
+		input_vector = value
 
 func _physics_process(delta: float) -> void:
+	if not game_started:
+		return
 	var dt: float = minf(delta, 0.05)
 	if game_over:
 		_update_wakes(dt)
@@ -188,13 +210,11 @@ func _update_mines(dt: float) -> void:
 			if wd < WHIRLPOOL_CORE:
 				mine["active"] = false
 				active_mine_count = maxi(0, active_mine_count - 1)
-				# Mine detonates at the exact center once it is swallowed by the whirlpool.
 				explosion_requested.emit(wpos, 1.0)
 				_refresh_hud()
 				continue
 			if wd < WHIRLPOOL_MINE_RANGE:
 				var wp_proximity: float = clampf(1.0 - wd / WHIRLPOOL_MINE_RANGE, 0.0, 1.0)
-				# Keep the whirlpool dominant, but flatten the close-range acceleration.
 				var wp_strength: float = 0.18 * wp_proximity + 0.95 * wp_proximity * wp_proximity
 				var desired_pull: float = maxf(speed * 1.15, wp_strength * WHIRLPOOL_PULL * WHIRLPOOL_MINE_PULL)
 				var wp_pull: float = minf(desired_pull, WHIRLPOOL_MINE_MAX_SPEED)
