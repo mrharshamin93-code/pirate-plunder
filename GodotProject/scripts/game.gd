@@ -20,7 +20,7 @@ const MINE_NEAR_SPEED: float = 120.0
 const MINE_FAR_RANGE: float = 400.0
 const MINE_NEAR_RANGE: float = 40.0
 const MINE_WANDER: float = 0.42
-const MINE_ARM_TIME: float = 0.55
+const MINE_ARM_TIME: float = 1.0
 
 const WHIRLPOOL_CHANCE: float = 0.13
 const WHIRLPOOL_CORE: float = 12.0
