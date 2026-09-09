@@ -150,7 +150,6 @@ func _draw_pickup_burst(burst: Dictionary) -> void:
 	var amount: int = int(burst.get("amount", 0))
 	var value_strength: float = float(tier) / 6.0
 
-	# Every coin collection effect uses only warm gold/yellow/orange tones.
 	if progress < 0.24:
 		var flash_t: float = progress / 0.24
 		var flash_alpha: float = (1.0 - flash_t) * (0.72 + value_strength * 0.22)
@@ -189,21 +188,25 @@ func _draw_pickup_burst(burst: Dictionary) -> void:
 			var shard_start: Vector2 = p + Vector2(cos(a),sin(a)) * (d - 8.0)
 			draw_line(shard_start, star_pos, Color(1.0,0.58,0.02,0.70*fade), 1.7, true)
 
-	# 1000 keeps the premium scale, but its stars and jackpot beam are gold-only too.
+	# 1000-point coin gets a unique multicolor jackpot celebration.
 	if amount >= 1000:
-		var premium_gold: Array[Color] = [
-			Color(1.0,0.62,0.02,1.0), Color(1.0,0.78,0.06,1.0),
-			Color(1.0,0.90,0.30,1.0), Color(1.0,0.97,0.66,1.0)
+		var premium_colors: Array[Color] = [
+			Color(1.0,0.28,0.68,1.0), Color(0.26,0.76,1.0,1.0),
+			Color(0.66,0.38,1.0,1.0), Color(0.18,0.92,0.72,1.0),
+			Color(1.0,0.48,0.14,1.0), Color(1.0,0.90,0.24,1.0)
 		]
-		for i in range(12):
-			var a: float = float(i) / 12.0 * TAU + 0.16
-			var d: float = lerpf(10.0, 62.0 + float(i % 3) * 7.0, progress)
+		for i in range(16):
+			var a: float = float(i) / 16.0 * TAU + 0.16
+			var d: float = lerpf(10.0, 66.0 + float(i % 4) * 6.0, progress)
 			var premium_pos: Vector2 = p + Vector2(cos(a), sin(a)) * d
-			var premium_color: Color = premium_gold[i % premium_gold.size()]
-			_draw_star(premium_pos, 4.2 * fade + 1.0, premium_color, 0.94*fade)
-		var beam_alpha: float = maxf(0.0, 1.0 - progress * 1.35) * 0.38
-		draw_rect(Rect2(p + Vector2(-7.0,-82.0), Vector2(14.0,164.0)), Color(1.0,0.66,0.03,beam_alpha))
-		draw_rect(Rect2(p + Vector2(-3.0,-96.0), Vector2(6.0,192.0)), Color(1.0,0.94,0.54,beam_alpha*0.90))
+			var premium_color: Color = premium_colors[i % premium_colors.size()]
+			_draw_star(premium_pos, 4.4 * fade + 1.0, premium_color, 0.96*fade)
+			if i % 2 == 0:
+				draw_circle(premium_pos, 2.2 * fade + 0.4, Color(premium_color, 0.72*fade))
+		var beam_alpha: float = maxf(0.0, 1.0 - progress * 1.35) * 0.36
+		draw_rect(Rect2(p + Vector2(-10.0,-86.0), Vector2(20.0,172.0)), Color(1.0,0.30,0.72,beam_alpha*0.42))
+		draw_rect(Rect2(p + Vector2(-6.0,-92.0), Vector2(12.0,184.0)), Color(0.34,0.72,1.0,beam_alpha*0.36))
+		draw_rect(Rect2(p + Vector2(-3.0,-98.0), Vector2(6.0,196.0)), Color(1.0,0.94,0.54,beam_alpha*0.92))
 
 func _draw_popup(pop: Dictionary) -> void:
 	var t: float = clampf(float(pop.get("life",0.0))/POPUP_LIFE,0.0,1.0)
