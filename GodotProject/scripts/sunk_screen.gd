@@ -96,9 +96,9 @@ func _style_existing_score() -> void:
 func _style_play_again() -> void:
 	var b: Button = $PlayAgain
 	b.offset_left = 62.0
-	b.offset_top = 758.0
+	b.offset_top = 738.0
 	b.offset_right = 328.0
-	b.offset_bottom = 813.0
+	b.offset_bottom = 792.0
 	b.text = "⚔  PLAY AGAIN"
 	b.add_theme_font_size_override("font_size", 25)
 	b.add_theme_color_override("font_color", Color("fff2b2"))
@@ -181,7 +181,7 @@ func _build_ui() -> void:
 	footer_label.name = "Footer"
 	footer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	footer_label.add_theme_font_size_override("font_size", 12)
-	footer_label.add_theme_color_override("font_color", Color("fff1cc"))
+	footer_label.add_theme_color_override("font_color", Color("000000"))
 	add_child(footer_label)
 	_layout_ui()
 
@@ -212,12 +212,12 @@ func _layout_ui() -> void:
 		board_title.size = Vector2(w-124.0*sx, 40.0)
 	if leaderboard_box:
 		leaderboard_box.position = Vector2(52.0*sx, 420.0)
-		leaderboard_box.size = Vector2(w-104.0*sx, 274.0)
+		leaderboard_box.size = Vector2(w-104.0*sx, 270.0)
 	if footer_label:
-		footer_label.position = Vector2(42.0*sx, 698.0)
+		footer_label.position = Vector2(42.0*sx, 708.0)
 		footer_label.size = Vector2(w-84.0*sx, 22.0)
 	if share_button:
-		share_button.position = Vector2((w-94.0*sx)*0.5, 724.0)
+		share_button.position = Vector2((w-94.0*sx)*0.5, 800.0)
 		share_button.size = Vector2(94.0*sx, 28.0)
 
 func _refresh_from_game() -> void:
@@ -365,10 +365,10 @@ func _draw() -> void:
 	draw_style_box(_button_box(WOOD, GOLD_DARK, 4, 15), hero_rect)
 	for yy in [66.0, 95.0, 124.0]:
 		draw_line(Vector2(38.0,yy), Vector2(w-38.0,yy), Color(WOOD_LIGHT,0.45), 2.0)
-	var paper: Rect2 = Rect2(30.0, 164.0, w-60.0, 555.0)
+	var paper: Rect2 = Rect2(30.0, 164.0, w-60.0, 536.0)
 	draw_style_box(_button_box(PARCHMENT, PARCHMENT_DARK, 3, 18), paper)
 	var score_plaque: Rect2 = Rect2(70.0, 228.0, w-140.0, 62.0)
 	draw_style_box(_button_box(WOOD, GOLD_DARK, 2, 7), score_plaque)
-	for p in [Vector2(45,182),Vector2(w-45,182),Vector2(50,704),Vector2(w-50,704)]:
+	for p in [Vector2(45,182),Vector2(w-45,182),Vector2(50,686),Vector2(w-50,686)]:
 		draw_circle(p, 6.0, GOLD)
 		draw_arc(p, 6.0, 0.0, TAU, 18, GOLD_DARK, 1.5, true)
