@@ -12,7 +12,7 @@ const MAX_SPEED: float = 190.0
 const COIN_RADIUS: float = 13.0
 const COIN_MIN_DISTANCE: float = 90.0
 const MINE_RADIUS: float = 8.0
-const MINE_SPIKE_RADIUS: float = 11.0
+const MINE_SPIKE_RADIUS: float = 15.5
 const MAX_MINES: int = 9
 
 # Mine pursuit: gentle at long range, stronger near the boat without snapping in too aggressively.
@@ -249,14 +249,15 @@ func _check_collisions() -> void:
 
 	for i in range(mines.size()):
 		var a: Dictionary = mines[i]
-		if not bool(a.get("active", false)) or float(a.get("arm", 0.0)) > 0.0:
+		if not bool(a.get("active", false)):
 			continue
 		for j in range(i + 1, mines.size()):
 			var b: Dictionary = mines[j]
-			if not bool(b.get("active", false)) or float(b.get("arm", 0.0)) > 0.0:
+			if not bool(b.get("active", false)):
 				continue
 			var apos: Vector2 = a.get("pos", Vector2.ZERO) as Vector2
 			var bpos: Vector2 = b.get("pos", Vector2.ZERO) as Vector2
+			# Visual spikes reach 15.5 px from each center, so explode on the first visible overlap.
 			if apos.distance_to(bpos) < MINE_SPIKE_RADIUS * 2.0:
 				a["active"] = false
 				b["active"] = false
