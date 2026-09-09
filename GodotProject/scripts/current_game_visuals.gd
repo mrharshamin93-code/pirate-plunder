@@ -189,12 +189,56 @@ func _draw_wake(w: Dictionary, life_max: float) -> void:
 	draw_line(p+side*5,p-f*18+side*9,Color(FOAM,0.42*alpha),1.7,true)
 	draw_line(p-f*8,p-f*24,Color(FOAM,0.20*alpha),1.2,true)
 
+func _ellipse_points(center: Vector2, rx: float, ry: float, rotation: float, steps: int) -> PackedVector2Array:
+	var pts: PackedVector2Array = PackedVector2Array()
+	for i in range(steps + 1):
+		var a: float = float(i) / float(steps) * TAU
+		var local := Vector2(cos(a) * rx, sin(a) * ry).rotated(rotation)
+		pts.append(center + local)
+	return pts
+
 func _draw_whirlpool(w: Dictionary) -> void:
-	var p: Vector2 = w.get("pos",Vector2.ZERO)
-	var spin: float = float(w.get("spin",0.0))
-	for i in range(7):
-		var r: float = 16.0+float(i)*7.0
-		var alpha: float = 0.42-float(i)*0.045
-		draw_arc(p,r,spin*0.15+float(i)*0.58,spin*0.15+float(i)*0.58+5.0,34,Color(0.70,0.91,0.94,alpha),2.5,true)
-	draw_circle(p,10.0,Color(0.0,0.02,0.03,0.82))
-	draw_circle(p,4.2,Color.BLACK)
+	var p: Vector2 = w.get("pos", Vector2.ZERO)
+	var spin: float = float(w.get("spin", 0.0))
+	var pulse: float = 1.0 + sin(spin * 1.7) * 0.035
+
+	# Layered, flattened funnel gives the water actual depth instead of simple circles.
+	draw_colored_polygon(_ellipse_points(p + Vector2(0, 2), 48.0 * pulse, 27.0 * pulse, 0.0, 48), Color(0.03, 0.25, 0.31, 0.30))
+	draw_colored_polygon(_ellipse_points(p + Vector2(0, 3), 34.0 * pulse, 18.0 * pulse, 0.0, 44), Color(0.02, 0.15, 0.20, 0.48))
+	draw_colored_polygon(_ellipse_points(p + Vector2(0, 4), 20.0 * pulse, 10.5 * pulse, 0.0, 40), Color(0.01, 0.07, 0.10, 0.72))
+	draw_colored_polygon(_ellipse_points(p + Vector2(0, 5), 9.0, 4.8, 0.0, 32), Color(0.0, 0.015, 0.025, 0.96))
+
+	# Several tapered spiral arms simulate rotating foam being pulled into the funnel.
+	for arm in range(5):
+		var pts: PackedVector2Array = PackedVector2Array()
+		for step in range(34):
+			var t: float = float(step) / 33.0
+			var radius: float = lerpf(50.0, 7.0, t)
+			var angle: float = spin * 0.85 + float(arm) * TAU / 5.0 + t * 5.4
+			var point := p + Vector2(cos(angle) * radius, sin(angle) * radius * 0.56)
+			pts.append(point)
+		var arm_alpha: float = 0.24 + float(arm % 2) * 0.08
+		draw_polyline(pts, Color(0.77, 0.95, 0.98, arm_alpha), 2.0 + float(arm % 2) * 0.55, true)
+
+	# Broken foam ribbons around the outer lip keep it from looking like a perfect icon.
+	for band in range(3):
+		var radius: float = 31.0 + float(band) * 8.0
+		var ry: float = radius * 0.55
+		for seg in range(4):
+			var a0: float = spin * 0.45 + float(seg) * 1.55 + float(band) * 0.38
+			var pts: PackedVector2Array = PackedVector2Array()
+			for k in range(9):
+				var a: float = a0 + float(k) / 8.0 * 0.68
+				pts.append(p + Vector2(cos(a) * radius, sin(a) * ry))
+			draw_polyline(pts, Color(0.88, 0.98, 1.0, 0.22 - float(band) * 0.035), 1.35, true)
+
+	# Small whitecaps/bubbles orbit the lip.
+	for i in range(8):
+		var a: float = spin * 0.65 + float(i) / 8.0 * TAU
+		var r: float = 40.0 + sin(float(i) * 1.7 + spin) * 5.0
+		var bubble := p + Vector2(cos(a) * r, sin(a) * r * 0.56)
+		draw_circle(bubble, 1.2 + float(i % 3) * 0.45, Color(0.86, 0.98, 1.0, 0.42))
+
+	# Inner highlight emphasizes the steep funnel wall.
+	draw_polyline(_ellipse_points(p + Vector2(-1, 3), 18.0, 8.5, spin * 0.03, 36), Color(0.45, 0.83, 0.88, 0.26), 1.4, true)
+	draw_polyline(_ellipse_points(p + Vector2(0, 4), 10.5, 5.0, -spin * 0.02, 30), Color(0.72, 0.94, 0.96, 0.22), 1.0, true)
