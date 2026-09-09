@@ -23,7 +23,7 @@ const BOAT_SCALE := 0.54
 const COIN_SIZE := 34.0
 const POPUP_LIFE := 0.90
 const PICKUP_BURST_LIFE := 0.72
-const EXPLOSION_LIFE := 0.52
+const EXPLOSION_LIFE := 0.68
 
 var coin_sheet: Texture2D
 var last_score := 0
@@ -188,7 +188,6 @@ func _draw_pickup_burst(burst: Dictionary) -> void:
 			var shard_start: Vector2 = p + Vector2(cos(a),sin(a)) * (d - 8.0)
 			draw_line(shard_start, star_pos, Color(1.0,0.58,0.02,0.70*fade), 1.7, true)
 
-	# 1000-point coin gets a unique multicolor jackpot celebration.
 	if amount >= 1000:
 		var premium_colors: Array[Color] = [
 			Color(1.0,0.28,0.68,1.0), Color(0.26,0.76,1.0,1.0),
@@ -252,28 +251,35 @@ func _draw_mine(m: Dictionary) -> void:
 func _draw_explosion(explosion: Dictionary) -> void:
 	var p: Vector2 = explosion.get("pos", Vector2.ZERO)
 	var life: float = float(explosion.get("life", 0.0))
-	var scale_value: float = float(explosion.get("scale", 1.0))
+	var scale_value: float = float(explosion.get("scale", 1.0)) * 1.65
 	var progress: float = 1.0 - clampf(life / EXPLOSION_LIFE, 0.0, 1.0)
 	var fade: float = 1.0 - progress
-	var flash_radius: float = lerpf(5.0, 31.0, progress) * scale_value
-	var ring_radius: float = lerpf(8.0, 42.0, progress) * scale_value
-	if progress < 0.32:
-		var flash_alpha: float = (1.0 - progress / 0.32) * 0.95
-		draw_circle(p, flash_radius, Color(1.0, 0.94, 0.62, flash_alpha))
-	draw_circle(p, flash_radius * 0.68, Color(1.0, 0.34, 0.08, 0.72 * fade))
-	draw_arc(p, ring_radius, 0.0, TAU, 32, Color(1.0, 0.72, 0.18, 0.88 * fade), 3.0 * scale_value, true)
-	for i in range(12):
-		var a: float = float(i) / 12.0 * TAU + 0.17
-		var inner: float = lerpf(5.0, 13.0, progress) * scale_value
-		var outer: float = lerpf(14.0, 50.0, progress) * scale_value
-		var p1 := p + Vector2(cos(a), sin(a)) * inner
-		var p2 := p + Vector2(cos(a), sin(a)) * outer
-		draw_line(p1, p2, Color(1.0, 0.48, 0.10, 0.82 * fade), 2.0 * scale_value, true)
-	for i in range(8):
-		var a: float = float(i) / 8.0 * TAU + 0.39
-		var debris_dist: float = lerpf(9.0, 38.0, progress) * scale_value
-		var debris_pos := p + Vector2(cos(a), sin(a)) * debris_dist
-		draw_circle(debris_pos, 2.2 * scale_value * fade + 0.6, Color(0.12, 0.10, 0.08, 0.85 * fade))
+	var flash_radius: float = lerpf(8.0, 42.0, progress) * scale_value
+	var fire_radius: float = lerpf(6.0, 34.0, progress) * scale_value
+	var ring_radius: float = lerpf(12.0, 58.0, progress) * scale_value
+	if progress < 0.38:
+		var flash_alpha: float = (1.0 - progress / 0.38) * 1.0
+		draw_circle(p, flash_radius, Color(1.0, 0.97, 0.72, flash_alpha))
+		draw_circle(p, flash_radius * 0.72, Color(1.0, 0.78, 0.12, flash_alpha * 0.92))
+	draw_circle(p, fire_radius, Color(1.0, 0.20, 0.035, 0.86 * fade))
+	draw_circle(p, fire_radius * 0.66, Color(1.0, 0.56, 0.06, 0.90 * fade))
+	draw_arc(p, ring_radius, 0.0, TAU, 42, Color(1.0, 0.78, 0.12, 0.96 * fade), 4.2 * scale_value, true)
+	draw_arc(p, ring_radius * 0.77, 0.0, TAU, 38, Color(1.0, 0.30, 0.04, 0.66 * fade), 2.2 * scale_value, true)
+	for i in range(18):
+		var a: float = float(i) / 18.0 * TAU + 0.17
+		var inner: float = lerpf(7.0, 17.0, progress) * scale_value
+		var outer: float = lerpf(20.0, 70.0 + float(i % 3) * 6.0, progress) * scale_value
+		var p1: Vector2 = p + Vector2(cos(a), sin(a)) * inner
+		var p2: Vector2 = p + Vector2(cos(a), sin(a)) * outer
+		var ray_color: Color = Color(1.0, 0.38 + float(i % 3) * 0.11, 0.04, 0.92 * fade)
+		draw_line(p1, p2, ray_color, (2.2 + float(i % 2) * 0.8) * scale_value, true)
+	for i in range(14):
+		var a: float = float(i) / 14.0 * TAU + 0.39
+		var debris_dist: float = lerpf(12.0, 56.0 + float(i % 4) * 5.0, progress) * scale_value
+		var debris_pos: Vector2 = p + Vector2(cos(a), sin(a)) * debris_dist
+		draw_circle(debris_pos, (3.0 + float(i % 3) * 0.65) * scale_value * fade + 0.7, Color(0.11, 0.075, 0.045, 0.90 * fade))
+		if i % 3 == 0:
+			draw_circle(debris_pos, 1.6 * scale_value * fade + 0.3, Color(1.0, 0.52, 0.06, 0.82 * fade))
 
 func _draw_wake(w: Dictionary, life_max: float) -> void:
 	var p: Vector2 = w.get("pos",Vector2.ZERO)
