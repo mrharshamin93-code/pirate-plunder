@@ -202,13 +202,7 @@ func _draw_popup(pop: Dictionary) -> void:
 	var progress: float = 1.0 - life_ratio
 	var p: Vector2 = pop.get("pos",Vector2.ZERO)
 	var amount: int = int(pop.get("amount",0))
-	var base_size: int = 24
-	if amount >= 25: base_size = 26
-	if amount >= 50: base_size = 28
-	if amount >= 100: base_size = 31
-	if amount >= 250: base_size = 34
-	if amount >= 500: base_size = 38
-	if amount >= 1000: base_size = 44
+	var base_size: int = 30
 	var pop_scale: float = 1.0
 	if progress < 0.16:
 		pop_scale = lerpf(0.68, 1.22, progress / 0.16)
