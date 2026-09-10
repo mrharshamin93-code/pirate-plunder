@@ -148,7 +148,6 @@ func _draw_pickup_burst(burst: Dictionary) -> void:
 	var tier: int = clampi(int(burst.get("tier", 0)), 0, 6)
 	var amount: int = int(burst.get("amount", 0))
 	var value_strength: float = float(tier) / 6.0
-
 	if progress < 0.24:
 		var flash_t: float = progress / 0.24
 		var flash_alpha: float = (1.0 - flash_t) * (0.72 + value_strength * 0.22)
@@ -159,7 +158,6 @@ func _draw_pickup_burst(burst: Dictionary) -> void:
 			var ray_outer: float = lerpf(22.0, 44.0 + value_strength * 14.0, flash_t)
 			var ray_alpha: float = flash_alpha * (0.70 if ray % 2 == 0 else 0.42)
 			draw_line(p + Vector2(cos(ray_angle),sin(ray_angle))*ray_inner, p + Vector2(cos(ray_angle),sin(ray_angle))*ray_outer, Color(1.0,0.72,0.05,ray_alpha), 1.3 + value_strength*0.7, true)
-
 	var particle_count: int = 10 + tier * 2
 	for i in range(particle_count):
 		var a: float = float(i) / float(particle_count) * TAU + float(tier) * 0.17
@@ -170,14 +168,12 @@ func _draw_pickup_burst(burst: Dictionary) -> void:
 		draw_circle(particle_pos, radius, Color(1.0,0.74,0.04,0.94*fade))
 		if i % 3 == 0:
 			_draw_star(particle_pos, 2.0 + value_strength * 1.8, Color(1.0,0.94,0.42,1.0), 0.82*fade)
-
 	if amount >= 25:
 		var ring_radius: float = lerpf(11.0, 40.0 + value_strength * 18.0, progress)
 		var ring_alpha: float = (0.72 + value_strength * 0.18) * fade
 		draw_arc(p, ring_radius, 0.0, TAU, 36, Color(1.0,0.72,0.04,ring_alpha), 2.0 + value_strength*1.5, true)
 		if amount >= 500:
 			draw_arc(p, ring_radius * 0.72, 0.0, TAU, 32, Color(1.0,0.91,0.34,0.48*fade), 1.2, true)
-
 	if amount >= 500:
 		for i in range(8):
 			var a: float = float(i) / 8.0 * TAU + 0.28
@@ -186,13 +182,8 @@ func _draw_pickup_burst(burst: Dictionary) -> void:
 			_draw_star(star_pos, (3.5 + float(i % 3)) * fade + 0.8, Color(1.0,0.82,0.10,1.0), 0.92*fade)
 			var shard_start: Vector2 = p + Vector2(cos(a),sin(a)) * (d - 8.0)
 			draw_line(shard_start, star_pos, Color(1.0,0.58,0.02,0.70*fade), 1.7, true)
-
 	if amount >= 1000:
-		var premium_colors: Array[Color] = [
-			Color(1.0,0.28,0.68,1.0), Color(0.26,0.76,1.0,1.0),
-			Color(0.66,0.38,1.0,1.0), Color(0.18,0.92,0.72,1.0),
-			Color(1.0,0.48,0.14,1.0), Color(1.0,0.90,0.24,1.0)
-		]
+		var premium_colors: Array[Color] = [Color(1.0,0.28,0.68,1.0),Color(0.26,0.76,1.0,1.0),Color(0.66,0.38,1.0,1.0),Color(0.18,0.92,0.72,1.0),Color(1.0,0.48,0.14,1.0),Color(1.0,0.90,0.24,1.0)]
 		for i in range(16):
 			var a: float = float(i) / 16.0 * TAU + 0.16
 			var d: float = lerpf(10.0, 66.0 + float(i % 4) * 6.0, progress)
@@ -207,16 +198,28 @@ func _draw_pickup_burst(burst: Dictionary) -> void:
 		draw_rect(Rect2(p + Vector2(-3.0,-98.0), Vector2(6.0,196.0)), Color(1.0,0.94,0.54,beam_alpha*0.92))
 
 func _draw_popup(pop: Dictionary) -> void:
-	var t: float = clampf(float(pop.get("life",0.0))/POPUP_LIFE,0.0,1.0)
+	var life_ratio: float = clampf(float(pop.get("life",0.0)) / POPUP_LIFE, 0.0, 1.0)
+	var progress: float = 1.0 - life_ratio
 	var p: Vector2 = pop.get("pos",Vector2.ZERO)
-	p.y -= 27.0 + (1.0-t)*19.0
 	var amount: int = int(pop.get("amount",0))
-	var popup_size: int = 18
-	if amount >= 500:
-		popup_size = 22
-	if amount >= 1000:
-		popup_size = 26
-	_draw_text("+%d" % amount,p,popup_size,Color("ffd21f"),t)
+	var base_size: int = 24
+	if amount >= 25: base_size = 26
+	if amount >= 50: base_size = 28
+	if amount >= 100: base_size = 31
+	if amount >= 250: base_size = 34
+	if amount >= 500: base_size = 38
+	if amount >= 1000: base_size = 44
+	var pop_scale: float = 1.0
+	if progress < 0.16:
+		pop_scale = lerpf(0.68, 1.22, progress / 0.16)
+	elif progress < 0.30:
+		pop_scale = lerpf(1.22, 1.0, (progress - 0.16) / 0.14)
+	var popup_size: int = maxi(1, int(round(float(base_size) * pop_scale)))
+	p.y -= 31.0 + progress * 28.0
+	var alpha: float = 1.0
+	if progress > 0.62:
+		alpha = clampf(1.0 - ((progress - 0.62) / 0.38), 0.0, 1.0)
+	_draw_text("+%d" % amount,p,popup_size,Color("ffd21f"),alpha)
 
 func _draw_text(text: String, center: Vector2, font_size: int, color: Color, alpha: float) -> void:
 	var font := ThemeDB.fallback_font
