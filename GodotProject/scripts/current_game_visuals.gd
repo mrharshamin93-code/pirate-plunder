@@ -110,7 +110,6 @@ func _draw_boat(p: Vector2, a: float) -> void:
 	var hp := PackedVector2Array()
 	for v in hull: hp.append(_rot(v,a,p,s))
 	draw_colored_polygon(hp,WOOD_DARK)
-	draw_polyline(PackedVector2Array(hp + PackedVector2Array([hp[0]])),INK,1.7,true)
 	var deck = [Vector2(23,0),Vector2(17,-8),Vector2(4,-11),Vector2(-10,-11),Vector2(-19,-8),Vector2(-19,8),Vector2(-10,11),Vector2(4,11),Vector2(17,8)]
 	var dp := PackedVector2Array()
 	for v in deck: dp.append(_rot(v,a,p,s))
