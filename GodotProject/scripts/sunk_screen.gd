@@ -110,10 +110,7 @@ func _make_uuid_v4() -> String:
 		bytes.append(randi_range(0, 255))
 	bytes[6] = (bytes[6] & 0x0f) | 0x40
 	bytes[8] = (bytes[8] & 0x3f) | 0x80
-	return "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x" % [
-		bytes[0],bytes[1],bytes[2],bytes[3],bytes[4],bytes[5],bytes[6],bytes[7],
-		bytes[8],bytes[9],bytes[10],bytes[11],bytes[12],bytes[13],bytes[14],bytes[15]
-	]
+	return "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x" % [bytes[0],bytes[1],bytes[2],bytes[3],bytes[4],bytes[5],bytes[6],bytes[7],bytes[8],bytes[9],bytes[10],bytes[11],bytes[12],bytes[13],bytes[14],bytes[15]]
 
 func _style_existing_score() -> void:
 	var score_label: Label = $Score
@@ -166,7 +163,6 @@ func _build_ui() -> void:
 	sunk.add_theme_constant_override("shadow_offset_x", 3)
 	sunk.add_theme_constant_override("shadow_offset_y", 4)
 	add_child(sunk)
-
 	var subtitle: Label = Label.new()
 	subtitle.name = "Subtitle"
 	subtitle.text = "YOUR TREASURE SANK TO THE DEPTHS!"
@@ -174,7 +170,6 @@ func _build_ui() -> void:
 	subtitle.add_theme_font_size_override("font_size", 14)
 	subtitle.add_theme_color_override("font_color", Color("fff1c4"))
 	add_child(subtitle)
-
 	var score_title: Label = Label.new()
 	score_title.name = "ScoreTitle"
 	score_title.text = "—  YOUR SCORE  —"
@@ -182,7 +177,6 @@ func _build_ui() -> void:
 	score_title.add_theme_font_size_override("font_size", 22)
 	score_title.add_theme_color_override("font_color", INK)
 	add_child(score_title)
-
 	name_entry = LineEdit.new()
 	name_entry.name = "NameEntry"
 	name_entry.placeholder_text = "Enter your name..."
@@ -191,7 +185,6 @@ func _build_ui() -> void:
 	name_entry.add_theme_color_override("font_color", INK)
 	name_entry.add_theme_stylebox_override("normal", _button_box(Color("f4dfb2"), PARCHMENT_DARK, 2, 8))
 	add_child(name_entry)
-
 	submit_button = Button.new()
 	submit_button.name = "Submit"
 	submit_button.text = "SUBMIT"
@@ -201,7 +194,6 @@ func _build_ui() -> void:
 	submit_button.add_theme_stylebox_override("pressed", _button_box(Color("651011"), GOLD_DARK, 3, 8))
 	submit_button.pressed.connect(_submit_score)
 	add_child(submit_button)
-
 	share_button = Button.new()
 	share_button.name = "Share"
 	share_button.text = "SHARE  ↗"
@@ -212,7 +204,6 @@ func _build_ui() -> void:
 	share_button.add_theme_stylebox_override("pressed", _button_box(Color("24150e"), GOLD_DARK, 2, 7))
 	share_button.pressed.connect(_share_score)
 	add_child(share_button)
-
 	var board_title: Label = Label.new()
 	board_title.name = "BoardTitle"
 	board_title.text = "☠  LEADERBOARD"
@@ -220,12 +211,10 @@ func _build_ui() -> void:
 	board_title.add_theme_font_size_override("font_size", 24)
 	board_title.add_theme_color_override("font_color", INK)
 	add_child(board_title)
-
 	leaderboard_box = VBoxContainer.new()
 	leaderboard_box.name = "LeaderboardRows"
 	leaderboard_box.add_theme_constant_override("separation", 1)
 	add_child(leaderboard_box)
-
 	footer_label = Label.new()
 	footer_label.name = "Footer"
 	footer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -240,35 +229,26 @@ func _layout_ui() -> void:
 	var sx: float = w / 390.0
 	var hero: Control = get_node_or_null("HeroTitle") as Control
 	if hero:
-		hero.position = Vector2(30.0*sx, 46.0)
-		hero.size = Vector2(w-60.0*sx, 64.0)
+		hero.position = Vector2(30.0*sx, 46.0); hero.size = Vector2(w-60.0*sx, 64.0)
 	var subtitle: Control = get_node_or_null("Subtitle") as Control
 	if subtitle:
-		subtitle.position = Vector2(32.0*sx, 112.0)
-		subtitle.size = Vector2(w-64.0*sx, 30.0)
+		subtitle.position = Vector2(32.0*sx, 112.0); subtitle.size = Vector2(w-64.0*sx, 30.0)
 	var score_title: Control = get_node_or_null("ScoreTitle") as Control
 	if score_title:
-		score_title.position = Vector2(55.0*sx, 188.0)
-		score_title.size = Vector2(w-110.0*sx, 35.0)
+		score_title.position = Vector2(55.0*sx, 188.0); score_title.size = Vector2(w-110.0*sx, 35.0)
 	if name_entry:
-		name_entry.position = Vector2(45.0*sx, 302.0)
-		name_entry.size = Vector2(215.0*sx, 48.0)
+		name_entry.position = Vector2(45.0*sx, 302.0); name_entry.size = Vector2(215.0*sx, 48.0)
 	if submit_button:
-		submit_button.position = Vector2(266.0*sx, 302.0)
-		submit_button.size = Vector2(82.0*sx, 48.0)
+		submit_button.position = Vector2(266.0*sx, 302.0); submit_button.size = Vector2(82.0*sx, 48.0)
 	var board_title: Control = get_node_or_null("BoardTitle") as Control
 	if board_title:
-		board_title.position = Vector2(62.0*sx, 376.0)
-		board_title.size = Vector2(w-124.0*sx, 40.0)
+		board_title.position = Vector2(62.0*sx, 376.0); board_title.size = Vector2(w-124.0*sx, 40.0)
 	if leaderboard_box:
-		leaderboard_box.position = Vector2(52.0*sx, 416.0)
-		leaderboard_box.size = Vector2(w-104.0*sx, 260.0)
+		leaderboard_box.position = Vector2(52.0*sx, 416.0); leaderboard_box.size = Vector2(w-104.0*sx, 260.0)
 	if footer_label:
-		footer_label.position = Vector2(42.0*sx, 708.0)
-		footer_label.size = Vector2(w-84.0*sx, 22.0)
+		footer_label.position = Vector2(42.0*sx, 708.0); footer_label.size = Vector2(w-84.0*sx, 22.0)
 	if share_button:
-		share_button.position = Vector2((w-94.0*sx)*0.5, 800.0)
-		share_button.size = Vector2(94.0*sx, 28.0)
+		share_button.position = Vector2((w-94.0*sx)*0.5, 800.0); share_button.size = Vector2(94.0*sx, 28.0)
 
 func _refresh_from_game() -> void:
 	var game: Node = get_parent().get_parent()
@@ -364,6 +344,12 @@ func _clear_leaderboard() -> void:
 	for child in leaderboard_box.get_children():
 		child.queue_free()
 
+func _display_name(value: String) -> String:
+	var clean: String = value.strip_edges()
+	if clean.length() <= 12:
+		return clean
+	return clean.substr(0, 11) + "…"
+
 func _build_leaderboard() -> void:
 	_clear_leaderboard()
 	var limit: int = mini(10, leaderboard.size())
@@ -388,7 +374,8 @@ func _build_leaderboard() -> void:
 		h.add_child(rank)
 		var nm: Label = Label.new()
 		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		nm.text = String(entry.get("name", "Pirate"))
+		nm.text = _display_name(String(entry.get("name", "Pirate")))
+		nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		nm.add_theme_font_size_override("font_size", 15)
 		nm.add_theme_color_override("font_color", Color("fff3c8") if is_you else INK)
 		h.add_child(nm)
