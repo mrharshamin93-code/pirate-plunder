@@ -1,7 +1,8 @@
 extends Node
 
-# Hooks the SUNK screen Share button and opens Android's native share sheet.
-# Clipboard is kept as a fallback on unsupported platforms.
+# Hooks the SUNK screen Share button and opens Android's native share target picker.
+# Uses Godot's AndroidRuntime + JavaClassWrapper APIs (Godot 4.4+).
+# Clipboard remains a fallback on desktop/unsupported Android exports.
 
 func _ready() -> void:
 	get_tree().node_added.connect(_on_node_added)
@@ -26,32 +27,33 @@ func _try_hook_share(node: Node) -> void:
 	var button: Button = node as Button
 	if button.name != "Share":
 		return
-	var callable: Callable = Callable(self, "_on_share_pressed")
+	var callable := Callable(self, "_on_share_pressed")
 	if not button.pressed.is_connected(callable):
 		button.pressed.connect(callable)
 
 func _on_share_pressed() -> void:
 	var current_score: int = _find_current_score()
-	var message: String = "I scored %s in Pirate's Plunder! Can you beat it?" % _comma(current_score)
+	var message := "I scored %s in Pirate's Plunder! Can you beat it?" % _comma(current_score)
 	share_text(message)
 
 func share_text(message: String) -> bool:
-	if OS.get_name() == "Android":
-		if _share_android(message):
-			return true
+	if OS.get_name() == "Android" and _share_android(message):
+		return true
 	DisplayServer.clipboard_set(message)
 	return false
 
 func _share_android(message: String) -> bool:
+	# AndroidRuntime and JavaClassWrapper are built into Godot Android exports in 4.4+.
 	var android_runtime: Object = Engine.get_singleton("AndroidRuntime")
-	if android_runtime == null:
+	var java_wrapper: Object = Engine.get_singleton("JavaClassWrapper")
+	if android_runtime == null or java_wrapper == null:
 		return false
 
-	var activity: Variant = android_runtime.getActivity()
+	var activity: Variant = android_runtime.call("getActivity")
 	if activity == null:
 		return false
 
-	var Intent: Variant = JavaClassWrapper.wrap("android.content.Intent")
+	var Intent: Variant = java_wrapper.call("wrap", "android.content.Intent")
 	if Intent == null:
 		return false
 
@@ -59,19 +61,14 @@ func _share_android(message: String) -> bool:
 	if intent == null:
 		return false
 
+	# Match Godot's documented Android ACTION_SEND implementation directly.
 	intent.setAction(Intent.ACTION_SEND)
 	intent.putExtra(Intent.EXTRA_TEXT, message)
 	intent.setType("text/plain")
-	var chooser: Variant = Intent.createChooser(intent, "Share Pirate's Plunder")
 
-	# Launch on Android's UI thread for reliable behavior across old and new devices.
-	var launch_share: Callable = func() -> void:
-		activity.startActivity(chooser)
-	var runnable: Variant = android_runtime.createRunnableFromGodotCallable(launch_share)
-	if runnable != null:
-		activity.runOnUiThread(runnable)
-	else:
-		activity.startActivity(chooser)
+	# Do not wrap this in another Runnable/closure. Godot's official example starts
+	# the Activity directly, which is also more reliable on older Android devices.
+	activity.startActivity(intent)
 	return true
 
 func _find_current_score() -> int:
@@ -86,8 +83,8 @@ func _find_current_score() -> int:
 	return 0
 
 func _comma(value: int) -> String:
-	var s: String = str(value)
-	var out: String = ""
+	var s := str(value)
+	var out := ""
 	while s.length() > 3:
 		out = "," + s.substr(s.length() - 3, 3) + out
 		s = s.substr(0, s.length() - 3)
