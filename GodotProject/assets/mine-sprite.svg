@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+  <g transform="translate(18 18)">
+    <polygon points="15.5,0 8.39,-1.88 8.39,1.88" fill="#242a30" stroke="#07151b" stroke-width="1.1" stroke-linejoin="round"/>
+    <use href="#spike"/>
+  </g>
+  <defs>
+    <polygon id="spike" points="15.5,0 8.39,-1.88 8.39,1.88" fill="#242a30" stroke="#07151b" stroke-width="1.1" stroke-linejoin="round"/>
+  </defs>
+  <g transform="translate(18 18)">
+    <use href="#spike" transform="rotate(36)"/>
+    <use href="#spike" transform="rotate(72)"/>
+    <use href="#spike" transform="rotate(108)"/>
+    <use href="#spike" transform="rotate(144)"/>
+    <use href="#spike" transform="rotate(180)"/>
+    <use href="#spike" transform="rotate(216)"/>
+    <use href="#spike" transform="rotate(252)"/>
+    <use href="#spike" transform="rotate(288)"/>
+    <use href="#spike" transform="rotate(324)"/>
+    <circle cx="0" cy="0" r="8.6" fill="#10151a" stroke="#07151b" stroke-width="1.6"/>
+    <circle cx="-2" cy="-2" r="6.7" fill="#242a30"/>
+    <circle cx="-3.7" cy="-3.8" r="2" fill="#59636d" opacity="0.46"/>
+    <path d="M 7.88 1.43 A 8 8 0 0 0 -7.88 1.43" fill="none" stroke="#8d3a24" stroke-width="1.8" stroke-linecap="round"/>
+    <circle cx="0" cy="-2.8" r="2.1" fill="#ffd24a" stroke="#07151b" stroke-width="1"/>
+  </g>
+</svg>
