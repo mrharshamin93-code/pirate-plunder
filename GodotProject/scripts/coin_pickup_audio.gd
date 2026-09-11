@@ -26,14 +26,14 @@ func _ready() -> void:
 	rich_500_player = AudioStreamPlayer.new()
 	rich_500_player.name = "Rich500CoinSFX"
 	rich_500_player.stream = RICH_500_STREAM
-	rich_500_player.volume_db = 2.0
+	rich_500_player.volume_db = -8.0
 	rich_500_player.bus = "Master"
 	add_child(rich_500_player)
 
 	jackpot_1000_player = AudioStreamPlayer.new()
 	jackpot_1000_player.name = "Jackpot1000CoinSFX"
 	jackpot_1000_player.stream = JACKPOT_1000_STREAM
-	jackpot_1000_player.volume_db = 3.0
+	jackpot_1000_player.volume_db = -8.0
 	jackpot_1000_player.bus = "Master"
 	add_child(jackpot_1000_player)
 
