@@ -1,8 +1,8 @@
 extends Node
 
 # Native Android share bridge for the SUNK screen.
-# The Share button remains the hit target; the image icon is only a visual child
-# with mouse filtering disabled so it cannot interfere with taps.
+# The Share button itself owns the normal pressed signal on every platform.
+# Android also keeps a direct touch fallback in case a device swallows the GUI signal.
 
 const SHARE_ICON: Texture2D = preload("res://assets/share-icon.svg")
 
@@ -30,12 +30,14 @@ func _configure_share_button() -> void:
 	if not is_instance_valid(_share_button):
 		return
 
-	# Remove the old clipboard-only Share callback. This bridge owns the press.
+	# Remove every previous callback, including the old clipboard-only handler.
 	for connection in _share_button.pressed.get_connections():
 		var existing: Callable = connection.get("callable", Callable())
 		if existing.is_valid() and _share_button.pressed.is_connected(existing):
 			_share_button.pressed.disconnect(existing)
 
+	# Use one real Button signal on Windows and Android.
+	_share_button.pressed.connect(_on_share_pressed)
 	_share_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_share_button.focus_mode = Control.FOCUS_NONE
 	_share_button.z_index = 1000
@@ -43,8 +45,8 @@ func _configure_share_button() -> void:
 	_share_button.text = ""
 	_share_button.icon = null
 
-	# Use a child TextureRect for the three-node image. IGNORE makes sure the
-	# image can never consume Android touch events intended for the Button.
+	# Use a child TextureRect for the three-node image. IGNORE ensures the image
+	# never consumes mouse/touch events intended for the Button.
 	var old_icon: Node = _share_button.get_node_or_null("ShareIcon")
 	if old_icon != null:
 		old_icon.queue_free()
@@ -62,7 +64,7 @@ func _configure_share_button() -> void:
 	_share_button.add_child(icon_rect)
 
 	_keep_share_button_beside_play_again()
-	print("Pirate's Plunder share: Android Share hit target ready")
+	print("Pirate's Plunder share: button signal connected")
 
 func _keep_share_button_beside_play_again() -> void:
 	if not is_instance_valid(_share_button):
@@ -81,37 +83,33 @@ func _keep_share_button_beside_play_again() -> void:
 		_share_button.size = Vector2(square_size, square_size)
 
 func _input(event: InputEvent) -> void:
+	# Android-only fallback. Normal desktop clicks use Button.pressed directly.
+	if OS.get_name() != "Android":
+		return
 	if not is_instance_valid(_share_button) or not _share_button.visible:
 		return
-
-	var pressed: bool = false
-	var pos: Vector2 = Vector2.ZERO
-	if event is InputEventScreenTouch:
-		var touch := event as InputEventScreenTouch
-		pressed = touch.pressed
-		pos = touch.position
-	elif event is InputEventMouseButton:
-		var mouse := event as InputEventMouseButton
-		pressed = mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT
-		pos = mouse.position
-
-	if not pressed or not _share_button.get_global_rect().has_point(pos):
+	if not (event is InputEventScreenTouch):
 		return
-
-	var now: int = Time.get_ticks_msec()
-	if now - _last_share_msec < 700:
-		get_viewport().set_input_as_handled()
+	var touch := event as InputEventScreenTouch
+	if not touch.pressed:
 		return
-	_last_share_msec = now
+	if not _share_button.get_global_rect().has_point(touch.position):
+		return
 	get_viewport().set_input_as_handled()
 	_on_share_pressed()
 
 func _on_share_pressed() -> void:
+	# Prevent the Android touch fallback and Button.pressed from opening twice.
+	var now: int = Time.get_ticks_msec()
+	if now - _last_share_msec < 700:
+		return
+	_last_share_msec = now
+
 	var current_score: int = _find_current_score()
 	var message := "I scored %s in Pirate's Plunder! Can you beat it?" % _comma(current_score)
-	_set_footer("Opening Android share...")
 
 	if OS.get_name() == "Android":
+		_set_footer("Opening Android share...")
 		var result: String = _share_android(message)
 		if result == "ok":
 			_set_footer("Choose an app to share your score")
@@ -122,6 +120,7 @@ func _on_share_pressed() -> void:
 
 	DisplayServer.clipboard_set(message)
 	_set_footer("Score copied — ready to share!")
+	print("Pirate's Plunder share text copied: %s" % message)
 
 func _share_android(message: String) -> String:
 	var android_runtime: Object = Engine.get_singleton("AndroidRuntime")
