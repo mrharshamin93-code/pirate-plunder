@@ -1,8 +1,9 @@
 extends Node
 
 # Native Android sharing for the dynamically-created SUNK screen Share button.
-# Keep the sharing logic independent from the icon asset so a failed SVG import
-# can never prevent the Share handler itself from loading.
+# IMPORTANT: never disconnect the SUNK screen's own Share callback. That callback
+# is the guaranteed desktop/clipboard fallback. This bridge only adds native
+# Android sharing and keeps the button beside PLAY AGAIN.
 
 var _share_button: Button = null
 var _last_share_msec: int = 0
@@ -29,13 +30,8 @@ func _configure_share_button() -> void:
 	if not is_instance_valid(_share_button):
 		return
 
-	# Remove old callbacks so there is one owner for Share.
-	for connection in _share_button.pressed.get_connections():
-		var existing: Callable = connection.get("callable", Callable())
-		if existing.is_valid() and _share_button.pressed.is_connected(existing):
-			_share_button.pressed.disconnect(existing)
-
-	# Normal GUI click path.
+	# DO NOT remove existing callbacks. sunk_screen.gd already connects the
+	# button to _share_score(), and that must remain intact as a fallback.
 	if not _share_button.pressed.is_connected(_on_share_pressed):
 		_share_button.pressed.connect(_on_share_pressed)
 
@@ -44,8 +40,6 @@ func _configure_share_button() -> void:
 	_share_button.z_index = 1000
 	_share_button.move_to_front()
 
-	# Load the image at runtime instead of preloading it. If the SVG import has a
-	# problem on any machine/build, Share still works and falls back to text.
 	var icon_texture: Resource = load("res://assets/share-icon.svg")
 	if icon_texture is Texture2D:
 		_share_button.text = ""
@@ -57,7 +51,7 @@ func _configure_share_button() -> void:
 		_share_button.add_theme_font_size_override("font_size", 11)
 
 	_keep_share_button_beside_play_again()
-	print("Pirate's Plunder share button configured")
+	print("Pirate's Plunder share button configured; original callback preserved")
 
 func _keep_share_button_beside_play_again() -> void:
 	if not is_instance_valid(_share_button):
@@ -79,7 +73,7 @@ func _keep_share_button_beside_play_again() -> void:
 	_share_button.move_to_front()
 
 func _input(event: InputEvent) -> void:
-	# Direct fallback for both desktop mouse input and Android touch input.
+	# Extra direct-input fallback. The normal Button.pressed path remains primary.
 	if not is_instance_valid(_share_button) or not _share_button.visible:
 		return
 
@@ -98,31 +92,17 @@ func _input(event: InputEvent) -> void:
 
 	if not pressed:
 		return
-
-	# Check both the actual Share control rect and a rect derived from PLAY AGAIN.
-	# The second check avoids coordinate/layout races during the SUNK screen setup.
-	var hit: bool = _share_button.get_global_rect().has_point(pos)
-	if not hit:
-		var parent_control: Control = _share_button.get_parent() as Control
-		if parent_control != null:
-			var play_again: Button = parent_control.get_node_or_null("PlayAgain") as Button
-			if play_again != null:
-				var play_rect: Rect2 = play_again.get_global_rect()
-				var square_size: float = minf(48.0, play_rect.size.y)
-				var fallback_rect := Rect2(
-					Vector2(play_rect.end.x + 6.0, play_rect.position.y + (play_rect.size.y - square_size) * 0.5),
-					Vector2(square_size, square_size)
-				)
-				hit = fallback_rect.has_point(pos)
-
-	if not hit:
+	if not _share_button.get_global_rect().has_point(pos):
 		return
 
-	get_viewport().set_input_as_handled()
 	_on_share_pressed()
 
 func _on_share_pressed() -> void:
-	# Prevent the Button signal and direct input fallback from firing twice.
+	# On desktop, sunk_screen.gd already handles the button and copies the text.
+	# Do not compete with it. This bridge is only needed for native Android share.
+	if OS.get_name() != "Android":
+		return
+
 	var now: int = Time.get_ticks_msec()
 	if now - _last_share_msec < 500:
 		return
@@ -130,20 +110,16 @@ func _on_share_pressed() -> void:
 
 	var current_score: int = _find_current_score()
 	var message := "I scored %s in Pirate's Plunder! Can you beat it?" % _comma(current_score)
-	print("Pirate's Plunder share activated: %s" % message)
+	print("Pirate's Plunder native share activated: %s" % message)
+	_set_footer("Opening Android share...")
 
-	if OS.get_name() == "Android":
-		_set_footer("Opening Android share...")
-		var result: String = _share_android(message)
-		if result == "ok":
-			_set_footer("Choose an app to share your score")
-			return
-		DisplayServer.clipboard_set(message)
-		_set_footer("%s — score copied instead" % result)
+	var result: String = _share_android(message)
+	if result == "ok":
+		_set_footer("Choose an app to share your score")
 		return
 
 	DisplayServer.clipboard_set(message)
-	_set_footer("Score copied — ready to share!")
+	_set_footer("%s — score copied instead" % result)
 
 func _share_android(message: String) -> String:
 	var android_runtime: Object = Engine.get_singleton("AndroidRuntime")
