@@ -74,31 +74,98 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       LIMIT 10
     `;
 
-    const personal = PLAYER_ID.test(playerId)
-      ? await sql`
-          WITH best AS (
-            SELECT max(score)::integer AS score
+    let personalBest = 0;
+    let personalRank = 0;
+    let rankWindow: unknown[] = [];
+
+    if (PLAYER_ID.test(playerId)) {
+      const personal = await sql`
+        WITH player_bests AS (
+          SELECT DISTINCT ON (player_id)
+            player_id,
+            player_name AS name,
+            score,
+            coins,
+            created_at
+          FROM leaderboard_scores
+          WHERE player_id IS NOT NULL
+          ORDER BY player_id, score DESC, created_at ASC
+        ),
+        ranked AS (
+          SELECT
+            player_id,
+            name,
+            score,
+            coins,
+            created_at,
+            row_number() OVER (
+              ORDER BY score DESC, created_at ASC, player_id
+            )::integer AS rank
+          FROM player_bests
+        )
+        SELECT score, rank
+        FROM ranked
+        WHERE player_id = ${playerId}::uuid
+        LIMIT 1
+      `;
+
+      personalBest = Number(personal[0]?.score ?? 0);
+      personalRank = Number(personal[0]?.rank ?? 0);
+
+      if (personalRank > 0) {
+        rankWindow = await sql`
+          WITH player_bests AS (
+            SELECT DISTINCT ON (player_id)
+              player_id,
+              player_name AS name,
+              score,
+              coins,
+              created_at
             FROM leaderboard_scores
+            WHERE player_id IS NOT NULL
+            ORDER BY player_id, score DESC, created_at ASC
+          ),
+          ranked AS (
+            SELECT
+              player_id,
+              name,
+              score,
+              coins,
+              created_at,
+              row_number() OVER (
+                ORDER BY score DESC, created_at ASC, player_id
+              )::integer AS rank
+            FROM player_bests
+          ),
+          mine AS (
+            SELECT rank
+            FROM ranked
             WHERE player_id = ${playerId}::uuid
+          ),
+          window_start AS (
+            SELECT GREATEST(1, rank - 4)::integer AS first_rank
+            FROM mine
           )
           SELECT
-            best.score,
-            CASE
-              WHEN best.score IS NULL THEN NULL
-              ELSE (
-                SELECT count(*)::integer + 1
-                FROM leaderboard_scores s
-                WHERE s.score > best.score
-              )
-            END AS rank
-          FROM best
-        `
-      : [{ score: null, rank: null }];
+            r.name,
+            r.score,
+            r.coins,
+            r.rank,
+            (r.player_id = ${playerId}::uuid) AS "isYou"
+          FROM ranked r
+          CROSS JOIN window_start w
+          WHERE r.rank >= w.first_rank
+          ORDER BY r.rank ASC
+          LIMIT 10
+        `;
+      }
+    }
 
     response.status(200).json({
       leaderboard,
-      personalBest: personal[0]?.score ?? 0,
-      personalRank: personal[0]?.rank ?? 0,
+      personalBest,
+      personalRank,
+      rankWindow,
     });
   } catch {
     response.status(500).json({ error: 'Leaderboard request failed' });
