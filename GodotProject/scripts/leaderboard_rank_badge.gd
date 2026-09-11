@@ -310,7 +310,7 @@ func _build_rank_view() -> void:
 		var nm := Label.new()
 		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var display_name: String = _display_name(String(entry.get("name", "Pirate")))
-		nm.text = "YOU • %s" % display_name if is_you else display_name
+		nm.text = display_name
 		nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		nm.add_theme_font_size_override("font_size", 15)
 		nm.add_theme_color_override("font_color", Color("fff3c8") if is_you else INK)
