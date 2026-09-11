@@ -38,7 +38,7 @@ func _configure_share_button() -> void:
 	_share_button.focus_mode = Control.FOCUS_NONE
 	_share_button.z_index = 1000
 	_share_button.move_to_front()
-	_share_button.text = "↗"
+	_share_button.text = "⤴"
 	_share_button.add_theme_font_size_override("font_size", 22)
 
 	# Put Share directly beside PLAY AGAIN as a compact square button.
