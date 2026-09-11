@@ -11,7 +11,6 @@ boot_splash/bg_color=Color(0.035, 0.11, 0.16, 1)
 
 [autoload]
 CoinPickupAudio="*res://scripts/coin_pickup_audio.gd"
-NativeShareBridge="*res://scripts/native_share_bridge.gd"
 DeathSequenceAudio="*res://scripts/death_sequence_audio.gd"
 
 [display]
