@@ -1,17 +1,18 @@
 extends Node
 
-# Owns the SUNK screen Share button and opens Android's native share sheet.
-# The button is created dynamically by sunk_screen.gd, so this autoload waits
-# for it, replaces the old clipboard-only callback, and handles the press itself.
+# Robust native Android sharing for the dynamically-created SUNK screen button.
+# This bridge owns the touch itself, bypasses the old clipboard-only callback,
+# and follows Godot 4.4's documented AndroidRuntime + JavaClassWrapper Intent flow.
 
-var _share_hooked: bool = false
+var _share_button: Button = null
+var _last_share_msec: int = 0
 
 func _ready() -> void:
 	set_process(true)
+	set_process_input(true)
 
 func _process(_delta: float) -> void:
-	if _share_hooked:
-		set_process(false)
+	if is_instance_valid(_share_button):
 		return
 	var root: Node = get_tree().current_scene
 	if root == null:
@@ -19,68 +20,125 @@ func _process(_delta: float) -> void:
 	var button: Button = root.find_child("Share", true, false) as Button
 	if button == null:
 		return
+	_share_button = button
+	_configure_share_button()
 
-	# Remove the old sunk_screen.gd clipboard-only handler so this button has one
-	# authoritative action on Android.
-	for connection in button.pressed.get_connections():
+func _configure_share_button() -> void:
+	if not is_instance_valid(_share_button):
+		return
+
+	# Remove every previous Share callback. The old sunk_screen.gd callback only
+	# copied text to the clipboard, which made the button look broken on Android.
+	for connection in _share_button.pressed.get_connections():
 		var existing: Callable = connection.get("callable", Callable())
-		if existing.is_valid() and button.pressed.is_connected(existing):
-			button.pressed.disconnect(existing)
+		if existing.is_valid() and _share_button.pressed.is_connected(existing):
+			_share_button.pressed.disconnect(existing)
 
-	var callback := Callable(self, "_on_share_pressed")
-	button.pressed.connect(callback)
-	_share_hooked = true
-	set_process(false)
-	print("Pirate's Plunder share: native Share button hooked")
+	_share_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	_share_button.focus_mode = Control.FOCUS_NONE
+	_share_button.z_index = 1000
+	_share_button.move_to_front()
+
+	# Keep the Share control away from Android's bottom gesture/navigation area.
+	# It stays a small button near the upper-right of the SUNK screen.
+	var parent_control: Control = _share_button.get_parent() as Control
+	if parent_control != null:
+		var w: float = parent_control.size.x
+		var sx: float = w / 390.0 if w > 0.0 else 1.0
+		_share_button.position = Vector2(maxf(18.0, w - 108.0 * sx), 154.0)
+		_share_button.size = Vector2(90.0 * sx, 32.0)
+
+	print("Pirate's Plunder share: direct Android Share control ready")
+
+func _input(event: InputEvent) -> void:
+	if not is_instance_valid(_share_button) or not _share_button.visible:
+		return
+
+	var pressed: bool = false
+	var pos: Vector2 = Vector2.ZERO
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		pressed = touch.pressed
+		pos = touch.position
+	elif event is InputEventMouseButton:
+		var mouse := event as InputEventMouseButton
+		pressed = mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT
+		pos = mouse.position
+
+	if not pressed:
+		return
+	if not _share_button.get_global_rect().has_point(pos):
+		return
+
+	# Debounce in case a device produces duplicate touch events.
+	var now: int = Time.get_ticks_msec()
+	if now - _last_share_msec < 700:
+		get_viewport().set_input_as_handled()
+		return
+	_last_share_msec = now
+	get_viewport().set_input_as_handled()
+	_on_share_pressed()
 
 func _on_share_pressed() -> void:
 	var current_score: int = _find_current_score()
 	var message := "I scored %s in Pirate's Plunder! Can you beat it?" % _comma(current_score)
-	if not share_text(message):
-		push_error("Pirate's Plunder share: native share unavailable; copied to clipboard")
+	_set_footer("Opening Android share...")
 
-func share_text(message: String) -> bool:
-	if OS.get_name() == "Android" and _share_android(message):
-		return true
+	if OS.get_name() == "Android":
+		var result: String = _share_android(message)
+		if result == "ok":
+			_set_footer("Choose an app to share your score")
+			return
+		DisplayServer.clipboard_set(message)
+		_set_footer("%s — score copied instead" % result)
+		return
+
 	DisplayServer.clipboard_set(message)
-	return false
+	_set_footer("Score copied — ready to share!")
 
-func _share_android(message: String) -> bool:
+func _share_android(message: String) -> String:
+	# This is intentionally the same direct Intent flow shown in Godot's official
+	# AndroidRuntime / JavaClassWrapper documentation for sending text.
 	var android_runtime: Object = Engine.get_singleton("AndroidRuntime")
 	if android_runtime == null:
 		push_error("Pirate's Plunder share: AndroidRuntime unavailable")
-		return false
+		return "AndroidRuntime unavailable"
 
 	var activity: Variant = android_runtime.getActivity()
 	if activity == null:
 		push_error("Pirate's Plunder share: Android Activity unavailable")
-		return false
+		return "Android Activity unavailable"
 
-	# Launch the Android Intent from Android's UI thread. This avoids device/build
-	# differences where startActivity from Godot's game thread does nothing.
-	var launch_share := func() -> void:
-		var Intent: Variant = JavaClassWrapper.wrap("android.content.Intent")
-		if Intent == null:
-			push_error("Pirate's Plunder share: Intent class unavailable")
-			return
-		var intent: Variant = Intent.Intent()
-		if intent == null:
-			push_error("Pirate's Plunder share: could not create Intent")
-			return
-		intent.setAction(Intent.ACTION_SEND)
-		intent.putExtra(Intent.EXTRA_TEXT, message)
-		intent.setType("text/plain")
-		activity.startActivity(intent)
-		var exception: Variant = JavaClassWrapper.get_exception()
-		if exception != null:
-			push_error("Pirate's Plunder share: Android Intent failed: %s" % str(exception))
+	var Intent: Variant = JavaClassWrapper.wrap("android.content.Intent")
+	if Intent == null:
+		push_error("Pirate's Plunder share: Intent class unavailable")
+		return "Intent unavailable"
 
-	var runnable: Variant = android_runtime.createRunnableFromGodotCallable(launch_share)
-	if runnable == null:
-		push_error("Pirate's Plunder share: could not create Android UI runnable")
-		return false
-	activity.runOnUiThread(runnable)
-	return true
+	var intent: Variant = Intent.Intent()
+	if intent == null:
+		push_error("Pirate's Plunder share: could not create Intent")
+		return "Could not create share Intent"
+
+	intent.setAction(Intent.ACTION_SEND)
+	intent.putExtra(Intent.EXTRA_TEXT, message)
+	intent.setType("text/plain")
+	activity.startActivity(intent)
+
+	var exception: Variant = JavaClassWrapper.get_exception()
+	if exception != null:
+		var detail := str(exception)
+		push_error("Pirate's Plunder share: Android Intent failed: %s" % detail)
+		return "Android share failed"
+
+	return "ok"
+
+func _set_footer(text: String) -> void:
+	var root: Node = get_tree().current_scene
+	if root == null:
+		return
+	var footer: Label = root.find_child("Footer", true, false) as Label
+	if footer != null:
+		footer.text = text
 
 func _find_current_score() -> int:
 	var root: Node = get_tree().current_scene
