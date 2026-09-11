@@ -19,72 +19,83 @@ var rank_rows: Array[Dictionary] = []
 var personal_rank: int = 0
 var rank_ready: bool = false
 var active_tab: String = "leaderboard"
-var was_visible: bool = false
-var last_footer_text: String = ""
+var refresh_queued: bool = false
 
 func _ready() -> void:
 	http = HTTPRequest.new()
 	http.name = "RankTabRequest"
 	add_child(http)
 	http.request_completed.connect(_on_request_completed)
-	set_process(true)
 
-func _process(_delta: float) -> void:
+	# Do not poll the scene every frame. Bind once when the leaderboard UI appears.
+	get_tree().node_added.connect(_on_node_added)
+	call_deferred("_try_bind_existing")
+
+func _on_node_added(node: Node) -> void:
+	if node is VBoxContainer and node.name == "LeaderboardRows":
+		call_deferred("_bind_to_leaderboard", node)
+
+func _try_bind_existing() -> void:
+	if is_instance_valid(leaderboard_box) and is_instance_valid(sunk_root):
+		return
 	var scene: Node = get_tree().current_scene
 	if scene == null:
 		return
-
 	var found: VBoxContainer = scene.find_child("LeaderboardRows", true, false) as VBoxContainer
-	if found == null:
-		_reset_refs()
-		return
+	if found != null:
+		_bind_to_leaderboard(found)
 
+func _bind_to_leaderboard(found: VBoxContainer) -> void:
+	if found == null or not is_instance_valid(found):
+		return
 	var found_root: Control = found.get_parent() as Control
 	if found_root == null:
 		return
+	if leaderboard_box == found and sunk_root == found_root and is_instance_valid(leaderboard_tab) and is_instance_valid(rank_tab):
+		return
 
-	if sunk_root != found_root or leaderboard_box != found or not is_instance_valid(leaderboard_tab) or not is_instance_valid(rank_tab):
-		sunk_root = found_root
-		leaderboard_box = found
-		_create_tabs()
-
+	leaderboard_box = found
+	sunk_root = found_root
+	_create_tabs()
 	_layout_tabs()
 
-	var visible_now: bool = sunk_root.visible and sunk_root.is_visible_in_tree()
-	if is_instance_valid(leaderboard_tab):
-		leaderboard_tab.visible = visible_now
-	if is_instance_valid(rank_tab):
-		rank_tab.visible = visible_now
+	if not sunk_root.visibility_changed.is_connected(_on_sunk_visibility_changed):
+		sunk_root.visibility_changed.connect(_on_sunk_visibility_changed)
+	if not sunk_root.resized.is_connected(_layout_tabs):
+		sunk_root.resized.connect(_layout_tabs)
 
-	if visible_now and not was_visible:
+	_on_sunk_visibility_changed()
+
+func _on_sunk_visibility_changed() -> void:
+	if sunk_root == null or not is_instance_valid(sunk_root):
+		return
+	if not sunk_root.visible:
+		# Always start the next SUNK screen on the normal leaderboard tab.
 		active_tab = "leaderboard"
-		rank_ready = false
-		rank_rows.clear()
-		personal_rank = 0
-		_apply_tab_styles()
-		_show_leaderboard()
-		_load_player_id()
-		_request_rank_window()
+		return
 
-	var footer: Label = sunk_root.get_node_or_null("Footer") as Label
-	if visible_now and footer != null and footer.text != last_footer_text:
-		if footer.text.begins_with("Score submitted!"):
-			rank_ready = false
-			_request_rank_window()
-		last_footer_text = footer.text
+	active_tab = "leaderboard"
+	rank_ready = false
+	rank_rows.clear()
+	personal_rank = 0
+	refresh_queued = false
+	_apply_tab_styles()
+	_layout_tabs()
+	_load_player_id()
+	_request_rank_window()
+	# SunkScreen also refreshes itself on visibility_changed. Deferring avoids
+	# both scripts rebuilding the same rows in the same signal dispatch.
+	call_deferred("_show_leaderboard")
 
-	if visible_now and active_tab == "rank":
-		_ensure_rank_view()
+func on_score_submitted() -> void:
+	# Called directly by sunk_screen.gd after a successful POST. No footer polling.
+	rank_ready = false
+	if active_tab == "rank":
+		_build_loading_view()
+	_request_rank_window()
 
-	was_visible = visible_now
-
-func _reset_refs() -> void:
-	leaderboard_box = null
-	sunk_root = null
-	leaderboard_tab = null
-	rank_tab = null
-	was_visible = false
-	last_footer_text = ""
+func is_rank_active() -> bool:
+	return active_tab == "rank" and sunk_root != null and is_instance_valid(sunk_root) and sunk_root.visible
 
 func _create_tabs() -> void:
 	if sunk_root == null:
@@ -145,8 +156,6 @@ func _layout_tabs() -> void:
 	leaderboard_tab.size = Vector2(tab_width, tab_h)
 	rank_tab.position = Vector2(left + tab_width + gap, tab_y)
 	rank_tab.size = Vector2(tab_width, tab_h)
-
-	# Move the rows up into the space where the old LEADERBOARD title used to be.
 	leaderboard_box.position = Vector2(left, 408.0)
 	leaderboard_box.size = Vector2(total_width, 276.0)
 	leaderboard_tab.move_to_front()
@@ -204,7 +213,9 @@ func _request_rank_window() -> void:
 			_build_rank_view()
 		return
 	if http.get_http_client_status() != HTTPClient.STATUS_DISCONNECTED:
+		refresh_queued = true
 		return
+	refresh_queued = false
 	var err: Error = http.request("%s?playerId=%s" % [API_URL, player_id])
 	if err != OK:
 		rank_ready = true
@@ -214,6 +225,9 @@ func _request_rank_window() -> void:
 			_build_rank_view()
 
 func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	var should_refresh_again: bool = refresh_queued
+	refresh_queued = false
+
 	rank_rows.clear()
 	personal_rank = 0
 	if result == HTTPRequest.RESULT_SUCCESS and response_code == 200:
@@ -233,27 +247,15 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 							"rank": int(d.get("rank", 0)),
 							"is_you": bool(d.get("isYou", false))
 						})
-	rank_ready = true
-	if active_tab == "rank":
-		_build_rank_view()
 
-func _ensure_rank_view() -> void:
-	if leaderboard_box == null:
+	if should_refresh_again:
+		rank_ready = false
+		_request_rank_window()
 		return
-	var has_visible_rank_row: bool = false
-	var has_visible_non_rank_row: bool = false
-	for child in leaderboard_box.get_children():
-		if child is CanvasItem and not (child as CanvasItem).visible:
-			continue
-		if child.has_meta("rank_tab_row"):
-			has_visible_rank_row = true
-		else:
-			has_visible_non_rank_row = true
-	if has_visible_non_rank_row or not has_visible_rank_row:
-		if rank_ready:
-			_build_rank_view()
-		else:
-			_build_loading_view()
+
+	rank_ready = true
+	if active_tab == "rank" and sunk_root != null and is_instance_valid(sunk_root) and sunk_root.visible:
+		_build_rank_view()
 
 func _build_loading_view() -> void:
 	if leaderboard_box == null:
