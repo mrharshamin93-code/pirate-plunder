@@ -23,7 +23,7 @@ func _process(_delta: float) -> void:
 	# Remove the old sunk_screen.gd clipboard-only handler so this button has one
 	# authoritative action on Android.
 	for connection in button.pressed.get_connections():
-		var existing: Callable = connection.get("callable", Callable()) as Callable
+		var existing: Callable = connection.get("callable", Callable())
 		if existing.is_valid() and button.pressed.is_connected(existing):
 			button.pressed.disconnect(existing)
 
