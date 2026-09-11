@@ -1,7 +1,7 @@
 extends Node
 
 # Hooks the SUNK screen Share button and opens Android's native share target picker.
-# Uses Godot's AndroidRuntime + JavaClassWrapper APIs (Godot 4.4+).
+# Uses Godot 4.4+'s built-in AndroidRuntime + JavaClassWrapper APIs.
 # Clipboard remains a fallback on desktop/unsupported Android exports.
 
 func _ready() -> void:
@@ -43,32 +43,41 @@ func share_text(message: String) -> bool:
 	return false
 
 func _share_android(message: String) -> bool:
-	# AndroidRuntime and JavaClassWrapper are built into Godot Android exports in 4.4+.
+	# AndroidRuntime is an Engine singleton, but JavaClassWrapper is a built-in
+	# GDScript singleton. Treating JavaClassWrapper as an Engine singleton returns
+	# null on Android, which was why the old Share button silently fell back to
+	# copying text instead of opening the Android share sheet.
 	var android_runtime: Object = Engine.get_singleton("AndroidRuntime")
-	var java_wrapper: Object = Engine.get_singleton("JavaClassWrapper")
-	if android_runtime == null or java_wrapper == null:
+	if android_runtime == null:
+		push_error("Pirate's Plunder share: AndroidRuntime unavailable")
 		return false
 
-	var activity: Variant = android_runtime.call("getActivity")
+	var activity: Variant = android_runtime.getActivity()
 	if activity == null:
+		push_error("Pirate's Plunder share: Android Activity unavailable")
 		return false
 
-	var Intent: Variant = java_wrapper.call("wrap", "android.content.Intent")
+	var Intent: Variant = JavaClassWrapper.wrap("android.content.Intent")
 	if Intent == null:
+		push_error("Pirate's Plunder share: Intent class unavailable")
 		return false
 
 	var intent: Variant = Intent.Intent()
 	if intent == null:
+		push_error("Pirate's Plunder share: could not create Intent")
 		return false
 
-	# Match Godot's documented Android ACTION_SEND implementation directly.
 	intent.setAction(Intent.ACTION_SEND)
 	intent.putExtra(Intent.EXTRA_TEXT, message)
 	intent.setType("text/plain")
 
-	# Do not wrap this in another Runnable/closure. Godot's official example starts
-	# the Activity directly, which is also more reliable on older Android devices.
-	activity.startActivity(intent)
+	# Force Android's chooser so tapping SHARE visibly opens the native share sheet
+	# instead of silently selecting a previously-used handler.
+	var chooser: Variant = Intent.createChooser(intent, "Share Pirate's Plunder")
+	if chooser != null:
+		activity.startActivity(chooser)
+	else:
+		activity.startActivity(intent)
 	return true
 
 func _find_current_score() -> int:
