@@ -2,7 +2,8 @@ extends Node
 
 # Native Android share bridge for the SUNK screen.
 # The Share button itself owns the normal pressed signal on every platform.
-# Android also keeps a direct touch fallback in case a device swallows the GUI signal.
+# We also direct-hit-test mouse/touch input so the button still works if Godot
+# does not emit its GUI pressed signal on a particular device/build.
 
 const SHARE_ICON: Texture2D = preload("res://assets/share-icon.svg")
 
@@ -36,7 +37,7 @@ func _configure_share_button() -> void:
 		if existing.is_valid() and _share_button.pressed.is_connected(existing):
 			_share_button.pressed.disconnect(existing)
 
-	# Use one real Button signal on Windows and Android.
+	# Keep the normal Button signal, plus the direct input fallback below.
 	_share_button.pressed.connect(_on_share_pressed)
 	_share_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_share_button.focus_mode = Control.FOCUS_NONE
@@ -64,7 +65,7 @@ func _configure_share_button() -> void:
 	_share_button.add_child(icon_rect)
 
 	_keep_share_button_beside_play_again()
-	print("Pirate's Plunder share: button signal connected")
+	print("Pirate's Plunder share: button ready; direct hit testing enabled")
 
 func _keep_share_button_beside_play_again() -> void:
 	if not is_instance_valid(_share_button):
@@ -83,23 +84,34 @@ func _keep_share_button_beside_play_again() -> void:
 		_share_button.size = Vector2(square_size, square_size)
 
 func _input(event: InputEvent) -> void:
-	# Android-only fallback. Normal desktop clicks use Button.pressed directly.
-	if OS.get_name() != "Android":
-		return
+	# Direct hit testing on BOTH desktop and Android. This deliberately mirrors
+	# the input path from the earlier build where native Android sharing worked.
 	if not is_instance_valid(_share_button) or not _share_button.visible:
 		return
-	if not (event is InputEventScreenTouch):
+
+	var pressed: bool = false
+	var pos: Vector2 = Vector2.ZERO
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		pressed = touch.pressed
+		pos = touch.position
+	elif event is InputEventMouseButton:
+		var mouse := event as InputEventMouseButton
+		pressed = mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT
+		pos = mouse.position
+	else:
 		return
-	var touch := event as InputEventScreenTouch
-	if not touch.pressed:
+
+	if not pressed:
 		return
-	if not _share_button.get_global_rect().has_point(touch.position):
+	if not _share_button.get_global_rect().has_point(pos):
 		return
+
 	get_viewport().set_input_as_handled()
 	_on_share_pressed()
 
 func _on_share_pressed() -> void:
-	# Prevent the Android touch fallback and Button.pressed from opening twice.
+	# Prevent direct hit testing and Button.pressed from firing the action twice.
 	var now: int = Time.get_ticks_msec()
 	if now - _last_share_msec < 700:
 		return
@@ -107,6 +119,7 @@ func _on_share_pressed() -> void:
 
 	var current_score: int = _find_current_score()
 	var message := "I scored %s in Pirate's Plunder! Can you beat it?" % _comma(current_score)
+	print("Pirate's Plunder share button activated")
 
 	if OS.get_name() == "Android":
 		_set_footer("Opening Android share...")
