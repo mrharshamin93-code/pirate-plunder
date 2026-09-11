@@ -38,8 +38,9 @@ func _configure_share_button() -> void:
 	_share_button.focus_mode = Control.FOCUS_NONE
 	_share_button.z_index = 1000
 	_share_button.move_to_front()
-	_share_button.text = "⤴"
-	_share_button.add_theme_font_size_override("font_size", 22)
+	_share_button.text = ""
+	_share_button.icon = load("res://assets/share-icon.svg") as Texture2D
+	_share_button.expand_icon = false
 
 	# Put Share directly beside PLAY AGAIN as a compact square button.
 	# This preserves the working native-share logic while keeping it out of the UI above.
