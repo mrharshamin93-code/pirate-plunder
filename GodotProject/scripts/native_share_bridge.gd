@@ -1,9 +1,9 @@
 extends Node
 
-# Native Android share bridge for the SUNK screen.
-# The Share button itself owns the normal pressed signal on every platform.
-# We also direct-hit-test mouse/touch input so the button still works if Godot
-# does not emit its GUI pressed signal on a particular device/build.
+# Native Android sharing for the dynamically-created SUNK screen Share button.
+# This deliberately restores the exact direct-input flow from the last build
+# where Android sharing was confirmed working. Only the button placement/icon
+# are changed.
 
 const SHARE_ICON: Texture2D = preload("res://assets/share-icon.svg")
 
@@ -15,30 +15,28 @@ func _ready() -> void:
 	set_process_input(true)
 
 func _process(_delta: float) -> void:
-	if not is_instance_valid(_share_button):
-		var root: Node = get_tree().current_scene
-		if root == null:
-			return
-		var button: Button = root.find_child("Share", true, false) as Button
-		if button == null:
-			return
-		_share_button = button
-		_configure_share_button()
-	else:
-		_keep_share_button_beside_play_again()
+	if is_instance_valid(_share_button):
+		return
+	var root: Node = get_tree().current_scene
+	if root == null:
+		return
+	var button: Button = root.find_child("Share", true, false) as Button
+	if button == null:
+		return
+	_share_button = button
+	_configure_share_button()
 
 func _configure_share_button() -> void:
 	if not is_instance_valid(_share_button):
 		return
 
-	# Remove every previous callback, including the old clipboard-only handler.
+	# Restore the known-working behavior: remove the old sunk_screen callback and
+	# let this bridge own the mouse/touch directly.
 	for connection in _share_button.pressed.get_connections():
 		var existing: Callable = connection.get("callable", Callable())
 		if existing.is_valid() and _share_button.pressed.is_connected(existing):
 			_share_button.pressed.disconnect(existing)
 
-	# Keep the normal Button signal, plus the direct input fallback below.
-	_share_button.pressed.connect(_on_share_pressed)
 	_share_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	_share_button.focus_mode = Control.FOCUS_NONE
 	_share_button.z_index = 1000
@@ -46,8 +44,8 @@ func _configure_share_button() -> void:
 	_share_button.text = ""
 	_share_button.icon = null
 
-	# Use a child TextureRect for the three-node image. IGNORE ensures the image
-	# never consumes mouse/touch events intended for the Button.
+	# Option E: image-only three-node share icon. It ignores input completely so
+	# the Button remains the full touch target.
 	var old_icon: Node = _share_button.get_node_or_null("ShareIcon")
 	if old_icon != null:
 		old_icon.queue_free()
@@ -64,28 +62,23 @@ func _configure_share_button() -> void:
 	icon_rect.offset_bottom = -9.0
 	_share_button.add_child(icon_rect)
 
-	_keep_share_button_beside_play_again()
-	print("Pirate's Plunder share: button ready; direct hit testing enabled")
-
-func _keep_share_button_beside_play_again() -> void:
-	if not is_instance_valid(_share_button):
-		return
+	# The ONLY layout change from the known-working version: put the square Share
+	# control immediately to the right of PLAY AGAIN.
 	var parent_control: Control = _share_button.get_parent() as Control
-	if parent_control == null:
-		return
-	var play_again: Button = parent_control.get_node_or_null("PlayAgain") as Button
-	if play_again != null:
-		var square_size: float = minf(48.0, play_again.size.y)
-		var gap: float = 6.0
-		_share_button.position = Vector2(
-			play_again.position.x + play_again.size.x + gap,
-			play_again.position.y + (play_again.size.y - square_size) * 0.5
-		)
-		_share_button.size = Vector2(square_size, square_size)
+	if parent_control != null:
+		var play_again: Button = parent_control.get_node_or_null("PlayAgain") as Button
+		if play_again != null:
+			var square_size: float = minf(48.0, play_again.size.y)
+			var gap: float = 6.0
+			_share_button.position = Vector2(
+				play_again.position.x + play_again.size.x + gap,
+				play_again.position.y + (play_again.size.y - square_size) * 0.5
+			)
+			_share_button.size = Vector2(square_size, square_size)
+
+	print("Pirate's Plunder share: restored known-working direct input handler")
 
 func _input(event: InputEvent) -> void:
-	# Direct hit testing on BOTH desktop and Android. This deliberately mirrors
-	# the input path from the earlier build where native Android sharing worked.
 	if not is_instance_valid(_share_button) or not _share_button.visible:
 		return
 
@@ -99,30 +92,27 @@ func _input(event: InputEvent) -> void:
 		var mouse := event as InputEventMouseButton
 		pressed = mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT
 		pos = mouse.position
-	else:
-		return
 
 	if not pressed:
 		return
 	if not _share_button.get_global_rect().has_point(pos):
 		return
 
+	# Same debounce as the confirmed-working implementation.
+	var now: int = Time.get_ticks_msec()
+	if now - _last_share_msec < 700:
+		get_viewport().set_input_as_handled()
+		return
+	_last_share_msec = now
 	get_viewport().set_input_as_handled()
 	_on_share_pressed()
 
 func _on_share_pressed() -> void:
-	# Prevent direct hit testing and Button.pressed from firing the action twice.
-	var now: int = Time.get_ticks_msec()
-	if now - _last_share_msec < 700:
-		return
-	_last_share_msec = now
-
 	var current_score: int = _find_current_score()
 	var message := "I scored %s in Pirate's Plunder! Can you beat it?" % _comma(current_score)
-	print("Pirate's Plunder share button activated")
+	_set_footer("Opening Android share...")
 
 	if OS.get_name() == "Android":
-		_set_footer("Opening Android share...")
 		var result: String = _share_android(message)
 		if result == "ok":
 			_set_footer("Choose an app to share your score")
@@ -163,8 +153,10 @@ func _share_android(message: String) -> String:
 
 	var exception: Variant = JavaClassWrapper.get_exception()
 	if exception != null:
-		push_error("Pirate's Plunder share: Android Intent failed: %s" % str(exception))
+		var detail := str(exception)
+		push_error("Pirate's Plunder share: Android Intent failed: %s" % detail)
 		return "Android share failed"
+
 	return "ok"
 
 func _set_footer(text: String) -> void:
