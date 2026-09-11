@@ -26,6 +26,7 @@ var restart_in_progress: bool = false
 var leaderboard_ready: bool = false
 var cached_personal_best: int = 0
 var local_personal_best: int = 0
+var last_share_msec: int = 0
 
 func _ready() -> void:
 	color = Color(0, 0, 0, 0)
@@ -56,6 +57,10 @@ func _input(event: InputEvent) -> void:
 		pressed = mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT
 		pos = mouse.position
 	if not pressed:
+		return
+	if share_button != null and is_instance_valid(share_button) and share_button.visible and share_button.get_global_rect().has_point(pos):
+		_share_score()
+		get_viewport().set_input_as_handled()
 		return
 	var play_button: Button = $PlayAgain
 	if play_button.get_global_rect().has_point(pos):
@@ -196,8 +201,12 @@ func _build_ui() -> void:
 	add_child(submit_button)
 	share_button = Button.new()
 	share_button.name = "Share"
-	share_button.text = "SHARE  ↗"
-	share_button.add_theme_font_size_override("font_size", 12)
+	share_button.text = ""
+	share_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	share_button.focus_mode = Control.FOCUS_NONE
+	share_button.z_index = 200
+	share_button.icon = load("res://assets/share-icon.svg") as Texture2D
+	share_button.expand_icon = true
 	share_button.add_theme_color_override("font_color", Color("fff0b5"))
 	share_button.add_theme_stylebox_override("normal", _button_box(Color("3a2115"), GOLD_DARK, 2, 7))
 	share_button.add_theme_stylebox_override("hover", _button_box(Color("4a2b19"), GOLD, 2, 7))
@@ -222,6 +231,7 @@ func _build_ui() -> void:
 	footer_label.add_theme_color_override("font_color", Color("ffffff"))
 	add_child(footer_label)
 	$PlayAgain.move_to_front()
+	share_button.move_to_front()
 	_layout_ui()
 
 func _layout_ui() -> void:
@@ -248,7 +258,11 @@ func _layout_ui() -> void:
 	if footer_label:
 		footer_label.position = Vector2(42.0*sx, 708.0); footer_label.size = Vector2(w-84.0*sx, 22.0)
 	if share_button:
-		share_button.position = Vector2((w-94.0*sx)*0.5, 800.0); share_button.size = Vector2(94.0*sx, 28.0)
+		var play_button: Button = $PlayAgain
+		var square_size: float = minf(48.0, play_button.size.y)
+		share_button.position = Vector2(play_button.position.x + play_button.size.x + 6.0, play_button.position.y + (play_button.size.y - square_size) * 0.5)
+		share_button.size = Vector2(square_size, square_size)
+		share_button.move_to_front()
 
 func _refresh_from_game() -> void:
 	var game: Node = get_parent().get_parent()
@@ -335,10 +349,52 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 			footer_label.text = "Global top 10 • Personal best: %s" % _comma(cached_personal_best)
 
 func _share_score() -> void:
+	var now: int = Time.get_ticks_msec()
+	if now - last_share_msec < 500:
+		return
+	last_share_msec = now
 	var game: Node = get_parent().get_parent()
 	var current_score: int = int(game.get("score"))
-	DisplayServer.clipboard_set("I scored %s in Pirate's Plunder! Can you beat it?" % _comma(current_score))
+	var message: String = "I scored %s in Pirate's Plunder! Can you beat my high score?" % _comma(current_score)
+	if OS.get_name() == "Android":
+		footer_label.text = "Opening share..."
+		var result: String = _share_android(message)
+		if result == "ok":
+			footer_label.text = "Choose an app to share your score"
+		else:
+			DisplayServer.clipboard_set(message)
+			footer_label.text = "%s — score copied instead" % result
+		return
+	DisplayServer.clipboard_set(message)
 	footer_label.text = "Score copied — ready to share!"
+	print("Pirate's Plunder share: %s" % message)
+
+func _share_android(message: String) -> String:
+	var android_runtime: Object = Engine.get_singleton("AndroidRuntime")
+	if android_runtime == null:
+		push_error("Pirate's Plunder share: AndroidRuntime unavailable")
+		return "AndroidRuntime unavailable"
+	var activity: Variant = android_runtime.getActivity()
+	if activity == null:
+		push_error("Pirate's Plunder share: Android Activity unavailable")
+		return "Android Activity unavailable"
+	var Intent: Variant = JavaClassWrapper.wrap("android.content.Intent")
+	if Intent == null:
+		push_error("Pirate's Plunder share: Intent unavailable")
+		return "Intent unavailable"
+	var intent: Variant = Intent.Intent()
+	if intent == null:
+		push_error("Pirate's Plunder share: could not create Intent")
+		return "Could not create share Intent"
+	intent.setAction(Intent.ACTION_SEND)
+	intent.putExtra(Intent.EXTRA_TEXT, message)
+	intent.setType("text/plain")
+	activity.startActivity(intent)
+	var exception: Variant = JavaClassWrapper.get_exception()
+	if exception != null:
+		push_error("Pirate's Plunder share failed: %s" % str(exception))
+		return "Android share failed"
+	return "ok"
 
 func _clear_leaderboard() -> void:
 	for child in leaderboard_box.get_children():
