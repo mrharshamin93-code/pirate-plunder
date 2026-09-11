@@ -10,6 +10,7 @@ const RED: Color = Color("8d1718")
 const INK: Color = Color("24160f")
 const API_URL: String = "https://pirate-plunder.vercel.app/api/leaderboard"
 const SAVE_PATH: String = "user://leaderboard.cfg"
+const PLAY_STORE_URL: String = "https://play.google.com/store/apps/details?id=com.harshamin.piratesplunder"
 
 var name_entry: LineEdit
 var submit_button: Button
@@ -355,7 +356,7 @@ func _share_score() -> void:
 	last_share_msec = now
 	var game: Node = get_parent().get_parent()
 	var current_score: int = int(game.get("score"))
-	var message: String = "I scored %s in Pirate's Plunder! Can you beat my high score?" % _comma(current_score)
+	var message: String = "I scored %s in Pirate's Plunder! Can you beat my high score?\n\nDownload Pirate's Plunder: %s" % [_comma(current_score), PLAY_STORE_URL]
 	if OS.get_name() == "Android":
 		footer_label.text = "Opening share..."
 		var result: String = _share_android(message)
@@ -366,7 +367,7 @@ func _share_score() -> void:
 			footer_label.text = "%s — score copied instead" % result
 		return
 	DisplayServer.clipboard_set(message)
-	footer_label.text = "Score copied — ready to share!"
+	footer_label.text = "Score + download link copied!"
 	print("Pirate's Plunder share: %s" % message)
 
 func _share_android(message: String) -> String:
