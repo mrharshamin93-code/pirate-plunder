@@ -10,7 +10,7 @@ func _ready() -> void:
 	_player = AudioStreamPlayer.new()
 	_player.name = "DeathSequencePlayer"
 	_player.stream = DEATH_SOUND
-	_player.volume_db = -1.0
+	_player.volume_db = -8.0
 	add_child(_player)
 
 func _process(_delta: float) -> void:
