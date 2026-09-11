@@ -38,19 +38,26 @@ func _configure_share_button() -> void:
 	_share_button.focus_mode = Control.FOCUS_NONE
 	_share_button.z_index = 1000
 	_share_button.move_to_front()
+	_share_button.text = "↗"
+	_share_button.add_theme_font_size_override("font_size", 22)
 
-	# Keep the working Share control out of the title/score UI. Place it centered
-	# beneath PLAY AGAIN with a small bottom margin on the 390x844 game canvas.
+	# Put Share directly beside PLAY AGAIN as a compact square button.
+	# This preserves the working native-share logic while keeping it out of the UI above.
 	var parent_control: Control = _share_button.get_parent() as Control
 	if parent_control != null:
-		var w: float = parent_control.size.x
-		var h: float = parent_control.size.y
-		var sx: float = w / 390.0 if w > 0.0 else 1.0
-		var button_w: float = 96.0 * sx
-		var button_h: float = 28.0
-		var target_y: float = minf(802.0, h - button_h - 14.0)
-		_share_button.position = Vector2((w - button_w) * 0.5, target_y)
-		_share_button.size = Vector2(button_w, button_h)
+		var play_again: Button = parent_control.get_node_or_null("PlayAgain") as Button
+		if play_again != null:
+			var square_size: float = minf(48.0, play_again.size.y)
+			var gap: float = 6.0
+			_share_button.position = Vector2(
+				play_again.position.x + play_again.size.x + gap,
+				play_again.position.y + (play_again.size.y - square_size) * 0.5
+			)
+			_share_button.size = Vector2(square_size, square_size)
+		else:
+			var w: float = parent_control.size.x
+			_share_button.position = Vector2(maxf(8.0, w - 56.0), 741.0)
+			_share_button.size = Vector2(48.0, 48.0)
 
 	print("Pirate's Plunder share: direct Android Share control ready")
 
