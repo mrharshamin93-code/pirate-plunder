@@ -1,18 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
-  <defs>
-    <polygon id="spike" points="15.5,0 8.39,-1.88 8.39,1.88" fill="#242a30" stroke="#07151b" stroke-width="1.1" stroke-linejoin="round"/>
-  </defs>
+  <g transform="translate(18 18)" fill="#242a30" stroke="#07151b" stroke-width="1.1" stroke-linejoin="round">
+    <polygon points="15.5,0 8.39,-1.88 8.39,1.88"/>
+    <polygon points="15.5,0 8.39,-1.88 8.39,1.88" transform="rotate(36)"/>
+    <polygon points="15.5,0 8.39,-1.88 8.39,1.88" transform="rotate(72)"/>
+    <polygon points="15.5,0 8.39,-1.88 8.39,1.88" transform="rotate(108)"/>
+    <polygon points="15.5,0 8.39,-1.88 8.39,1.88" transform="rotate(144)"/>
+    <polygon points="15.5,0 8.39,-1.88 8.39,1.88" transform="rotate(180)"/>
+    <polygon points="15.5,0 8.39,-1.88 8.39,1.88" transform="rotate(216)"/>
+    <polygon points="15.5,0 8.39,-1.88 8.39,1.88" transform="rotate(252)"/>
+    <polygon points="15.5,0 8.39,-1.88 8.39,1.88" transform="rotate(288)"/>
+    <polygon points="15.5,0 8.39,-1.88 8.39,1.88" transform="rotate(324)"/>
+  </g>
   <g transform="translate(18 18)">
-    <use href="#spike" transform="rotate(0)"/>
-    <use href="#spike" transform="rotate(36)"/>
-    <use href="#spike" transform="rotate(72)"/>
-    <use href="#spike" transform="rotate(108)"/>
-    <use href="#spike" transform="rotate(144)"/>
-    <use href="#spike" transform="rotate(180)"/>
-    <use href="#spike" transform="rotate(216)"/>
-    <use href="#spike" transform="rotate(252)"/>
-    <use href="#spike" transform="rotate(288)"/>
-    <use href="#spike" transform="rotate(324)"/>
     <circle cx="0" cy="0" r="8.6" fill="#10151a" stroke="#07151b" stroke-width="1.6"/>
     <circle cx="-2" cy="-2" r="6.7" fill="#242a30"/>
     <circle cx="-3.7" cy="-3.8" r="2" fill="#59636d" opacity="0.46"/>
