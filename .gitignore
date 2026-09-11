@@ -52,6 +52,9 @@ GodotProject/export_presets.backup.cfg
 GodotProject/*.aab
 GodotProject/**/*.import
 GodotProject/**/*.uid
+GodotProject/assets/android-main-fit.png
+GodotProject/assets/android-adaptive-foreground-fit.png
+GodotProject/assets/android-system-splash-fit.png
 
 # Bun
 bun.lock
