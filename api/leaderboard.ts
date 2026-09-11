@@ -73,17 +73,32 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       ORDER BY score DESC, created_at ASC
       LIMIT 10
     `;
+
     const personal = PLAYER_ID.test(playerId)
       ? await sql`
-          SELECT max(score)::integer AS score
-          FROM leaderboard_scores
-          WHERE player_id = ${playerId}::uuid
+          WITH best AS (
+            SELECT max(score)::integer AS score
+            FROM leaderboard_scores
+            WHERE player_id = ${playerId}::uuid
+          )
+          SELECT
+            best.score,
+            CASE
+              WHEN best.score IS NULL THEN NULL
+              ELSE (
+                SELECT count(*)::integer + 1
+                FROM leaderboard_scores s
+                WHERE s.score > best.score
+              )
+            END AS rank
+          FROM best
         `
-      : [{ score: null }];
+      : [{ score: null, rank: null }];
 
     response.status(200).json({
       leaderboard,
       personalBest: personal[0]?.score ?? 0,
+      personalRank: personal[0]?.rank ?? 0,
     });
   } catch {
     response.status(500).json({ error: 'Leaderboard request failed' });
