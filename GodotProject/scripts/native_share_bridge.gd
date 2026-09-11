@@ -39,14 +39,18 @@ func _configure_share_button() -> void:
 	_share_button.z_index = 1000
 	_share_button.move_to_front()
 
-	# Keep the Share control away from Android's bottom gesture/navigation area.
-	# It stays a small button near the upper-right of the SUNK screen.
+	# Keep the working Share control out of the title/score UI. Place it centered
+	# beneath PLAY AGAIN with a small bottom margin on the 390x844 game canvas.
 	var parent_control: Control = _share_button.get_parent() as Control
 	if parent_control != null:
 		var w: float = parent_control.size.x
+		var h: float = parent_control.size.y
 		var sx: float = w / 390.0 if w > 0.0 else 1.0
-		_share_button.position = Vector2(maxf(18.0, w - 108.0 * sx), 154.0)
-		_share_button.size = Vector2(90.0 * sx, 32.0)
+		var button_w: float = 96.0 * sx
+		var button_h: float = 28.0
+		var target_y: float = minf(802.0, h - button_h - 14.0)
+		_share_button.position = Vector2((w - button_w) * 0.5, target_y)
+		_share_button.size = Vector2(button_w, button_h)
 
 	print("Pirate's Plunder share: direct Android Share control ready")
 
