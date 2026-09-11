@@ -60,12 +60,11 @@ export default ({ config }: ConfigContext): ExpoConfig => {
         'android.permission.WRITE_EXTERNAL_STORAGE',
       ],
 
+      // Use the standard launcher icon instead of the adaptive foreground setup.
+      // icon-512-maskable.png was byte-for-byte identical to icon-512.png, so
+      // Android treated the entire finished icon as an adaptive foreground layer
+      // and enlarged/cropped it inside the launcher mask.
       icon: './public/icons/icon-512.png',
-
-      adaptiveIcon: {
-        foregroundImage: './public/icons/icon-512-maskable.png',
-        backgroundColor: '#06202B',
-      },
     },
 
     // Web
