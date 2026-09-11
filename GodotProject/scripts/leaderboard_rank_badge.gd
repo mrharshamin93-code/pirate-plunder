@@ -64,6 +64,12 @@ func _bind_to_leaderboard(found: VBoxContainer) -> void:
 	if not sunk_root.resized.is_connected(_layout_tabs):
 		sunk_root.resized.connect(_layout_tabs)
 
+	# Listen to the existing leaderboard request instead of polling footer text.
+	# This fires after loads/submissions and keeps RANK current without per-frame work.
+	var board_request: HTTPRequest = sunk_root.get_node_or_null("LeaderboardRequest") as HTTPRequest
+	if board_request != null and not board_request.request_completed.is_connected(_on_leaderboard_request_completed):
+		board_request.request_completed.connect(_on_leaderboard_request_completed)
+
 	_on_sunk_visibility_changed()
 
 func _on_sunk_visibility_changed() -> void:
@@ -87,8 +93,21 @@ func _on_sunk_visibility_changed() -> void:
 	# both scripts rebuilding the same rows in the same signal dispatch.
 	call_deferred("_show_leaderboard")
 
+func _on_leaderboard_request_completed(result: int, response_code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
+	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+		return
+	if sunk_root == null or not is_instance_valid(sunk_root) or not sunk_root.visible:
+		return
+	# A completed leaderboard request may be a successful score submission.
+	# Refresh rank data once; if RANK is open, restore it after sunk_screen.gd
+	# rebuilds the top-10 rows in its own request callback.
+	rank_ready = false
+	if active_tab == "rank":
+		_build_loading_view()
+	call_deferred("_request_rank_window")
+
 func on_score_submitted() -> void:
-	# Called directly by sunk_screen.gd after a successful POST. No footer polling.
+	# Public hook retained for future direct calls; it is event-driven as well.
 	rank_ready = false
 	if active_tab == "rank":
 		_build_loading_view()
