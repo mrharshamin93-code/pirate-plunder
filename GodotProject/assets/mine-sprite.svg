@@ -1,12 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
-  <g transform="translate(18 18)">
-    <polygon points="15.5,0 8.39,-1.88 8.39,1.88" fill="#242a30" stroke="#07151b" stroke-width="1.1" stroke-linejoin="round"/>
-    <use href="#spike"/>
-  </g>
   <defs>
     <polygon id="spike" points="15.5,0 8.39,-1.88 8.39,1.88" fill="#242a30" stroke="#07151b" stroke-width="1.1" stroke-linejoin="round"/>
   </defs>
   <g transform="translate(18 18)">
+    <use href="#spike" transform="rotate(0)"/>
     <use href="#spike" transform="rotate(36)"/>
     <use href="#spike" transform="rotate(72)"/>
     <use href="#spike" transform="rotate(108)"/>
