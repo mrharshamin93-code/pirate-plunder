@@ -27,7 +27,9 @@ const MINE_UNARMED_SPEED: float = 12.0
 const WHIRLPOOL_CHANCE: float = 0.13
 const WHIRLPOOL_CORE: float = 12.0
 const WHIRLPOOL_PULL: float = 500.0
-const WHIRLPOOL_BOAT_MAX_PULL: float = 340.0
+const WHIRLPOOL_BOAT_PULL: float = 650.0
+const WHIRLPOOL_BOAT_MAX_PULL: float = 430.0
+const WHIRLPOOL_BOAT_ESCAPE_MULTIPLIER: float = 0.46
 const WHIRLPOOL_MINE_PULL: float = 0.34
 const WHIRLPOOL_MINE_MAX_SPEED: float = 105.0
 const WHIRLPOOL_LIFE: float = 6.5
@@ -160,15 +162,18 @@ func _update_boat(dt: float) -> void:
 		var viewport_size: Vector2 = get_viewport_rect().size
 		var full_field_range: float = maxf(1.0, viewport_size.length())
 		var proximity: float = clampf(1.0 - dist / full_field_range, 0.08, 1.0)
-		var strength: float = 0.22 + 2.35 * proximity * proximity * proximity
-		var pull_accel: float = minf(strength * WHIRLPOOL_PULL, WHIRLPOOL_BOAT_MAX_PULL)
+		# Stronger overall attraction, especially when the player is not steering directly away.
+		var strength: float = 0.28 + 3.0 * proximity * proximity * proximity
+		var pull_accel: float = minf(strength * WHIRLPOOL_BOAT_PULL, WHIRLPOOL_BOAT_MAX_PULL)
 		var inward: Vector2 = offset / dist
 		var tangent: Vector2 = Vector2(-inward.y, inward.x)
 		var escape_input: float = 0.0
 		if magnitude > 0.0:
 			var input_dir: Vector2 = input_vector.normalized()
 			escape_input = clampf(input_dir.dot(-inward), 0.0, 1.0) * magnitude
-		pull_accel *= lerpf(1.0, 0.58, escape_input)
+		# Full-power steering directly away cuts the force just enough to escape;
+		# partial or sideways input still gets punished by the stronger pull.
+		pull_accel *= lerpf(1.0, WHIRLPOOL_BOAT_ESCAPE_MULTIPLIER, escape_input)
 		var pull: float = pull_accel * dt
 		boat_vel += inward * pull + tangent * pull * (0.12 + 0.16 * proximity)
 
