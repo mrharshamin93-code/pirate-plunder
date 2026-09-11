@@ -45,6 +45,14 @@ android
 ios
 notes.txt
 
+# Godot local/generated files
+GodotProject/.godot/
+GodotProject/export_presets.cfg
+GodotProject/export_presets.backup.cfg
+GodotProject/*.aab
+GodotProject/**/*.import
+GodotProject/**/*.uid
+
 # Bun
 bun.lock
 bun.lockb
