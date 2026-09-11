@@ -6,8 +6,8 @@
       <stop offset="1" stop-color="#B96800"/>
     </linearGradient>
   </defs>
-  <!-- Keep all critical artwork inside Android's safe zone. -->
-  <g transform="translate(216 216)">
+  <!-- Heavy padding for Android 12+ system splash icon masks. -->
+  <g transform="translate(216 216) scale(0.56)">
     <circle r="122" fill="#0B1F2A" stroke="url(#gold)" stroke-width="12"/>
     <g transform="translate(0 -44)" fill="#F7F2E8">
       <circle cy="-18" r="32"/>
