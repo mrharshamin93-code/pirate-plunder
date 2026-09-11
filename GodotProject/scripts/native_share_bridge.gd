@@ -1,8 +1,8 @@
 extends Node
 
-# Reliable native sharing for the SUNK screen.
-# The SunkPanel builds its Share button dynamically, so this autoload keeps
-# looking until that button exists and then connects directly to it.
+# Owns the SUNK screen Share button and opens Android's native share sheet.
+# The button is created dynamically by sunk_screen.gd, so this autoload waits
+# for it, replaces the old clipboard-only callback, and handles the press itself.
 
 var _share_hooked: bool = false
 
@@ -19,28 +19,33 @@ func _process(_delta: float) -> void:
 	var button: Button = root.find_child("Share", true, false) as Button
 	if button == null:
 		return
+
+	# Remove the old sunk_screen.gd clipboard-only handler so this button has one
+	# authoritative action on Android.
+	for connection in button.pressed.get_connections():
+		var existing: Callable = connection.get("callable", Callable()) as Callable
+		if existing.is_valid() and button.pressed.is_connected(existing):
+			button.pressed.disconnect(existing)
+
 	var callback := Callable(self, "_on_share_pressed")
-	if not button.pressed.is_connected(callback):
-		button.pressed.connect(callback)
+	button.pressed.connect(callback)
 	_share_hooked = true
 	set_process(false)
+	print("Pirate's Plunder share: native Share button hooked")
 
 func _on_share_pressed() -> void:
 	var current_score: int = _find_current_score()
 	var message := "I scored %s in Pirate's Plunder! Can you beat it?" % _comma(current_score)
-	share_text(message)
+	if not share_text(message):
+		push_error("Pirate's Plunder share: native share unavailable; copied to clipboard")
 
 func share_text(message: String) -> bool:
-	if OS.get_name() == "Android":
-		if _share_android(message):
-			return true
+	if OS.get_name() == "Android" and _share_android(message):
+		return true
 	DisplayServer.clipboard_set(message)
 	return false
 
 func _share_android(message: String) -> bool:
-	# This follows Godot's documented AndroidRuntime + JavaClassWrapper Intent
-	# pattern directly. Avoid createChooser here because JNI overload resolution
-	# has been unreliable on some Android/Godot builds.
 	var android_runtime: Object = Engine.get_singleton("AndroidRuntime")
 	if android_runtime == null:
 		push_error("Pirate's Plunder share: AndroidRuntime unavailable")
@@ -51,21 +56,30 @@ func _share_android(message: String) -> bool:
 		push_error("Pirate's Plunder share: Android Activity unavailable")
 		return false
 
-	var Intent: Variant = JavaClassWrapper.wrap("android.content.Intent")
-	var intent: Variant = Intent.Intent()
-	if intent == null:
-		push_error("Pirate's Plunder share: could not create Intent")
-		return false
+	# Launch the Android Intent from Android's UI thread. This avoids device/build
+	# differences where startActivity from Godot's game thread does nothing.
+	var launch_share := func() -> void:
+		var Intent: Variant = JavaClassWrapper.wrap("android.content.Intent")
+		if Intent == null:
+			push_error("Pirate's Plunder share: Intent class unavailable")
+			return
+		var intent: Variant = Intent.Intent()
+		if intent == null:
+			push_error("Pirate's Plunder share: could not create Intent")
+			return
+		intent.setAction(Intent.ACTION_SEND)
+		intent.putExtra(Intent.EXTRA_TEXT, message)
+		intent.setType("text/plain")
+		activity.startActivity(intent)
+		var exception: Variant = JavaClassWrapper.get_exception()
+		if exception != null:
+			push_error("Pirate's Plunder share: Android Intent failed: %s" % str(exception))
 
-	intent.setAction(Intent.ACTION_SEND)
-	intent.putExtra(Intent.EXTRA_TEXT, message)
-	intent.setType("text/plain")
-	activity.startActivity(intent)
-
-	var exception: Variant = JavaClassWrapper.get_exception()
-	if exception != null:
-		push_error("Pirate's Plunder share: Android Intent failed: %s" % str(exception))
+	var runnable: Variant = android_runtime.createRunnableFromGodotCallable(launch_share)
+	if runnable == null:
+		push_error("Pirate's Plunder share: could not create Android UI runnable")
 		return false
+	activity.runOnUiThread(runnable)
 	return true
 
 func _find_current_score() -> int:
