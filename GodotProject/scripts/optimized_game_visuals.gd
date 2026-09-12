@@ -55,45 +55,62 @@ func _draw_whirlpool(w: Dictionary) -> void:
 	draw_arc(p, 20.0, spin * 0.2, spin * 0.2 + 4.7, 22, Color(0.43, 0.82, 0.88, 0.27), 1.5, true)
 	draw_arc(p, 11.0, -spin * 0.18, -spin * 0.18 + 4.9, 18, Color(0.72, 0.94, 0.97, 0.23), 1.1, true)
 
-# Clean gold spark burst for coin pickups. No expanding rings or circular halo.
+# Rich gold spark burst for coin pickups. Dense layered sparks, no rings or halo.
 func _draw_pickup_burst(burst: Dictionary) -> void:
 	var life: float = float(burst.get("life", 0.0))
 	var progress: float = 1.0 - clampf(life / PICKUP_BURST_LIFE, 0.0, 1.0)
-	var fade: float = pow(1.0 - progress, 1.35)
+	var fade: float = pow(1.0 - progress, 1.18)
 	var p: Vector2 = burst.get("pos", Vector2.ZERO)
 	var tier: int = clampi(int(burst.get("tier", 0)), 0, 6)
-	var strength: float = 1.0 + float(tier) * 0.055
+	var strength: float = 1.0 + float(tier) * 0.065
 
-	# Immediate sharp flash made from rays only, avoiding the old circular flash.
-	var flash: float = clampf(1.0 - progress / 0.22, 0.0, 1.0)
+	# Bright multi-length impact rays give a richer initial hit without a circular flash.
+	var flash: float = clampf(1.0 - progress / 0.28, 0.0, 1.0)
 	if flash > 0.0:
-		for ray in range(8):
-			var a: float = float(ray) / 8.0 * TAU + 0.12
-			var inner: float = 3.0 + progress * 5.0
-			var outer: float = (15.0 + float(ray % 2) * 6.0) * strength * (1.0 + progress * 0.8)
+		for ray in range(12):
+			var a: float = float(ray) / 12.0 * TAU + 0.10 + float(ray % 3) * 0.018
+			var inner: float = 2.5 + progress * 6.0
+			var outer: float = (18.0 + float(ray % 3) * 7.0) * strength * (1.0 + progress * 0.75)
 			var dir := Vector2(cos(a), sin(a))
-			draw_line(p + dir * inner, p + dir * outer, Color(1.0, 0.91, 0.42, 0.92 * flash), 1.5, true)
+			var ray_color := Color(1.0, 0.80 + float(ray % 2) * 0.12, 0.16, 0.96 * flash)
+			draw_line(p + dir * inner, p + dir * outer, ray_color, 1.35 + float(ray % 2) * 0.55, true)
 
-	# Fast outward gold particles with a few bright star-shaped sparkles.
-	var particle_count: int = 12 + tier
+	# Dense primary burst: amber cores, pale-gold glints and short streak tails.
+	var particle_count: int = 18 + tier * 2
 	for i in range(particle_count):
-		var a: float = float(i) / float(particle_count) * TAU + float(i % 3) * 0.09
-		var speed: float = 0.78 + float(i % 4) * 0.10
-		var dist: float = lerpf(4.0, 42.0 * strength * speed, progress)
-		var pos: Vector2 = p + Vector2(cos(a), sin(a)) * dist
-		var alpha: float = fade * (0.78 + float(i % 3) * 0.08)
-		var radius: float = maxf(0.55, (2.15 - progress * 1.45) * (0.85 + float(i % 2) * 0.18))
-		draw_circle(pos, radius, Color(1.0, 0.67, 0.03, alpha))
-		if i % 3 == 0:
-			_draw_star(pos, (2.7 + float(i % 2) * 1.0) * fade + 0.35, Color(1.0, 0.96, 0.62, 1.0), alpha)
+		var a: float = float(i) / float(particle_count) * TAU + float(i % 5) * 0.055 + float(tier) * 0.025
+		var speed: float = 0.72 + float(i % 5) * 0.085
+		var dist: float = lerpf(4.0, 48.0 * strength * speed, progress)
+		var dir := Vector2(cos(a), sin(a))
+		var pos: Vector2 = p + dir * dist
+		var alpha: float = fade * (0.80 + float(i % 4) * 0.05)
+		var radius: float = maxf(0.55, (2.45 - progress * 1.55) * (0.82 + float(i % 3) * 0.13))
+		draw_circle(pos, radius, Color(1.0, 0.64 + float(i % 3) * 0.07, 0.025, alpha))
+		if i % 2 == 0:
+			var tail_len: float = (4.0 + float(i % 4) * 1.8) * fade
+			draw_line(pos - dir * tail_len, pos, Color(1.0, 0.78, 0.12, alpha * 0.62), 1.05, true)
+		if i % 4 == 0:
+			_draw_star(pos, (3.1 + float(i % 3) * 0.65) * fade + 0.45, Color(1.0, 0.97, 0.68, 1.0), alpha)
 
-	# A few delayed glints make the tail feel crisp instead of forming a ring.
-	for i in range(4):
-		var a: float = float(i) / 4.0 * TAU + 0.43
-		var dist: float = lerpf(8.0, 30.0 * strength, progress)
+	# Secondary inner sparks move on a slightly delayed curve to make the burst feel layered.
+	var secondary_progress: float = clampf((progress - 0.08) / 0.92, 0.0, 1.0)
+	var secondary_fade: float = pow(1.0 - secondary_progress, 1.35)
+	for i in range(8):
+		var a: float = float(i) / 8.0 * TAU + 0.36
+		var dist: float = lerpf(3.0, (24.0 + float(i % 3) * 5.0) * strength, secondary_progress)
+		var pos := p + Vector2(cos(a), sin(a)) * dist
+		var alpha: float = secondary_fade * 0.88
+		draw_circle(pos, 1.4 * secondary_fade + 0.45, Color(1.0, 0.91, 0.36, alpha))
+		if i % 2 == 0:
+			_draw_star(pos, 2.8 * secondary_fade + 0.5, Color(1.0, 1.0, 0.80, 1.0), alpha)
+
+	# A handful of delayed premium glints keep the tail sparkling rather than fading flat.
+	for i in range(6):
+		var a: float = float(i) / 6.0 * TAU + 0.51
+		var dist: float = lerpf(9.0, 35.0 * strength, progress)
 		var glint_pos: Vector2 = p + Vector2(cos(a), sin(a)) * dist
-		var glint_alpha: float = clampf((1.0 - abs(progress - 0.48) * 2.4), 0.0, 1.0) * fade
-		_draw_star(glint_pos, 3.4 * fade + 0.5, Color(1.0, 0.88, 0.22, 1.0), glint_alpha)
+		var glint_alpha: float = clampf(1.0 - abs(progress - (0.40 + float(i % 2) * 0.10)) * 2.7, 0.0, 1.0) * fade
+		_draw_star(glint_pos, (4.1 + float(i % 2) * 1.0) * fade + 0.55, Color(1.0, 0.89, 0.24, 1.0), glint_alpha)
 
 func _draw_boat(p: Vector2, a: float) -> void:
 	var idx: int = BoatCollectibles.get_selected_index()
