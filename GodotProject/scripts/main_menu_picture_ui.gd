@@ -187,6 +187,7 @@ func _style_board_tab(button: Button, selected: bool) -> void:
 		button.add_theme_stylebox_override("pressed", _board_box(Color("d8bd82"), MENU_GOLD_DARK, 2, 8))
 
 func _build_board_page() -> void:
+	print("[LB DEBUG] _build_board_page start")
 	board_page = Control.new()
 	board_page.name = "FreshLeaderboardPage"
 	board_page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -194,6 +195,9 @@ func _build_board_page() -> void:
 	board_page.z_index = 3000
 	add_child(board_page)
 	board_page.move_to_front()
+	board_page.visibility_changed.connect(func() -> void:
+		print("[LB DEBUG] board_page visibility_changed visible=", board_page.visible)
+	)
 
 	var background := ColorRect.new()
 	background.color = Color("0b3340")
@@ -283,9 +287,28 @@ func _build_board_page() -> void:
 	back.add_theme_stylebox_override("normal", _board_box(MENU_RED, MENU_GOLD, 3, 10))
 	back.add_theme_stylebox_override("hover", _board_box(Color("a51e1f"), Color("ffd86a"), 3, 10))
 	back.add_theme_stylebox_override("pressed", _board_box(Color("671011"), MENU_GOLD_DARK, 3, 10))
-	back.pressed.connect(_close_board_page)
+	back.gui_input.connect(func(event: InputEvent) -> void:
+		if event is InputEventMouseButton:
+			var mouse := event as InputEventMouseButton
+			if mouse.button_index == MOUSE_BUTTON_LEFT:
+				print("[LB DEBUG] MAIN MENU gui_input mouse pressed=", mouse.pressed, " pos=", mouse.position, " global_rect=", back.get_global_rect())
+		elif event is InputEventScreenTouch:
+			var touch := event as InputEventScreenTouch
+			print("[LB DEBUG] MAIN MENU gui_input touch pressed=", touch.pressed, " pos=", touch.position, " global_rect=", back.get_global_rect())
+	)
+	back.button_down.connect(func() -> void:
+		print("[LB DEBUG] MAIN MENU button_down visible_before=", board_page.visible, " rect=", back.get_global_rect())
+	)
+	back.button_up.connect(func() -> void:
+		print("[LB DEBUG] MAIN MENU button_up visible_before=", board_page.visible)
+	)
+	back.pressed.connect(func() -> void:
+		print("[LB DEBUG] MAIN MENU pressed signal fired")
+		_close_board_page()
+	)
 	board_page.add_child(back)
 	back.move_to_front()
+	print("[LB DEBUG] MAIN MENU button created local_pos=", back.position, " size=", back.size, " global_rect=", back.get_global_rect(), " page_visible=", board_page.visible)
 
 	board_http = HTTPRequest.new()
 	board_http.name = "FreshLeaderboardRequest"
@@ -294,8 +317,13 @@ func _build_board_page() -> void:
 	_refresh_board_view()
 
 func _close_board_page() -> void:
+	print("[LB DEBUG] _close_board_page ENTER board_page_valid=", board_page != null and is_instance_valid(board_page))
 	if board_page != null and is_instance_valid(board_page):
+		print("[LB DEBUG] before hide visible=", board_page.visible, " mouse_filter=", board_page.mouse_filter)
 		board_page.hide()
+		print("[LB DEBUG] after hide visible=", board_page.visible)
+	else:
+		print("[LB DEBUG] close failed: board_page null/invalid")
 
 func _refresh_board_view() -> void:
 	if board_rows == null or board_status == null:
