@@ -25,7 +25,6 @@ func _ready():
 	if c.load(SAVE)==OK:
 		selected=clampi(int(c.get_value("boats","selected",0)),0,7)
 	preview=selected
-	# Keep startup light: no ship art is decoded until Collectibles actually needs it.
 	textures.resize(FILES.size())
 	get_tree().node_added.connect(func(n):
 		if n.name=="PlayButton": call_deferred("_attach"))
@@ -36,16 +35,13 @@ func get_selected_name()->String: return NAMES[selected]
 func get_selected_color()->Color: return COLORS[selected]
 
 func _ship_texture(index:int)->Texture2D:
-	if index<0 or index>=FILES.size():
-		return null
-	if textures[index]==null:
-		textures[index]=_read_ship(index)
+	if index<0 or index>=FILES.size(): return null
+	if textures[index]==null: textures[index]=_read_ship(index)
 	return textures[index]
 
 func _read_ship(index:int)->Texture2D:
 	var source=load("res://assets/ships/%s.svg" % FILES[index]) as Texture2D
-	if source==null:
-		return null
+	if source==null: return null
 	var atlas=AtlasTexture.new()
 	atlas.atlas=source
 	atlas.region=CROP_RECTS[index]
@@ -94,9 +90,7 @@ func _build():
 	panel.add_theme_stylebox_override("panel",bg)
 	menu.add_child(panel)
 
-	var heading=_label("COLLECTIBLES",Vector2(18,10),Vector2(330,44),27,Color("f6d18a"))
-	panel.add_child(heading)
-
+	panel.add_child(_label("COLLECTIBLES",Vector2(18,10),Vector2(330,44),27,Color("f6d18a")))
 	var tab=Button.new()
 	tab.text="SHIPS"
 	tab.disabled=true
@@ -121,8 +115,9 @@ func _build():
 	frame.position=Vector2(55,168)
 	frame.size=Vector2(256,205)
 	var fs=StyleBoxFlat.new()
-	fs.bg_color=Color("102a35")
-	fs.border_color=Color("28718e")
+	# White showcase background so the exact ship SVG artwork reads clearly.
+	fs.bg_color=Color("ffffff")
+	fs.border_color=Color("d8e0e4")
 	fs.set_border_width_all(2)
 	fs.set_corner_radius_all(18)
 	frame.add_theme_stylebox_override("panel",fs)
@@ -153,9 +148,7 @@ func _build():
 	equip.add_theme_font_size_override("font_size",17)
 	equip.pressed.connect(_equip)
 	panel.add_child(equip)
-
-	var hint=_label("Use the arrows to browse ships",Vector2(45,444),Vector2(276,24),12,Color("9ec6d2"))
-	panel.add_child(hint)
+	panel.add_child(_label("Use the arrows to browse ships",Vector2(45,444),Vector2(276,24),12,Color("9ec6d2")))
 
 	var back=Button.new()
 	back.text="BACK"
