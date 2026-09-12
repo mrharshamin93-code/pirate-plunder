@@ -76,9 +76,6 @@ func _add_feedback(key: String, design_rect: Rect2) -> void:
 	picture_pressed[key] = false
 
 func _handle_picture_input(key: String, hit: Control, event: InputEvent) -> void:
-	# Only activate a picture button on release if that same hitbox received the
-	# corresponding press. This prevents a release from falling through a page
-	# that was just closed and immediately reopening Leaderboard underneath.
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
@@ -194,8 +191,9 @@ func _build_board_page() -> void:
 	board_page.name = "FreshLeaderboardPage"
 	board_page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	board_page.mouse_filter = Control.MOUSE_FILTER_STOP
-	board_page.z_index = 50000
+	board_page.z_index = 3000
 	add_child(board_page)
+	board_page.move_to_front()
 
 	var background := ColorRect.new()
 	background.color = Color("0b3340")
@@ -272,9 +270,6 @@ func _build_board_page() -> void:
 	board_status.add_theme_color_override("font_color", Color("fff1c4"))
 	outer.add_child(board_status)
 
-	# Same interaction pattern as Collectibles: a normal Button that closes its
-	# overlay on release. The picture hitboxes now ignore release-only events, so
-	# this cannot reopen Leaderboard underneath on wide screens.
 	var back := Button.new()
 	back.name = "LeaderboardBackButton"
 	back.text = "MAIN MENU"
@@ -282,6 +277,7 @@ func _build_board_page() -> void:
 	back.size = Vector2(168, 48)
 	back.focus_mode = Control.FOCUS_NONE
 	back.mouse_filter = Control.MOUSE_FILTER_STOP
+	back.z_index = 100
 	back.add_theme_font_size_override("font_size", 20)
 	back.add_theme_color_override("font_color", Color("fff1bd"))
 	back.add_theme_stylebox_override("normal", _board_box(MENU_RED, MENU_GOLD, 3, 10))
