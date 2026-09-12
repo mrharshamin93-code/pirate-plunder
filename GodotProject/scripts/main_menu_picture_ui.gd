@@ -263,7 +263,7 @@ func _build_board_page() -> void:
 
 	var back := Button.new()
 	back.name = "LeaderboardBackButton"
-	back.text = "BACK"
+	back.text = "MAIN MENU"
 	back.position = Vector2(111, 730)
 	back.size = Vector2(168, 48)
 	back.focus_mode = Control.FOCUS_NONE
@@ -285,8 +285,10 @@ func _build_board_page() -> void:
 	_refresh_board_view()
 
 func _close_board_page() -> void:
-	if board_page != null and is_instance_valid(board_page):
-		board_page.visible = false
+	# Reloading the current game scene is deliberate here. The Main Menu is part
+	# of this scene, so a reload returns to a guaranteed clean menu state and
+	# avoids the touch-release event reopening the leaderboard underneath it.
+	get_tree().reload_current_scene()
 
 func _refresh_board_view() -> void:
 	if board_rows == null or board_status == null:
