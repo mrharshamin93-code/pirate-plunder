@@ -15,6 +15,8 @@ var sunk_root: Control = null
 var leaderboard_tab: Button = null
 var rank_tab: Button = null
 var player_id: String = ""
+var saved_name: String = ""
+var local_personal_best: int = 0
 var rank_rows: Array[Dictionary] = []
 var personal_rank: int = 0
 var rank_ready: bool = false
@@ -87,7 +89,7 @@ func _on_sunk_visibility_changed() -> void:
 	refresh_queued = false
 	_apply_tab_styles()
 	_layout_tabs()
-	_load_player_id()
+	_load_player_history()
 	_request_rank_window()
 	# SunkScreen also refreshes itself on visibility_changed. Deferring avoids
 	# both scripts rebuilding the same rows in the same signal dispatch.
@@ -99,8 +101,9 @@ func _on_leaderboard_request_completed(result: int, response_code: int, _headers
 	if sunk_root == null or not is_instance_valid(sunk_root) or not sunk_root.visible:
 		return
 	# A completed leaderboard request may be a successful score submission.
-	# Refresh rank data once; if RANK is open, restore it after sunk_screen.gd
-	# rebuilds the top-10 rows in its own request callback.
+	# Reload local history as well, because SunkScreen saves a new personal best
+	# as soon as the run ends even if the player has not submitted that run.
+	_load_player_history()
 	rank_ready = false
 	if active_tab == "rank":
 		_build_loading_view()
@@ -108,6 +111,7 @@ func _on_leaderboard_request_completed(result: int, response_code: int, _headers
 
 func on_score_submitted() -> void:
 	# Public hook retained for future direct calls; it is event-driven as well.
+	_load_player_history()
 	rank_ready = false
 	if active_tab == "rank":
 		_build_loading_view()
@@ -192,6 +196,7 @@ func _show_leaderboard() -> void:
 func _show_rank() -> void:
 	active_tab = "rank"
 	_apply_tab_styles()
+	_load_player_history()
 	if rank_ready:
 		_build_rank_view()
 	else:
@@ -216,14 +221,16 @@ func _style_tab(button: Button, active: bool) -> void:
 		button.add_theme_stylebox_override("hover", _button_box(WOOD_LIGHT, GOLD, 2, 8))
 		button.add_theme_stylebox_override("pressed", _button_box(Color("24150e"), GOLD_DARK, 2, 8))
 
-func _load_player_id() -> void:
+func _load_player_history() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(SAVE_PATH) == OK:
 		player_id = String(cfg.get_value("player", "id", ""))
+		saved_name = String(cfg.get_value("player", "name", "")).strip_edges()
+		local_personal_best = maxi(0, int(cfg.get_value("player", "personal_best", 0)))
 
 func _request_rank_window() -> void:
 	if player_id.is_empty():
-		_load_player_id()
+		_load_player_history()
 	if player_id.is_empty() or http == null:
 		rank_ready = true
 		rank_rows.clear()
@@ -235,7 +242,12 @@ func _request_rank_window() -> void:
 		refresh_queued = true
 		return
 	refresh_queued = false
-	var err: Error = http.request("%s?playerId=%s" % [API_URL, player_id])
+	var url: String = "%s?playerId=%s" % [API_URL, player_id]
+	if local_personal_best > 0:
+		url += "&localBest=%d" % local_personal_best
+	if not saved_name.is_empty():
+		url += "&playerName=%s" % saved_name.uri_encode()
+	var err: Error = http.request(url)
 	if err != OK:
 		rank_ready = true
 		rank_rows.clear()
@@ -269,6 +281,7 @@ func _on_request_completed(result: int, response_code: int, _headers: PackedStri
 
 	if should_refresh_again:
 		rank_ready = false
+		_load_player_history()
 		_request_rank_window()
 		return
 
@@ -297,7 +310,10 @@ func _build_rank_view() -> void:
 	if rank_rows.is_empty() or personal_rank <= 0:
 		var empty := Label.new()
 		empty.set_meta("rank_tab_row", true)
-		empty.text = "SUBMIT A SCORE TO SEE YOUR RANK"
+		if local_personal_best <= 0:
+			empty.text = "SUBMIT A SCORE TO SEE YOUR RANK"
+		else:
+			empty.text = "RANK TEMPORARILY UNAVAILABLE"
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		empty.custom_minimum_size = Vector2(0, 70)
