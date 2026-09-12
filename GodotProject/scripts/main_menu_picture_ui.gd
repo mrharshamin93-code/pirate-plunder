@@ -285,10 +285,10 @@ func _build_board_page() -> void:
 	_refresh_board_view()
 
 func _close_board_page() -> void:
-	# Reloading the current game scene is deliberate here. The Main Menu is part
-	# of this scene, so a reload returns to a guaranteed clean menu state and
-	# avoids the touch-release event reopening the leaderboard underneath it.
-	get_tree().reload_current_scene()
+	# Same behavior as the working Collectibles BACK button: simply hide the
+	# overlay and immediately reveal the already-active main menu underneath.
+	if board_page != null and is_instance_valid(board_page):
+		board_page.visible = false
 
 func _refresh_board_view() -> void:
 	if board_rows == null or board_status == null:
