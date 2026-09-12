@@ -6,12 +6,10 @@ const MENU_SAVE_PATH: String = "user://leaderboard.cfg"
 
 const PLAY_RECT: Rect2 = Rect2(168, 900, 495, 145)
 const LEADERBOARD_RECT: Rect2 = Rect2(168, 1063, 495, 130)
+const COLLECTIBLES_RECT: Rect2 = Rect2(168, 1213, 495, 130)
 const SETTINGS_RECT: Rect2 = Rect2(30, 48, 88, 106)
-const COLLECTIBLES_ART_RECT: Rect2 = Rect2(168, 1213, 495, 130)
-const CLEAN_OCEAN_SOURCE: Rect2 = Rect2(168, 760, 495, 130)
 
 var exact_bg: TextureRect
-var collectibles_cover: TextureRect
 var menu_popup: Control
 var button_map: Dictionary = {}
 
@@ -35,20 +33,11 @@ func _build_ui() -> void:
 	exact_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(exact_bg)
 
-	# Remove the baked Collectibles button from the image itself.
-	collectibles_cover = TextureRect.new()
-	collectibles_cover.name = "CollectiblesRemovalPatch"
-	var patch_atlas := AtlasTexture.new()
-	patch_atlas.atlas = exact_bg.texture
-	patch_atlas.region = CLEAN_OCEAN_SOURCE
-	collectibles_cover.texture = patch_atlas
-	collectibles_cover.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	collectibles_cover.stretch_mode = TextureRect.STRETCH_SCALE
-	collectibles_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(collectibles_cover)
-
+	# The artwork already contains all visible menu buttons. These controls are
+	# transparent hitboxes only, so nothing extra is drawn over the image.
 	play_button = _create_button("PlayButton", PLAY_RECT, Callable(self, "_start_game_action"))
 	_create_button("LeaderboardButton", LEADERBOARD_RECT, Callable(self, "_open_fresh_leaderboard"))
+	_create_button("CollectiblesButton", COLLECTIBLES_RECT, Callable(self, "_open_collectibles"))
 	_create_button("SettingsButton", SETTINGS_RECT, Callable(self, "_open_settings"))
 	_layout_ui()
 
@@ -72,6 +61,7 @@ func _create_button(button_name: String, design_rect: Rect2, action: Callable) -
 	button.add_theme_stylebox_override("hover", transparent)
 	button.add_theme_stylebox_override("pressed", transparent)
 	button.add_theme_stylebox_override("focus", transparent)
+	button.add_theme_stylebox_override("disabled", transparent)
 	add_child(button)
 
 	var overlay := ColorRect.new()
@@ -94,7 +84,7 @@ func _set_pressed(button_name: String, pressed: bool) -> void:
 	entry["pressed"] = pressed
 	button_map[button_name] = entry
 	var overlay: ColorRect = entry["overlay"] as ColorRect
-	overlay.color = Color(0, 0, 0, 0.18) if pressed else Color(0, 0, 0, 0)
+	overlay.color = Color(0, 0, 0, 0.16) if pressed else Color(0, 0, 0, 0)
 	_layout_ui()
 
 func _layout_ui() -> void:
@@ -105,10 +95,6 @@ func _layout_ui() -> void:
 	var scale_factor: float = maxf(size.x / DESIGN_SIZE.x, size.y / DESIGN_SIZE.y)
 	var drawn_size: Vector2 = DESIGN_SIZE * scale_factor
 	var offset: Vector2 = (size - drawn_size) * 0.5
-
-	if collectibles_cover != null:
-		collectibles_cover.position = offset + COLLECTIBLES_ART_RECT.position * scale_factor
-		collectibles_cover.size = COLLECTIBLES_ART_RECT.size * scale_factor
 
 	for key: Variant in button_map.keys():
 		var entry: Dictionary = button_map[String(key)]
@@ -133,6 +119,11 @@ func _layout_ui() -> void:
 
 func _start_game_action() -> void:
 	_start_from_menu()
+
+func _open_collectibles() -> void:
+	var collectibles: Node = get_node_or_null("/root/BoatCollectibles")
+	if collectibles != null and collectibles.has_method("open_from_menu"):
+		collectibles.call("open_from_menu", self)
 
 func _open_settings() -> void:
 	_show_popup("SETTINGS", "Settings page coming soon.")
