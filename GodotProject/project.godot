@@ -17,7 +17,7 @@ LeaderboardRankBadge="*res://scripts/leaderboard_rank_badge.gd"
 SunkHeaderIcons="*res://scripts/sunk_header_icons.gd"
 BoatCollectibles="*res://scripts/boat_collectibles_score_only.gd"
 LeaderboardMainMenuDebug="*res://scripts/leaderboard_main_menu_debug.gd"
-PlayerProfileSettings="*res://scripts/player_profile_settings.gd"
+PlayerProfileSettings="*res://scripts/player_profile_settings_layout.gd"
 SettingsInputGuard="*res://scripts/settings_input_guard.gd"
 
 [display]
