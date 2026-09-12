@@ -91,7 +91,6 @@ func _build_overlay() -> void:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(bg)
 
-	# Replace the baked SHIPS / TRIALS strip with real clickable tabs.
 	var tab_cover := Panel.new()
 	tab_cover.position = Vector2(32, 120)
 	tab_cover.size = Vector2(326, 58)
@@ -207,7 +206,6 @@ func _build_overlay() -> void:
 	equip_button.pressed.connect(_equip)
 	overlay.add_child(equip_button)
 
-	# Clickable MINES view. Mine collectible artwork can be populated here later.
 	mines_panel = Control.new()
 	mines_panel.position = Vector2(22, 190)
 	mines_panel.size = Vector2(346, 350)
@@ -232,22 +230,22 @@ func _build_overlay() -> void:
 	mines_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mines_panel.add_child(mines_text)
 
-	# Keep only a slim cover over the baked thumbnail strip.
-	var thumbnail_cover := Panel.new()
-	thumbnail_cover.position = Vector2(0, 540)
-	thumbnail_cover.size = Vector2(390, 60)
-	thumbnail_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var thumbnail_style := StyleBoxFlat.new()
-	thumbnail_style.bg_color = Color("071925")
-	thumbnail_style.border_color = Color("6f4725")
-	thumbnail_style.set_border_width_all(2)
-	thumbnail_cover.add_theme_stylebox_override("panel", thumbnail_style)
-	overlay.add_child(thumbnail_cover)
+	# Fully cover the baked thumbnail strip so ships are only shown in the main showcase.
+	var bottom_cover := Panel.new()
+	bottom_cover.position = Vector2(0, 540)
+	bottom_cover.size = Vector2(390, 170)
+	bottom_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bottom_style := StyleBoxFlat.new()
+	bottom_style.bg_color = Color("071925")
+	bottom_style.border_color = Color("6f4725")
+	bottom_style.set_border_width_all(2)
+	bottom_cover.add_theme_stylebox_override("panel", bottom_style)
+	overlay.add_child(bottom_cover)
 
-	# Smaller footer box that only contains the Back button.
+	# Compact footer: Back button only.
 	var footer := Panel.new()
-	footer.position = Vector2(78, 612)
-	footer.size = Vector2(234, 84)
+	footer.position = Vector2(95, 594)
+	footer.size = Vector2(200, 68)
 	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var footer_style := StyleBoxFlat.new()
 	footer_style.bg_color = Color("071925")
@@ -259,7 +257,7 @@ func _build_overlay() -> void:
 
 	var back := Button.new()
 	back.text = "BACK"
-	back.position = Vector2(120, 630)
+	back.position = Vector2(120, 605)
 	back.size = Vector2(150, 46)
 	back.focus_mode = Control.FOCUS_NONE
 	back.pressed.connect(_close)
