@@ -3,10 +3,7 @@ extends Node
 const SAVE_PATH := "user://collectibles.cfg"
 const BOATS := ["Plunderer", "Crimson Raider", "Black Pearl", "Royal Fortune", "Ghost Ship", "Inferno", "Sea Serpent", "Golden Galleon"]
 const SUBTITLES := ["Default Ship", "Raider Variant", "Shadow Variant", "Royal Variant", "Spectral Variant", "Infernal Variant", "Serpent Variant", "Legendary Variant"]
-const SHIP_SVGS := [
-	"res://assets/ships/plunderer.svg", "res://assets/ships/crimson_raider.svg", "res://assets/ships/black_pearl.svg", "res://assets/ships/royal_fortune.svg",
-	"res://assets/ships/ghost_ship.svg", "res://assets/ships/inferno.svg", "res://assets/ships/sea_serpent.svg", "res://assets/ships/golden_galleon.svg"
-]
+const SHIP_SVGS := ["res://assets/ships/plunderer.svg", "res://assets/ships/crimson_raider.svg", "res://assets/ships/black_pearl.svg", "res://assets/ships/royal_fortune.svg", "res://assets/ships/ghost_ship.svg", "res://assets/ships/inferno.svg", "res://assets/ships/sea_serpent.svg", "res://assets/ships/golden_galleon.svg"]
 const COLORS := [Color("9a6231"), Color("c8322f"), Color("20242b"), Color("f2e5c2"), Color("7fa7a1"), Color("e64a19"), Color("159b91"), Color("d6a51e")]
 var selected_index := 0
 var preview_index := 0
@@ -17,17 +14,18 @@ var preview_texture: TextureRect
 var ship_title: Label
 var ship_subtitle: Label
 var equip_button: Button
+var ship_textures: Array[Texture2D] = []
 
 func _ready() -> void:
 	_load_selection()
 	preview_index = selected_index
+	_build_ship_texture_cache()
 	get_tree().node_added.connect(_on_node_added)
 	call_deferred("_find_menu")
 
 func _load_selection() -> void:
 	var cfg := ConfigFile.new()
-	if cfg.load(SAVE_PATH) == OK:
-		selected_index = clampi(int(cfg.get_value("boats", "selected", 0)), 0, BOATS.size() - 1)
+	if cfg.load(SAVE_PATH) == OK: selected_index = clampi(int(cfg.get_value("boats", "selected", 0)), 0, BOATS.size() - 1)
 
 func _save_selection() -> void:
 	var cfg := ConfigFile.new()
@@ -37,6 +35,36 @@ func _save_selection() -> void:
 func get_selected_index() -> int: return selected_index
 func get_selected_name() -> String: return BOATS[selected_index]
 func get_selected_color() -> Color: return COLORS[selected_index]
+
+# The original ship SVGs contain the exact generated PNG artwork as embedded base64.
+# Godot's SVG importer does not reliably render embedded <image> data, which caused
+# blank previews and clipped slivers. Decode that exact artwork into ImageTextures.
+# Pure-vector SVGs fall back to Godot's normal SVG loader.
+func _build_ship_texture_cache() -> void:
+	ship_textures.clear()
+	for path in SHIP_SVGS:
+		ship_textures.append(_texture_from_ship_svg(path))
+
+func _texture_from_ship_svg(path: String) -> Texture2D:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file != null:
+		var svg_text := file.get_as_text()
+		var marker := "base64,"
+		var start := svg_text.find(marker)
+		if start >= 0:
+			start += marker.length()
+			var finish := svg_text.find("\"", start)
+			if finish > start:
+				var raw := Marshalls.base64_to_raw(svg_text.substr(start, finish - start))
+				var image := Image.new()
+				if image.load_png_from_buffer(raw) == OK:
+					return ImageTexture.create_from_image(image)
+	var fallback := load(path) as Texture2D
+	return fallback
+
+func _ship_texture(index: int) -> Texture2D:
+	if index >= 0 and index < ship_textures.size(): return ship_textures[index]
+	return null
 
 func _on_node_added(node: Node) -> void:
 	if node.name == "PlayButton" or node.name == "GameTitle": call_deferred("_find_menu")
@@ -97,7 +125,6 @@ func _build_collectibles_panel() -> void:
 	outer.set_corner_radius_all(18)
 	panel.add_theme_stylebox_override("panel", outer)
 	menu.add_child(panel)
-
 	var heading := Label.new()
 	heading.text = "COLLECTIBLES"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -106,7 +133,6 @@ func _build_collectibles_panel() -> void:
 	heading.add_theme_font_size_override("font_size", 27)
 	heading.add_theme_color_override("font_color", Color("f6d18a"))
 	panel.add_child(heading)
-
 	var ships_tab := Button.new()
 	ships_tab.text = "SHIPS"
 	ships_tab.disabled = true
@@ -121,7 +147,6 @@ func _build_collectibles_panel() -> void:
 	tab_box.set_corner_radius_all(10)
 	ships_tab.add_theme_stylebox_override("disabled", tab_box)
 	panel.add_child(ships_tab)
-
 	ship_title = Label.new()
 	ship_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ship_title.position = Vector2(25, 103)
@@ -136,7 +161,6 @@ func _build_collectibles_panel() -> void:
 	ship_subtitle.add_theme_font_size_override("font_size", 13)
 	ship_subtitle.add_theme_color_override("font_color", Color("d9f4fb"))
 	panel.add_child(ship_subtitle)
-
 	var showcase := Panel.new()
 	showcase.position = Vector2(55, 165)
 	showcase.size = Vector2(256, 205)
@@ -154,7 +178,6 @@ func _build_collectibles_panel() -> void:
 	preview_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	preview_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	showcase.add_child(preview_texture)
-
 	for data in [["<", 12, -1], [">", 316, 1]]:
 		var arrow := Button.new()
 		arrow.text = data[0]
@@ -164,7 +187,6 @@ func _build_collectibles_panel() -> void:
 		arrow.add_theme_font_size_override("font_size", 24)
 		arrow.pressed.connect(_cycle_preview.bind(data[2]))
 		panel.add_child(arrow)
-
 	equip_button = Button.new()
 	equip_button.position = Vector2(96, 378)
 	equip_button.size = Vector2(174, 44)
@@ -172,7 +194,6 @@ func _build_collectibles_panel() -> void:
 	equip_button.add_theme_font_size_override("font_size", 17)
 	equip_button.pressed.connect(_equip_preview)
 	panel.add_child(equip_button)
-
 	var board := Panel.new()
 	board.position = Vector2(16, 432)
 	board.size = Vector2(334, 224)
@@ -184,8 +205,6 @@ func _build_collectibles_panel() -> void:
 	board_style.set_corner_radius_all(10)
 	board.add_theme_stylebox_override("panel", board_style)
 	panel.add_child(board)
-
-	# Strict 4 x 2 grid. Every ship is contained inside its own 76x101 card.
 	for i in range(BOATS.size()):
 		var col := i % 4
 		var row := int(i / 4)
@@ -199,16 +218,14 @@ func _build_collectibles_panel() -> void:
 		card.clip_contents = true
 		card.pressed.connect(_select_preview.bind(i))
 		board.add_child(card)
-
 		var thumb := TextureRect.new()
-		thumb.texture = load(SHIP_SVGS[i]) as Texture2D
+		thumb.texture = _ship_texture(i)
 		thumb.position = Vector2(10, 3)
 		thumb.size = Vector2(54, 70)
 		thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(thumb)
-
 		var label := Label.new()
 		label.text = BOATS[i]
 		label.position = Vector2(3, 74)
@@ -220,7 +237,6 @@ func _build_collectibles_panel() -> void:
 		label.add_theme_color_override("font_color", Color("2b1a0c"))
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(label)
-
 	var close := Button.new()
 	close.text = "BACK"
 	close.position = Vector2(108, 670)
@@ -234,21 +250,18 @@ func _build_collectibles_panel() -> void:
 func _cycle_preview(delta: int) -> void:
 	preview_index = wrapi(preview_index + delta, 0, BOATS.size())
 	_refresh_collectibles_ui()
-
 func _select_preview(index: int) -> void:
 	preview_index = clampi(index, 0, BOATS.size() - 1)
 	_refresh_collectibles_ui()
-
 func _equip_preview() -> void:
 	selected_index = preview_index
 	_save_selection()
 	_refresh_collectibles_ui()
-
 func _refresh_collectibles_ui() -> void:
 	if panel == null or not is_instance_valid(panel): return
 	if ship_title: ship_title.text = BOATS[preview_index].to_upper()
 	if ship_subtitle: ship_subtitle.text = SUBTITLES[preview_index]
-	if preview_texture: preview_texture.texture = load(SHIP_SVGS[preview_index]) as Texture2D
+	if preview_texture: preview_texture.texture = _ship_texture(preview_index)
 	if equip_button:
 		equip_button.text = "EQUIPPED" if preview_index == selected_index else "SELECT SHIP"
 		equip_button.disabled = preview_index == selected_index
@@ -263,12 +276,10 @@ func _refresh_collectibles_ui() -> void:
 			elif i == preview_index:
 				style.border_color = Color("f6c53d")
 				style.set_border_width_all(3)
-			else:
-				style.border_color = Color(0,0,0,0)
+			else: style.border_color = Color(0,0,0,0)
 			style.set_corner_radius_all(7)
 			card.add_theme_stylebox_override("normal", style)
 			card.add_theme_stylebox_override("hover", style)
 			card.add_theme_stylebox_override("pressed", style)
-
 func _close_panel() -> void:
 	if panel != null and is_instance_valid(panel): panel.visible = false
