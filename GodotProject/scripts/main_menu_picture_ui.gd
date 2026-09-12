@@ -2,6 +2,7 @@ extends "res://scripts/main_menu_mobile.gd"
 
 var picture_hitboxes: Dictionary = {}
 var picture_feedback: Dictionary = {}
+var picture_pressed: Dictionary = {}
 
 func _build_ui() -> void:
 	exact_bg = TextureRect.new()
@@ -12,8 +13,6 @@ func _build_ui() -> void:
 	exact_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(exact_bg)
 
-	# Only the art in main_menu_exact.png is visible. This invisible Button exists
-	# solely because the inherited gameplay-start code expects play_button.
 	play_button = Button.new()
 	play_button.name = "PlayButton"
 	play_button.text = ""
@@ -34,8 +33,6 @@ func _build_ui() -> void:
 	play_button.mouse_exited.connect(func() -> void: _set_picture_feedback("play", false))
 	_add_feedback("play", PLAY_RECT)
 
-	# Leaderboard / Collectibles / Settings are plain hit areas, not visible
-	# Godot Buttons. The visible controls are the ones painted in the picture.
 	_add_picture_hitbox("leaderboard", LEADERBOARD_RECT, Callable(self, "_open_fresh_leaderboard"))
 	_add_picture_hitbox("collectibles", COLLECTIBLES_RECT, Callable(self, "_open_collectibles"))
 	_add_picture_hitbox("settings", SETTINGS_RECT, Callable(self, "_open_settings"))
@@ -55,13 +52,21 @@ func _add_picture_hitbox(key: String, design_rect: Rect2, action: Callable) -> v
 	hit.mouse_exited.connect(func() -> void: _set_picture_feedback(key, false))
 
 func _add_feedback(key: String, design_rect: Rect2) -> void:
-	var feedback := ColorRect.new()
+	var feedback := TextureRect.new()
 	feedback.name = "%sPressFeedback" % key.capitalize()
-	feedback.color = Color(0, 0, 0, 0)
+	var atlas := AtlasTexture.new()
+	atlas.atlas = exact_bg.texture
+	atlas.region = design_rect
+	feedback.texture = atlas
+	feedback.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	feedback.stretch_mode = TextureRect.STRETCH_SCALE
 	feedback.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	feedback.set_meta("design_rect", design_rect)
+	feedback.set_meta("base_position", Vector2.ZERO)
+	feedback.set_meta("base_size", Vector2.ZERO)
 	add_child(feedback)
 	picture_feedback[key] = feedback
+	picture_pressed[key] = false
 
 func _handle_picture_input(key: String, hit: Control, event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
@@ -81,9 +86,26 @@ func _handle_picture_input(key: String, hit: Control, event: InputEvent) -> void
 func _set_picture_feedback(key: String, pressed: bool) -> void:
 	if not picture_feedback.has(key):
 		return
-	var feedback: ColorRect = picture_feedback[key] as ColorRect
-	# Temporary press feedback only; no permanent overlay artwork is added.
-	feedback.color = Color(0, 0, 0, 0.16) if pressed else Color(0, 0, 0, 0)
+	picture_pressed[key] = pressed
+	_apply_feedback_state(key)
+
+func _apply_feedback_state(key: String) -> void:
+	if not picture_feedback.has(key):
+		return
+	var feedback: TextureRect = picture_feedback[key] as TextureRect
+	var base_position: Vector2 = feedback.get_meta("base_position") as Vector2
+	var base_size: Vector2 = feedback.get_meta("base_size") as Vector2
+	var pressed: bool = bool(picture_pressed.get(key, false))
+	if pressed:
+		var press_scale: float = 0.965
+		var shrink_offset: Vector2 = base_size * (1.0 - press_scale) * 0.5
+		feedback.position = base_position + shrink_offset + Vector2(0.0, 2.0)
+		feedback.size = base_size * press_scale
+		feedback.modulate = Color(0.78, 0.78, 0.78, 1.0)
+	else:
+		feedback.position = base_position
+		feedback.size = base_size
+		feedback.modulate = Color.WHITE
 
 func _layout_ui() -> void:
 	if exact_bg == null:
@@ -106,10 +128,14 @@ func _layout_ui() -> void:
 		hit.size = rect.size * scale_factor
 
 	for key: Variant in picture_feedback.keys():
-		var feedback: ColorRect = picture_feedback[String(key)] as ColorRect
+		var key_string: String = String(key)
+		var feedback: TextureRect = picture_feedback[key_string] as TextureRect
 		var rect: Rect2 = feedback.get_meta("design_rect") as Rect2
-		feedback.position = offset + rect.position * scale_factor
-		feedback.size = rect.size * scale_factor
+		var base_position: Vector2 = offset + rect.position * scale_factor
+		var base_size: Vector2 = rect.size * scale_factor
+		feedback.set_meta("base_position", base_position)
+		feedback.set_meta("base_size", base_size)
+		_apply_feedback_state(key_string)
 		feedback.move_to_front()
 
 	if play_button != null:
