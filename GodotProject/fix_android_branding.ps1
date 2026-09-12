@@ -62,12 +62,11 @@ function New-ContainPng {
     }
 }
 
-# Android icon masking is what made the artwork look zoomed/cropped. Generate
-# contain-fit PNGs from the ORIGINAL artwork instead of redrawing the logo.
-# Main icon: mild padding. Adaptive/system splash: much larger safe margin so
-# every Android launcher/splash mask can fit the complete artwork.
-New-ContainPng -SourcePath $sourceIcon -OutputPath $mainIcon -CanvasSize 432 -MaxContentSize 340
-New-ContainPng -SourcePath $sourceIcon -OutputPath $adaptiveForeground -CanvasSize 432 -MaxContentSize 230
+# Launcher artwork is intentionally smaller than before so Android's adaptive
+# icon mask cannot crop the Pirate's Plunder artwork. Splash sizing stays exactly
+# as previously approved.
+New-ContainPng -SourcePath $sourceIcon -OutputPath $mainIcon -CanvasSize 432 -MaxContentSize 300
+New-ContainPng -SourcePath $sourceIcon -OutputPath $adaptiveForeground -CanvasSize 432 -MaxContentSize 190
 New-ContainPng -SourcePath $sourceIcon -OutputPath $systemSplash -CanvasSize 432 -MaxContentSize 210
 
 $content = Get-Content -Raw -LiteralPath $target
@@ -78,17 +77,13 @@ $content = [regex]::Replace($content, '(?m)^launcher_icons/main_192x192=.*$', 'l
 $content = [regex]::Replace($content, '(?m)^launcher_icons/adaptive_foreground_432x432=.*$', 'launcher_icons/adaptive_foreground_432x432="res://assets/android-adaptive-foreground-fit.png"')
 $content = [regex]::Replace($content, '(?m)^launcher_icons/adaptive_background_432x432=.*$', 'launcher_icons/adaptive_background_432x432="res://assets/android-icon-bg.svg"')
 
-# Android system splash uses its own safely padded foreground. The in-engine
-# boot splash is configured in project.godot with fullsize=true, which uses
-# Godot's keep-aspect-centered scaling instead of showing the PNG at raw pixels.
+# Keep the already-correct splash configuration unchanged.
 $content = [regex]::Replace($content, '(?m)^splash_screen/disable_godot_boot_splash=.*$', 'splash_screen/disable_godot_boot_splash=false')
 $content = [regex]::Replace($content, '(?m)^splash_screen/icon=.*$', 'splash_screen/icon="res://assets/android-system-splash-fit.png"')
 $content = [regex]::Replace($content, '(?m)^splash_screen/background_color=.*$', 'splash_screen/background_color=Color(0.035, 0.11, 0.16, 1)')
 $content = [regex]::Replace($content, '(?m)^splash_screen/branding_image=.*$', 'splash_screen/branding_image=""')
 
 Set-Content -LiteralPath $target -Value $content -Encoding UTF8
-Write-Host "Android branding updated with contain-fit scaling."
-Write-Host "Original Pirate's Plunder artwork preserved; no redrawn icon is used."
-Write-Host "Launcher adaptive icon now has a real safe zone instead of Android cropping it."
-Write-Host "System splash uses a smaller centered safe-zone image."
-Write-Host "Godot boot splash uses keep-aspect-centered full-window scaling."
+Write-Host "Android branding updated."
+Write-Host "Launcher icon scaled down for additional safe padding."
+Write-Host "Splash screen sizing remains unchanged."
