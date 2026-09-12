@@ -7,7 +7,7 @@
 [ext_resource type="Script" path="res://scripts/static_game_background.gd" id="5_background"]
 [ext_resource type="Script" path="res://scripts/sunk_screen.gd" id="6_sunk"]
 [ext_resource type="Script" path="res://scripts/procedural_music.gd" id="7_music"]
-[ext_resource type="Script" path="res://scripts/main_menu_mobile.gd" id="8_menu"]
+[ext_resource type="Script" path="res://scripts/main_menu_picture_ui.gd" id="8_menu"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
