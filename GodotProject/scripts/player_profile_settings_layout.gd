@@ -28,3 +28,10 @@ func _build_settings_view() -> void:
 		Callable(self, "_close_overlay"),
 		false
 	)
+
+# Rebuild immediately from the button's pressed signal. The settings overlay
+# stays in place, so there is no underlying main-menu click to guard against.
+# The old deferred rebuild could leave the old profile controls alive for the
+# rest of the input frame, which made BACK TO SETTINGS appear to need 2 clicks.
+func _back_to_settings_deferred() -> void:
+	_build_settings_view()
