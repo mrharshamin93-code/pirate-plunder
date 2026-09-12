@@ -10,6 +10,7 @@ const MENU_INK: Color = Color("24160f")
 var picture_hitboxes: Dictionary = {}
 var picture_feedback: Dictionary = {}
 var picture_pressed: Dictionary = {}
+var swapped_menu_art: Array[TextureRect] = []
 
 func _build_ui() -> void:
 	exact_bg = TextureRect.new()
@@ -19,6 +20,11 @@ func _build_ui() -> void:
 	exact_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	exact_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(exact_bg)
+
+	# Swap the baked-in Collectibles and Leaderboard artwork without changing the
+	# approved background image itself. Collectibles is now above Leaderboard.
+	_add_swapped_button_art(COLLECTIBLES_RECT, LEADERBOARD_RECT)
+	_add_swapped_button_art(LEADERBOARD_RECT, COLLECTIBLES_RECT)
 
 	play_button = Button.new()
 	play_button.name = "PlayButton"
@@ -38,14 +44,27 @@ func _build_ui() -> void:
 	play_button.button_down.connect(func() -> void: _set_picture_feedback("play", true))
 	play_button.button_up.connect(func() -> void: _set_picture_feedback("play", false))
 	play_button.mouse_exited.connect(func() -> void: _set_picture_feedback("play", false))
-	_add_feedback("play", PLAY_RECT)
+	_add_feedback("play", PLAY_RECT, PLAY_RECT)
 
-	_add_picture_hitbox("leaderboard", LEADERBOARD_RECT, Callable(self, "_open_fresh_leaderboard"))
-	_add_picture_hitbox("collectibles", COLLECTIBLES_RECT, Callable(self, "_open_collectibles"))
-	_add_picture_hitbox("settings", SETTINGS_RECT, Callable(self, "_open_settings"))
+	_add_picture_hitbox("collectibles", LEADERBOARD_RECT, COLLECTIBLES_RECT, Callable(self, "_open_collectibles"))
+	_add_picture_hitbox("leaderboard", COLLECTIBLES_RECT, LEADERBOARD_RECT, Callable(self, "_open_fresh_leaderboard"))
+	_add_picture_hitbox("settings", SETTINGS_RECT, SETTINGS_RECT, Callable(self, "_open_settings"))
 	_layout_ui()
 
-func _add_picture_hitbox(key: String, design_rect: Rect2, action: Callable) -> void:
+func _add_swapped_button_art(source_rect: Rect2, target_rect: Rect2) -> void:
+	var art := TextureRect.new()
+	var atlas := AtlasTexture.new()
+	atlas.atlas = exact_bg.texture
+	atlas.region = source_rect
+	art.texture = atlas
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_SCALE
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	art.set_meta("design_rect", target_rect)
+	add_child(art)
+	swapped_menu_art.append(art)
+
+func _add_picture_hitbox(key: String, design_rect: Rect2, source_rect: Rect2, action: Callable) -> void:
 	var hit := Control.new()
 	hit.name = "%sHitbox" % key.capitalize()
 	hit.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -54,16 +73,16 @@ func _add_picture_hitbox(key: String, design_rect: Rect2, action: Callable) -> v
 	hit.set_meta("action", action)
 	add_child(hit)
 	picture_hitboxes[key] = hit
-	_add_feedback(key, design_rect)
+	_add_feedback(key, design_rect, source_rect)
 	hit.gui_input.connect(func(event: InputEvent) -> void: _handle_picture_input(key, hit, event))
 	hit.mouse_exited.connect(func() -> void: _set_picture_feedback(key, false))
 
-func _add_feedback(key: String, design_rect: Rect2) -> void:
+func _add_feedback(key: String, design_rect: Rect2, source_rect: Rect2) -> void:
 	var feedback := TextureRect.new()
 	feedback.name = "%sPressFeedback" % key.capitalize()
 	var atlas := AtlasTexture.new()
 	atlas.atlas = exact_bg.texture
-	atlas.region = design_rect
+	atlas.region = source_rect
 	feedback.texture = atlas
 	feedback.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	feedback.stretch_mode = TextureRect.STRETCH_SCALE
@@ -130,6 +149,11 @@ func _layout_ui() -> void:
 	var scale_factor: float = maxf(size.x / DESIGN_SIZE.x, size.y / DESIGN_SIZE.y)
 	var drawn_size: Vector2 = DESIGN_SIZE * scale_factor
 	var offset: Vector2 = (size - drawn_size) * 0.5
+
+	for art: TextureRect in swapped_menu_art:
+		var art_rect: Rect2 = art.get_meta("design_rect") as Rect2
+		art.position = offset + art_rect.position * scale_factor
+		art.size = art_rect.size * scale_factor
 
 	if play_button != null:
 		var play_rect: Rect2 = play_button.get_meta("design_rect") as Rect2
