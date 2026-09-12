@@ -108,7 +108,6 @@ func _apply_feedback_state(key: String) -> void:
 		var shrink_offset: Vector2 = base_size * (1.0 - press_scale) * 0.5
 		feedback.position = base_position + shrink_offset + Vector2(0.0, 2.0)
 		feedback.size = base_size * press_scale
-		# Warm highlight only. Never turn the Leaderboard button grey/black.
 		feedback.modulate = Color(1.06, 1.02, 0.90, 1.0)
 	else:
 		feedback.position = base_position
@@ -154,6 +153,7 @@ func _layout_ui() -> void:
 
 	if board_page != null and is_instance_valid(board_page):
 		board_page.size = size
+		board_page.move_to_front()
 	if menu_popup != null and is_instance_valid(menu_popup):
 		menu_popup.size = size
 
@@ -189,11 +189,13 @@ func _build_board_page() -> void:
 	var background := ColorRect.new()
 	background.color = Color("0b3340")
 	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	board_page.add_child(background)
 
 	var outer := Panel.new()
 	outer.position = Vector2(18, 38)
 	outer.size = Vector2(354, 754)
+	outer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	outer.add_theme_stylebox_override("panel", _board_box(MENU_WOOD, MENU_GOLD_DARK, 3, 16))
 	board_page.add_child(outer)
 
@@ -202,6 +204,7 @@ func _build_board_page() -> void:
 	title.position = Vector2(20, 20)
 	title.size = Vector2(314, 48)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	title.add_theme_font_size_override("font_size", 27)
 	title.add_theme_color_override("font_color", MENU_GOLD)
 	title.add_theme_color_override("font_shadow_color", Color(0,0,0,0.8))
@@ -238,12 +241,14 @@ func _build_board_page() -> void:
 	var parchment := Panel.new()
 	parchment.position = Vector2(20, 146)
 	parchment.size = Vector2(314, 500)
+	parchment.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parchment.add_theme_stylebox_override("panel", _board_box(MENU_PARCHMENT, Color("b78645"), 3, 12))
 	outer.add_child(parchment)
 
 	board_rows = VBoxContainer.new()
 	board_rows.position = Vector2(12, 14)
 	board_rows.size = Vector2(290, 456)
+	board_rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	board_rows.add_theme_constant_override("separation", 4)
 	parchment.add_child(board_rows)
 
@@ -251,28 +256,37 @@ func _build_board_page() -> void:
 	board_status.position = Vector2(24, 656)
 	board_status.size = Vector2(306, 24)
 	board_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	board_status.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	board_status.add_theme_font_size_override("font_size", 12)
 	board_status.add_theme_color_override("font_color", Color("fff1c4"))
 	outer.add_child(board_status)
 
 	var back := Button.new()
+	back.name = "LeaderboardBackButton"
 	back.text = "BACK"
-	back.position = Vector2(93, 692)
+	back.position = Vector2(111, 730)
 	back.size = Vector2(168, 48)
 	back.focus_mode = Control.FOCUS_NONE
+	back.mouse_filter = Control.MOUSE_FILTER_STOP
+	back.z_index = 100
 	back.add_theme_font_size_override("font_size", 20)
 	back.add_theme_color_override("font_color", Color("fff1bd"))
 	back.add_theme_stylebox_override("normal", _board_box(MENU_RED, MENU_GOLD, 3, 10))
 	back.add_theme_stylebox_override("hover", _board_box(Color("a51e1f"), Color("ffd86a"), 3, 10))
 	back.add_theme_stylebox_override("pressed", _board_box(Color("671011"), MENU_GOLD_DARK, 3, 10))
-	back.pressed.connect(func() -> void: board_page.visible = false)
-	outer.add_child(back)
+	back.pressed.connect(_close_board_page)
+	board_page.add_child(back)
+	back.move_to_front()
 
 	board_http = HTTPRequest.new()
 	board_http.name = "FreshLeaderboardRequest"
 	board_page.add_child(board_http)
 	board_http.request_completed.connect(_on_board_loaded)
 	_refresh_board_view()
+
+func _close_board_page() -> void:
+	if board_page != null and is_instance_valid(board_page):
+		board_page.visible = false
 
 func _refresh_board_view() -> void:
 	if board_rows == null or board_status == null:
@@ -286,3 +300,41 @@ func _refresh_board_view() -> void:
 		_build_rank_rows()
 	else:
 		_build_top_rows()
+
+func _add_score_row(rank_value: int, entry: Dictionary, highlight: bool) -> void:
+	var row := HBoxContainer.new()
+	row.custom_minimum_size = Vector2(0, 38)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 6)
+
+	var rank_label := Label.new()
+	rank_label.text = "#%d" % rank_value
+	rank_label.custom_minimum_size = Vector2(44, 38)
+	rank_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rank_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rank_label.add_theme_color_override("font_color", MENU_RED if highlight else MENU_INK)
+	row.add_child(rank_label)
+
+	var name_label := Label.new()
+	name_label.text = String(entry.get("name", entry.get("playerName", "Pirate")))
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_label.add_theme_color_override("font_color", MENU_RED if highlight else MENU_INK)
+	row.add_child(name_label)
+
+	var score_label := Label.new()
+	score_label.text = _comma(int(entry.get("score", entry.get("bestScore", 0))))
+	score_label.custom_minimum_size = Vector2(80, 38)
+	score_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	score_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	score_label.add_theme_color_override("font_color", MENU_RED if highlight else MENU_INK)
+	row.add_child(score_label)
+
+	if highlight:
+		for label: Label in [rank_label, name_label, score_label]:
+			label.add_theme_color_override("font_color", Color("8d1718"))
+	board_rows.add_child(row)
