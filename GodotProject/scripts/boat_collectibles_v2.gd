@@ -25,8 +25,8 @@ func _ready():
 	if c.load(SAVE)==OK:
 		selected=clampi(int(c.get_value("boats","selected",0)),0,7)
 	preview=selected
-	# Ship artwork is now loaded only when the user opens Collectibles.
-	# This keeps app startup fast so the splash screen can disappear sooner.
+	# Keep startup light: no ship art is decoded until Collectibles actually needs it.
+	textures.resize(FILES.size())
 	get_tree().node_added.connect(func(n):
 		if n.name=="PlayButton": call_deferred("_attach"))
 	call_deferred("_attach")
@@ -35,12 +35,12 @@ func get_selected_index()->int: return selected
 func get_selected_name()->String: return NAMES[selected]
 func get_selected_color()->Color: return COLORS[selected]
 
-func _ensure_textures() -> void:
-	if textures.size()==FILES.size():
-		return
-	textures.clear()
-	for i in range(FILES.size()):
-		textures.append(_read_ship(i))
+func _ship_texture(index:int)->Texture2D:
+	if index<0 or index>=FILES.size():
+		return null
+	if textures[index]==null:
+		textures[index]=_read_ship(index)
+	return textures[index]
 
 func _read_ship(index:int)->Texture2D:
 	var source=load("res://assets/ships/%s.svg" % FILES[index]) as Texture2D
@@ -73,7 +73,6 @@ func _attach():
 
 func _open():
 	preview=selected
-	_ensure_textures()
 	if panel:
 		panel.visible=true
 		panel.move_to_front()
@@ -193,7 +192,7 @@ func _equip():
 func _refresh():
 	if name_label:name_label.text=NAMES[preview].to_upper()
 	if sub_label:sub_label.text=SUBS[preview]
-	if hero and preview<textures.size():hero.texture=textures[preview]
+	if hero:hero.texture=_ship_texture(preview)
 	if equip:
 		equip.text="EQUIPPED" if preview==selected else "SELECT SHIP"
 		equip.disabled=preview==selected
