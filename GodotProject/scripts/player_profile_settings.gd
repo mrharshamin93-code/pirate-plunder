@@ -14,6 +14,7 @@ const INK := Color("24160f")
 const SEA := Color("0b3340")
 
 var overlay: Control = null
+var menu_root: Control = null
 var settings_pressed := false
 var run_active := false
 var last_game_over := false
@@ -24,6 +25,12 @@ func _ready() -> void:
 	_migrate_old_coin_total()
 
 func _input(event: InputEvent) -> void:
+	if overlay != null and is_instance_valid(overlay) and overlay.visible:
+		# Never allow a settings/profile click to fall through to the main-menu
+		# Set Sail hitbox underneath the overlay.
+		if event is InputEventScreenTouch or event is InputEventMouseButton:
+			get_viewport().set_input_as_handled()
+		return
 	var scene := get_tree().current_scene
 	if scene == null:
 		return
@@ -102,9 +109,19 @@ func _migrate_old_coin_total() -> void:
 			stats.set_value("stats", "total_coins", old_total)
 			stats.save(STATS_SAVE)
 
+func _set_main_menu_hitboxes_enabled(enabled: bool) -> void:
+	if menu_root == null or not is_instance_valid(menu_root):
+		return
+	for node_name in ["PlayButton", "LeaderboardHitbox", "CollectiblesHitbox", "SettingsHitbox"]:
+		var control := menu_root.find_child(node_name, true, false) as Control
+		if control != null:
+			control.mouse_filter = Control.MOUSE_FILTER_STOP if enabled else Control.MOUSE_FILTER_IGNORE
+
 func _open_settings(menu: Control) -> void:
 	if menu == null:
 		return
+	menu_root = menu
+	_set_main_menu_hitboxes_enabled(false)
 	if overlay != null and is_instance_valid(overlay):
 		overlay.queue_free()
 	overlay = Control.new()
@@ -136,6 +153,7 @@ func _make_button(text_value: String, pos: Vector2, node_size: Vector2, action: 
 	b.position = pos
 	b.size = node_size
 	b.focus_mode = Control.FOCUS_NONE
+	b.mouse_filter = Control.MOUSE_FILTER_STOP
 	b.add_theme_font_size_override("font_size", 19)
 	if red_style:
 		b.add_theme_color_override("font_color", Color("fff1bd"))
@@ -155,11 +173,12 @@ func _build_shell(title_text: String) -> Panel:
 	var bg := ColorRect.new()
 	bg.color = Color("071923")
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bg.mouse_filter = Control.MOUSE_FILTER_STOP
 	overlay.add_child(bg)
 	var outer := Panel.new()
 	outer.position = Vector2(20, 52)
 	outer.size = Vector2(350, 728)
+	outer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	outer.add_theme_stylebox_override("panel", _panel(WOOD, GOLD_DARK, 3, 16))
 	overlay.add_child(outer)
 	var title := Label.new()
@@ -202,8 +221,15 @@ func _build_settings_view() -> void:
 	profile_label.add_theme_font_size_override("font_size", 18)
 	profile_label.add_theme_color_override("font_color", Color("fff1c4"))
 	outer.add_child(profile_label)
-	_make_button("PROFILE & STATS", Vector2(72, 392), Vector2(246, 54), Callable(self, "_build_profile_view"), false)
+	_make_button("PROFILE & STATS", Vector2(72, 392), Vector2(246, 54), Callable(self, "_open_profile_deferred"), false)
 	_make_button("BACK", Vector2(72, 650), Vector2(246, 50), Callable(self, "_close_overlay"), false)
+
+func _open_profile_deferred() -> void:
+	# Keep the settings overlay alive until the current release event has fully
+	# finished dispatching. Replacing it immediately can click the Set Sail
+	# control underneath on desktop/mobile.
+	get_viewport().set_input_as_handled()
+	call_deferred("_build_profile_view")
 
 func _music_enabled() -> bool:
 	var cfg := ConfigFile.new()
@@ -223,9 +249,11 @@ func _toggle_music() -> void:
 			music.set("music_enabled", enabled)
 			if music.has_method("_apply_enabled_state"):
 				music.call("_apply_enabled_state")
-	_build_settings_view()
+	call_deferred("_build_settings_view")
 
 func _build_profile_view() -> void:
+	if overlay == null or not is_instance_valid(overlay):
+		return
 	_clear_overlay()
 	var outer := _build_shell("PROFILE")
 	var board := ConfigFile.new()
@@ -278,7 +306,11 @@ func _build_profile_view() -> void:
 	ship_value.add_theme_font_size_override("font_size", 18)
 	ship_value.add_theme_color_override("font_color", RED)
 	parchment.add_child(ship_value)
-	_make_button("BACK TO SETTINGS", Vector2(72, 650), Vector2(246, 50), Callable(self, "_build_settings_view"), false)
+	_make_button("BACK TO SETTINGS", Vector2(72, 650), Vector2(246, 50), Callable(self, "_back_to_settings_deferred"), false)
+
+func _back_to_settings_deferred() -> void:
+	get_viewport().set_input_as_handled()
+	call_deferred("_build_settings_view")
 
 func _add_stat_row(parent: Control, label_text: String, value_text: String, y: float) -> void:
 	var label := Label.new()
@@ -298,9 +330,12 @@ func _add_stat_row(parent: Control, label_text: String, value_text: String, y: f
 	parent.add_child(value)
 
 func _close_overlay() -> void:
+	get_viewport().set_input_as_handled()
+	_set_main_menu_hitboxes_enabled(true)
 	if overlay != null and is_instance_valid(overlay):
 		overlay.queue_free()
 	overlay = null
+	menu_root = null
 
 func _comma(value: int) -> String:
 	var s := str(value)
