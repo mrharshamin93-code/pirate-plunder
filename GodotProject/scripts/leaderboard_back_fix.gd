@@ -1,53 +1,53 @@
 extends Node
 
-var back_press_armed: bool = false
+var connected_button_id: int = 0
+var reopen_blocked: bool = false
 
 func _process(_delta: float) -> void:
-	var back: Button = _get_back_button()
-	if back != null and back.text != "MAIN MENU":
-		back.text = "MAIN MENU"
-
-func _input(event: InputEvent) -> void:
 	var page: Control = _get_board_page()
 	if page == null or not page.visible:
-		back_press_armed = false
 		return
-
 	var back: Button = page.find_child("LeaderboardBackButton", true, false) as Button
-	if back == null or not back.visible:
-		back_press_armed = false
+	if back == null:
 		return
-
 	back.text = "MAIN MENU"
+	back.mouse_filter = Control.MOUSE_FILTER_STOP
+	back.focus_mode = Control.FOCUS_NONE
+	back.z_index = 100000
+	back.move_to_front()
 
-	if event is InputEventScreenTouch:
-		var touch: InputEventScreenTouch = event as InputEventScreenTouch
-		if touch.pressed:
-			if back.get_global_rect().has_point(touch.position):
-				back_press_armed = true
-				get_viewport().set_input_as_handled()
-		else:
-			if back_press_armed:
-				# Consume the release BEFORE hiding the page so the release cannot
-				# fall through to the main-menu Leaderboard hitbox and reopen it.
-				get_viewport().set_input_as_handled()
-				back_press_armed = false
-				page.visible = false
+	var current_id: int = back.get_instance_id()
+	if connected_button_id != current_id:
+		connected_button_id = current_id
+		if not back.button_down.is_connected(_force_main_menu):
+			back.button_down.connect(_force_main_menu)
+		if not back.pressed.is_connected(_force_main_menu):
+			back.pressed.connect(_force_main_menu)
+
+func _force_main_menu() -> void:
+	if reopen_blocked:
 		return
+	reopen_blocked = true
+	var page: Control = _get_board_page()
+	if page != null:
+		page.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		page.visible = false
 
-	if event is InputEventMouseButton:
-		var mouse: InputEventMouseButton = event as InputEventMouseButton
-		if mouse.button_index != MOUSE_BUTTON_LEFT:
-			return
-		if mouse.pressed:
-			if back.get_global_rect().has_point(mouse.position):
-				back_press_armed = true
-				get_viewport().set_input_as_handled()
-		else:
-			if back_press_armed:
-				get_viewport().set_input_as_handled()
-				back_press_armed = false
-				page.visible = false
+	# Prevent the same touch/mouse release from landing on the menu's
+	# Leaderboard hitbox and immediately reopening the page.
+	var leaderboard_hitbox: Control = _get_leaderboard_hitbox()
+	if leaderboard_hitbox != null:
+		leaderboard_hitbox.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	call_deferred("_restore_menu_input")
+
+func _restore_menu_input() -> void:
+	# Wait long enough for the current touch/click release to finish.
+	await get_tree().create_timer(0.35).timeout
+	var leaderboard_hitbox: Control = _get_leaderboard_hitbox()
+	if leaderboard_hitbox != null:
+		leaderboard_hitbox.mouse_filter = Control.MOUSE_FILTER_STOP
+	reopen_blocked = false
 
 func _get_board_page() -> Control:
 	var scene: Node = get_tree().current_scene
@@ -55,8 +55,8 @@ func _get_board_page() -> Control:
 		return null
 	return scene.find_child("FreshLeaderboardPage", true, false) as Control
 
-func _get_back_button() -> Button:
-	var page: Control = _get_board_page()
-	if page == null:
+func _get_leaderboard_hitbox() -> Control:
+	var scene: Node = get_tree().current_scene
+	if scene == null:
 		return null
-	return page.find_child("LeaderboardBackButton", true, false) as Button
+	return scene.find_child("LeaderboardHitbox", true, false) as Control
