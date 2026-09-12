@@ -36,14 +36,13 @@ func get_selected_index() -> int: return selected_index
 func get_selected_name() -> String: return BOATS[selected_index]
 func get_selected_color() -> Color: return COLORS[selected_index]
 
-# The original ship SVGs contain the exact generated PNG artwork as embedded base64.
-# Godot's SVG importer does not reliably render embedded <image> data, which caused
-# blank previews and clipped slivers. Decode that exact artwork into ImageTextures.
-# Pure-vector SVGs fall back to Godot's normal SVG loader.
+# Decode the exact embedded PNG artwork and crop away its large transparent square
+# margins. This is important because the source art is 320x320 but each tall ship
+# only occupies the narrow centre of that square. Without cropping, Godot scales
+# the empty square and the ship appears as a tiny sliver.
 func _build_ship_texture_cache() -> void:
 	ship_textures.clear()
-	for path in SHIP_SVGS:
-		ship_textures.append(_texture_from_ship_svg(path))
+	for path in SHIP_SVGS: ship_textures.append(_texture_from_ship_svg(path))
 
 func _texture_from_ship_svg(path: String) -> Texture2D:
 	var file := FileAccess.open(path, FileAccess.READ)
@@ -58,9 +57,21 @@ func _texture_from_ship_svg(path: String) -> Texture2D:
 				var raw := Marshalls.base64_to_raw(svg_text.substr(start, finish - start))
 				var image := Image.new()
 				if image.load_png_from_buffer(raw) == OK:
+					image = _crop_to_visible_art(image)
 					return ImageTexture.create_from_image(image)
-	var fallback := load(path) as Texture2D
-	return fallback
+	return load(path) as Texture2D
+
+func _crop_to_visible_art(image: Image) -> Image:
+	# get_used_rect() uses the alpha channel and gives the true visible artwork.
+	var used := image.get_used_rect()
+	if used.size.x <= 0 or used.size.y <= 0: return image
+	# Keep a small transparent breathing margin so masts/flags never touch a card edge.
+	var pad := maxi(4, int(maxf(used.size.x, used.size.y) * 0.04))
+	var x0 := maxi(0, used.position.x - pad)
+	var y0 := maxi(0, used.position.y - pad)
+	var x1 := mini(image.get_width(), used.end.x + pad)
+	var y1 := mini(image.get_height(), used.end.y + pad)
+	return image.get_region(Rect2i(x0, y0, x1 - x0, y1 - y0))
 
 func _ship_texture(index: int) -> Texture2D:
 	if index >= 0 and index < ship_textures.size(): return ship_textures[index]
@@ -165,15 +176,15 @@ func _build_collectibles_panel() -> void:
 	showcase.position = Vector2(55, 165)
 	showcase.size = Vector2(256, 205)
 	var showcase_box := StyleBoxFlat.new()
-	showcase_box.bg_color = Color("07131c")
-	showcase_box.border_color = Color("17445d")
+	showcase_box.bg_color = Color("102a35")
+	showcase_box.border_color = Color("28718e")
 	showcase_box.set_border_width_all(2)
 	showcase_box.set_corner_radius_all(18)
 	showcase.add_theme_stylebox_override("panel", showcase_box)
 	panel.add_child(showcase)
 	preview_texture = TextureRect.new()
-	preview_texture.position = Vector2(43, 10)
-	preview_texture.size = Vector2(170, 185)
+	preview_texture.position = Vector2(38, 7)
+	preview_texture.size = Vector2(180, 191)
 	preview_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	preview_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	preview_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -220,16 +231,16 @@ func _build_collectibles_panel() -> void:
 		board.add_child(card)
 		var thumb := TextureRect.new()
 		thumb.texture = _ship_texture(i)
-		thumb.position = Vector2(10, 3)
-		thumb.size = Vector2(54, 70)
+		thumb.position = Vector2(7, 3)
+		thumb.size = Vector2(60, 72)
 		thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(thumb)
 		var label := Label.new()
 		label.text = BOATS[i]
-		label.position = Vector2(3, 74)
-		label.size = Vector2(68, 23)
+		label.position = Vector2(3, 76)
+		label.size = Vector2(68, 20)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
