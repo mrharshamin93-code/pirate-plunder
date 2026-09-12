@@ -1,12 +1,12 @@
 extends "res://scripts/main_menu.gd"
 
-const DESIGN_SIZE := Vector2(853.0, 1844.0)
+const DESIGN_SIZE: Vector2 = Vector2(853.0, 1844.0)
 
 # Button hitboxes measured against main_menu_exact.png.
-const PLAY_RECT := Rect2(140, 1096, 548, 126)
-const LEADERBOARD_RECT := Rect2(140, 1278, 548, 126)
-const COLLECTIBLES_RECT := Rect2(140, 1459, 548, 126)
-const SETTINGS_RECT := Rect2(18, 27, 96, 121)
+const PLAY_RECT: Rect2 = Rect2(140, 1096, 548, 126)
+const LEADERBOARD_RECT: Rect2 = Rect2(140, 1278, 548, 126)
+const COLLECTIBLES_RECT: Rect2 = Rect2(140, 1459, 548, 126)
+const SETTINGS_RECT: Rect2 = Rect2(18, 27, 96, 121)
 
 var exact_bg: TextureRect
 var menu_popup: Control
@@ -29,7 +29,7 @@ func _build_ui() -> void:
 	_layout_ui()
 
 func _create_dynamic_button(button_name: String, design_rect: Rect2, action: Callable) -> void:
-	var btn := Button.new()
+	var btn: Button = Button.new()
 	btn.name = button_name
 	btn.text = ""
 	btn.flat = true
@@ -39,7 +39,7 @@ func _create_dynamic_button(button_name: String, design_rect: Rect2, action: Cal
 	btn.set_meta("design_rect", design_rect)
 	add_child(btn)
 
-	var overlay := ColorRect.new()
+	var overlay: ColorRect = ColorRect.new()
 	overlay.name = "%sOverlay" % button_name
 	overlay.color = Color(0, 0, 0, 0)
 	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -59,11 +59,9 @@ func _set_button_state(button_name: String, is_pressed: bool, is_hover: bool) ->
 		return
 	var entry: Dictionary = button_map[button_name]
 	entry["pressed"] = is_pressed
-	var overlay: ColorRect = entry["overlay"]
-	var btn: Button = entry["button"]
+	var overlay: ColorRect = entry["overlay"] as ColorRect
 	if is_pressed:
 		overlay.color = Color(0, 0, 0, 0.18)
-		btn.position.y += 2
 	elif is_hover:
 		overlay.color = Color(1, 1, 1, 0.06)
 	else:
@@ -76,24 +74,24 @@ func _layout_ui() -> void:
 	exact_bg.position = Vector2.ZERO
 	exact_bg.size = size
 
-	var scale := max(size.x / DESIGN_SIZE.x, size.y / DESIGN_SIZE.y)
-	var drawn_size := DESIGN_SIZE * scale
-	var offset := (size - drawn_size) * 0.5
+	var scale_factor: float = maxf(size.x / DESIGN_SIZE.x, size.y / DESIGN_SIZE.y)
+	var drawn_size: Vector2 = DESIGN_SIZE * scale_factor
+	var offset: Vector2 = (size - drawn_size) * 0.5
 
-	for key in button_map.keys():
+	for key: Variant in button_map.keys():
 		var entry: Dictionary = button_map[key]
-		var btn: Button = entry["button"]
-		var overlay: ColorRect = entry["overlay"]
-		var design_rect: Rect2 = btn.get_meta("design_rect")
-		var rect := Rect2(offset + design_rect.position * scale, design_rect.size * scale)
+		var btn: Button = entry["button"] as Button
+		var overlay: ColorRect = entry["overlay"] as ColorRect
+		var design_rect: Rect2 = btn.get_meta("design_rect") as Rect2
+		var rect: Rect2 = Rect2(offset + design_rect.position * scale_factor, design_rect.size * scale_factor)
 		btn.position = rect.position
 		btn.size = rect.size
 		overlay.position = rect.position
 		overlay.size = rect.size
-		var pressed: bool = entry.get("pressed", false)
+		var pressed: bool = bool(entry.get("pressed", false))
 		if pressed:
-			btn.position.y += 2
-			overlay.position.y += 2
+			btn.position.y += 2.0
+			overlay.position.y += 2.0
 
 	if menu_popup != null and is_instance_valid(menu_popup):
 		menu_popup.size = size
@@ -105,7 +103,7 @@ func _start_game_action() -> void:
 		get_tree().change_scene_to_file("res://scenes/game.tscn")
 
 func _open_collectibles_action() -> void:
-	var collectibles := get_node_or_null("/root/BoatCollectibles")
+	var collectibles: Node = get_node_or_null("/root/BoatCollectibles")
 	if collectibles != null:
 		if collectibles.has_method("open_from_menu"):
 			collectibles.call("open_from_menu", self)
@@ -113,7 +111,7 @@ func _open_collectibles_action() -> void:
 			collectibles.call("_open_panel")
 
 func _open_leaderboard_action() -> void:
-	var badge := get_node_or_null("/root/LeaderboardRankBadge")
+	var badge: Node = get_node_or_null("/root/LeaderboardRankBadge")
 	if badge != null:
 		if badge.has_method("show_leaderboard_popup"):
 			badge.call("show_leaderboard_popup", self)
@@ -137,15 +135,15 @@ func _show_popup(title_text: String, body_text: String) -> void:
 	menu_popup.z_index = 50000
 	add_child(menu_popup)
 
-	var shade := ColorRect.new()
+	var shade: ColorRect = ColorRect.new()
 	shade.color = Color(0, 0, 0, 0.58)
 	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	menu_popup.add_child(shade)
 
-	var panel := Panel.new()
+	var panel: Panel = Panel.new()
 	panel.position = Vector2(size.x * 0.075, size.y * 0.28)
 	panel.size = Vector2(size.x * 0.85, minf(300.0, size.y * 0.40))
-	var sb := StyleBoxFlat.new()
+	var sb: StyleBoxFlat = StyleBoxFlat.new()
 	sb.bg_color = Color("2d1b12")
 	sb.border_color = Color("b2763b")
 	sb.set_border_width_all(4)
@@ -153,7 +151,7 @@ func _show_popup(title_text: String, body_text: String) -> void:
 	panel.add_theme_stylebox_override("panel", sb)
 	menu_popup.add_child(panel)
 
-	var title := Label.new()
+	var title: Label = Label.new()
 	title.text = title_text
 	title.position = Vector2(18, 18)
 	title.size = Vector2(panel.size.x - 36, 44)
@@ -162,7 +160,7 @@ func _show_popup(title_text: String, body_text: String) -> void:
 	title.add_theme_color_override("font_color", Color("f7d48b"))
 	panel.add_child(title)
 
-	var body := Label.new()
+	var body: Label = Label.new()
 	body.text = body_text
 	body.position = Vector2(24, 76)
 	body.size = Vector2(panel.size.x - 48, 120)
@@ -173,7 +171,7 @@ func _show_popup(title_text: String, body_text: String) -> void:
 	body.add_theme_color_override("font_color", Color("fff4dc"))
 	panel.add_child(body)
 
-	var close := Button.new()
+	var close: Button = Button.new()
 	close.text = "BACK"
 	close.position = Vector2((panel.size.x - 150) * 0.5, panel.size.y - 62)
 	close.size = Vector2(150, 44)
