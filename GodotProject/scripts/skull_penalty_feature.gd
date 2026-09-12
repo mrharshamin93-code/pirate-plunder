@@ -98,26 +98,43 @@ func _draw() -> void:
 		_draw_penalty_popup(popup)
 
 func _draw_skull(p: Vector2) -> void:
-	# Approximately the same 34px footprint as a gameplay coin, with no crossed bones.
-	# White skull with a dark outline for readability against the ocean.
-	var outline := Color("2b3138")
-	var white := Color("f7f7f2")
+	# Coin-sized white skull with subtle depth: drop shadow, shaded rim and upper-left highlight.
+	var outline := Color("222831")
+	var deep_shadow := Color(0.08, 0.10, 0.13, 0.38)
+	var rim_shadow := Color("aeb5bc")
+	var white := Color("f4f5f2")
 	var highlight := Color("ffffff")
-	var shadow := Color("c9ced3")
+	var socket := Color("333941")
+	var nose_shadow := Color("8e969e")
+
+	# Soft offset shadow makes the skull read as raised from the water.
+	draw_circle(p + Vector2(2.4, 1.6), 14.3, deep_shadow)
+	draw_rect(Rect2(p + Vector2(-5.5, 9.0), Vector2(14.0, 6.0)), deep_shadow, true)
+
+	# Cranium: dark outer rim, grey lower-right bevel, white face and bright highlight.
 	draw_circle(p + Vector2(0, -2), 14.0, outline)
-	draw_circle(p + Vector2(0, -2), 12.0, white)
-	draw_circle(p + Vector2(-3, -5), 8.0, highlight)
-	# Jaw
+	draw_circle(p + Vector2(0.8, -1.0), 12.0, rim_shadow)
+	draw_circle(p + Vector2(-0.8, -2.8), 11.2, white)
+	draw_circle(p + Vector2(-4.2, -6.0), 6.0, highlight)
+
+	# Jaw with the same raised/bevel treatment.
 	draw_rect(Rect2(p + Vector2(-8, 7), Vector2(16, 7)), outline, true)
-	draw_rect(Rect2(p + Vector2(-6, 7), Vector2(12, 5)), white, true)
-	# Eye sockets and nose
-	draw_circle(p + Vector2(-5, -2), 3.4, outline)
-	draw_circle(p + Vector2(5, -2), 3.4, outline)
-	var nose := PackedVector2Array([p + Vector2(0, 1), p + Vector2(-2.2, 5), p + Vector2(2.2, 5)])
-	draw_colored_polygon(nose, shadow)
-	# Teeth divisions
+	draw_rect(Rect2(p + Vector2(-6.5, 7.7), Vector2(13, 5.2)), rim_shadow, true)
+	draw_rect(Rect2(p + Vector2(-6.0, 7.2), Vector2(11.5, 4.1)), white, true)
+
+	# Eye sockets sit slightly low/right to reinforce the lighting direction.
+	draw_circle(p + Vector2(-4.6, -1.6), 3.5, socket)
+	draw_circle(p + Vector2(5.2, -1.6), 3.5, socket)
+	draw_circle(p + Vector2(-5.4, -2.4), 1.0, Color(0.10, 0.12, 0.14, 0.9))
+	draw_circle(p + Vector2(4.4, -2.4), 1.0, Color(0.10, 0.12, 0.14, 0.9))
+
+	# Nose and teeth.
+	var nose := PackedVector2Array([p + Vector2(0, 1), p + Vector2(-2.3, 5), p + Vector2(2.3, 5)])
+	draw_colored_polygon(nose, nose_shadow)
 	for x in [-4.0, 0.0, 4.0]:
 		draw_line(p + Vector2(x, 8), p + Vector2(x, 12), outline, 1.0, true)
+	# Small cheek highlight gives a final bit of curvature without making it glossy.
+	draw_arc(p + Vector2(-1.5, 0.0), 8.5, PI * 1.03, PI * 1.55, 8, Color(1, 1, 1, 0.72), 1.1, true)
 
 func _draw_bad_burst(b: Dictionary) -> void:
 	var life: float = float(b.get("life", 0.0))
