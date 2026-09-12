@@ -13,7 +13,6 @@ boot_splash/bg_color=Color(0.035, 0.11, 0.16, 1)
 CoinPickupAudio="*res://scripts/coin_pickup_audio.gd"
 DeathSequenceAudio="*res://scripts/death_sequence_audio.gd"
 LeaderboardRankBadge="*res://scripts/leaderboard_rank_badge.gd"
-SunkSkullSvg="*res://scripts/sunk_skull_svg.gd"
 
 [display]
 window/size/viewport_width=390
