@@ -14,7 +14,7 @@ CoinPickupAudio="*res://scripts/coin_pickup_audio.gd"
 DeathSequenceAudio="*res://scripts/death_sequence_audio.gd"
 LeaderboardRankBadge="*res://scripts/leaderboard_rank_badge.gd"
 SunkHeaderIcons="*res://scripts/sunk_header_icons.gd"
-BoatCollectibles="*res://scripts/boat_collectibles.gd"
+BoatCollectibles="*res://scripts/boat_collectibles_v2.gd"
 
 [display]
 window/size/viewport_width=390
