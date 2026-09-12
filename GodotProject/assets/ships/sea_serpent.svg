@@ -1,1 +1,42 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 200" width="160" height="200"><defs><linearGradient id="sail" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#21dfcf"/><stop offset="1" stop-color="#07958e"/></linearGradient><linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff08a"/><stop offset=".42" stop-color="#f0b51d"/><stop offset="1" stop-color="#8b5007"/></linearGradient><linearGradient id="dragon" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffd947"/><stop offset=".45" stop-color="#d98c0c"/><stop offset="1" stop-color="#6f3c08"/></linearGradient></defs><g stroke-linejoin="round" stroke-linecap="round"><rect x="76" y="12" width="8" height="139" rx="4" fill="#8c541d" stroke="#3d2109" stroke-width="3"/><circle cx="80" cy="12" r="9" fill="url(#gold)" stroke="#704006" stroke-width="2"/><path d="M84 20c17-4 29 0 42-4-7 11-20 17-42 13Z" fill="#10b8a9" stroke="#075b59" stroke-width="2"/><path d="M51 43q29-11 58 0l-5 44q-24-9-48 0Z" fill="url(#sail)" stroke="#075b59" stroke-width="3"/><path d="M47 84q33-10 66 0l-6 45q-27-10-54 0Z" fill="url(#sail)" stroke="#075b59" stroke-width="3"/><g stroke="#63350f" stroke-width="7"><path d="M46 42h68"/><path d="M42 83h76"/><path d="M40 128h80"/></g><g stroke="#efb72b" stroke-width="3"><path d="M46 41h68"/><path d="M42 82h76"/><path d="M40 127h80"/></g><g fill="url(#gold)" stroke="#744407" stroke-width="2"><circle cx="46" cy="42" r="6"/><circle cx="114" cy="42" r="6"/><circle cx="42" cy="83" r="6"/><circle cx="118" cy="83" r="6"/><circle cx="40" cy="128" r="6"/><circle cx="120" cy="128" r="6"/></g><path d="M91 68c-8-9-26-6-28 6-2 10 8 14 18 14 8 0 10 7 4 11-7 5-18 1-21-7-2 15 8 26 22 23 13-3 19-17 11-27-5-7-15-7-20-9-5-2-4-8 2-9 4-1 7 1 9 4l-5 3 11 2-1-12Z" fill="#f5efc0" stroke="#15756d" stroke-width="2"/><path d="M89 66l8-7-2 9 8-1-8 7Z" fill="#f5efc0"/><path d="M80 130c-24 1-37 12-42 29l15-5-7 16 21-8Z" fill="url(#gold)" stroke="#6f3c08" stroke-width="3"/><path d="M80 130c24 1 37 12 42 29l-15-5 7 16-21-8Z" fill="url(#gold)" stroke="#6f3c08" stroke-width="3"/><path d="M80 132c-18 4-29 16-27 31 2 16 15 26 27 34 12-8 25-18 27-34 2-15-9-27-27-31Z" fill="url(#dragon)" stroke="#623609" stroke-width="4"/><path d="M80 139l-14 11 6 4-10 12 13-3 5 20 5-20 13 3-10-12 6-4Z" fill="#13bcb1" stroke="#075b59" stroke-width="2"/><path d="M61 158l-13 8 8 3-10 8 17-4m36-15 13 8-8 3 10 8-17-4" fill="none" stroke="#16e5db" stroke-width="5"/><path d="M66 171l-12 11m40-11 12 11" stroke="#20f2e8" stroke-width="4"/><circle cx="71" cy="158" r="3" fill="#9dfff8"/><circle cx="89" cy="158" r="3" fill="#9dfff8"/></g></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 240" width="160" height="240">
+<defs>
+ <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9b5a24"/><stop offset=".5" stop-color="#4a2918"/><stop offset="1" stop-color="#1d1514"/></linearGradient>
+ <linearGradient id="scale" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#87fff0"/><stop offset=".25" stop-color="#16d8c7"/><stop offset=".58" stop-color="#087d7b"/><stop offset="1" stop-color="#173943"/></linearGradient>
+ <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d7f4ef"/><stop offset=".35" stop-color="#4d8f98"/><stop offset=".7" stop-color="#17343f"/><stop offset="1" stop-color="#07171e"/></linearGradient>
+ <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffe489"/><stop offset=".45" stop-color="#d99627"/><stop offset="1" stop-color="#704018"/></linearGradient>
+ <radialGradient id="eye"><stop stop-color="#eaff9c"/><stop offset=".35" stop-color="#4dffb2"/><stop offset="1" stop-color="#00a77d"/></radialGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<!-- Leviathan hull -->
+<path d="M80 26 C48 34 35 72 38 132 C40 179 57 211 80 234 C103 211 120 179 122 132 C125 72 112 34 80 26Z" fill="url(#wood)" stroke="#082a31" stroke-width="5"/>
+<path d="M80 32 C60 40 49 71 50 129 C51 169 62 196 80 217 C98 196 109 169 110 129 C111 71 100 40 80 32Z" fill="#70401f" stroke="#d69a42" stroke-width="2"/>
+<!-- dragon head -->
+<path d="M80 4 L90 16 L105 12 L99 25 L111 31 L97 36 L93 50 L80 61 L67 50 L63 36 L49 31 L61 25 L55 12 L70 16Z" fill="url(#metal)" stroke="#082b35" stroke-width="3"/>
+<path d="M80 7 L85 25 L80 47 L75 25Z" fill="#b9e4df" opacity=".75"/>
+<path d="M63 19 L49 7 L54 25 L43 27 L61 35Z" fill="url(#scale)" stroke="#075a62" stroke-width="2"/>
+<path d="M97 19 L111 7 L106 25 L117 27 L99 35Z" fill="url(#scale)" stroke="#075a62" stroke-width="2"/>
+<ellipse cx="70" cy="31" rx="4" ry="5" fill="url(#eye)" filter="url(#glow)"/><ellipse cx="90" cy="31" rx="4" ry="5" fill="url(#eye)" filter="url(#glow)"/>
+<!-- armored spine -->
+<g fill="url(#scale)" stroke="#0b4d52" stroke-width="1.5"><path d="M80 56l-14 11 14 12 14-12z"/><path d="M80 72l-15 12 15 13 15-13z"/><path d="M80 90l-14 11 14 13 14-13z"/></g>
+<!-- side serpent fins/scales -->
+<g fill="url(#scale)" stroke="#07555d" stroke-width="2">
+ <path d="M58 48L38 38l9 18-17 2 18 12-18 8 20 7-17 13 21 1-16 17 20-5Z"/>
+ <path d="M102 48l20-10-9 18 17 2-18 12 18 8-20 7 17 13-21 1 16 17-20-5Z"/>
+ <path d="M47 111l-19 12 17 4-16 16 20-2-13 19 20-8-8 22 18-14Z"/>
+ <path d="M113 111l19 12-17 4 16 16-20-2 13 19-20-8 8 22-18-14Z"/>
+</g>
+<!-- deck rails -->
+<path d="M52 65Q80 55 108 65M48 111Q80 101 112 111M50 163Q80 153 110 163" fill="none" stroke="#d5a052" stroke-width="3"/>
+<g stroke="#7b451c" stroke-width="2"><path d="M55 61v103M105 61v103"/><path d="M62 58v110M98 58v110"/></g>
+<!-- serpent sail -->
+<path d="M50 105 Q80 96 110 105 L106 145 Q80 136 54 145Z" fill="#087b78" stroke="#052f36" stroke-width="3"/>
+<path d="M88 114c-8-8-22-5-22 5 0 8 9 9 16 10 7 1 8 6 3 9-6 4-15 0-17-6-1 11 8 18 18 14 11-4 13-16 6-22-5-4-13-3-15-6-2-3 3-5 7-2l-3 4 10-2z" fill="#8ce2b2" opacity=".9"/>
+<path d="M87 112l7-6-2 7 7-1-7 6z" fill="#8ce2b2"/>
+<!-- lanterns -->
+<g filter="url(#glow)"><circle cx="57" cy="155" r="6" fill="#ffad32" stroke="#6f3910" stroke-width="2"/><circle cx="103" cy="155" r="6" fill="#ffad32" stroke="#6f3910" stroke-width="2"/></g>
+<!-- stern cabin -->
+<rect x="68" y="158" width="24" height="25" rx="3" fill="#1a2020" stroke="#c18a3e" stroke-width="2"/><rect x="73" y="163" width="14" height="11" fill="#063f48" stroke="#44d9cf"/>
+<!-- serpent tail -->
+<path d="M80 177 L95 194 L88 198 L99 207 L88 209 L92 221 L80 238 L68 221 L72 209 L61 207 L72 198 L65 194Z" fill="url(#scale)" stroke="#07555d" stroke-width="3"/>
+<path d="M80 183l7 10-7 8-7-8zM80 202l8 9-8 11-8-11z" fill="url(#gold)" stroke="#76501d" stroke-width="1.5"/>
+</svg>
