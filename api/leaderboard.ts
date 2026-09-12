@@ -67,6 +67,13 @@ export default async function handler(request: ApiRequest, response: ApiResponse
     }
 
     const playerId = textQuery(request.query?.playerId);
+    const localBestValue = Number(textQuery(request.query?.localBest));
+    const localBest = Number.isFinite(localBestValue) && localBestValue > 0
+      ? Math.min(Math.floor(localBestValue), 1_000_000_000)
+      : 0;
+    const requestedName = textQuery(request.query?.playerName).trim().slice(0, 20);
+    const localName = requestedName || 'Pirate';
+
     const leaderboard = await sql`
       SELECT player_name AS name, score, coins, created_at AS "createdAt"
       FROM leaderboard_scores
@@ -112,7 +119,83 @@ export default async function handler(request: ApiRequest, response: ApiResponse
       personalBest = Number(personal[0]?.score ?? 0);
       personalRank = Number(personal[0]?.rank ?? 0);
 
-      if (personalRank > 0) {
+      // The Rank tab should use the player's true saved high-score history even
+      // when that best run has not been submitted in the current session. If the
+      // device has a newer local best, rank it in-memory without inserting it.
+      if (localBest > personalBest) {
+        personalBest = localBest;
+        rankWindow = await sql`
+          WITH player_bests AS (
+            SELECT DISTINCT ON (player_id)
+              player_id,
+              player_name AS name,
+              score,
+              coins,
+              created_at
+            FROM leaderboard_scores
+            WHERE player_id IS NOT NULL
+            ORDER BY player_id, score DESC, created_at ASC
+          ),
+          candidates AS (
+            SELECT
+              player_id,
+              name,
+              score,
+              coins,
+              created_at,
+              false AS is_you
+            FROM player_bests
+            WHERE player_id <> ${playerId}::uuid
+
+            UNION ALL
+
+            SELECT
+              ${playerId}::uuid AS player_id,
+              ${localName}::text AS name,
+              ${localBest}::integer AS score,
+              0::integer AS coins,
+              NOW() AS created_at,
+              true AS is_you
+          ),
+          ranked AS (
+            SELECT
+              player_id,
+              name,
+              score,
+              coins,
+              created_at,
+              is_you,
+              row_number() OVER (
+                ORDER BY score DESC, created_at ASC, player_id
+              )::integer AS rank
+            FROM candidates
+          ),
+          mine AS (
+            SELECT rank
+            FROM ranked
+            WHERE is_you
+            LIMIT 1
+          ),
+          window_start AS (
+            SELECT GREATEST(1, rank - 4)::integer AS first_rank
+            FROM mine
+          )
+          SELECT
+            r.name,
+            r.score,
+            r.coins,
+            r.rank,
+            r.is_you AS "isYou"
+          FROM ranked r
+          CROSS JOIN window_start w
+          WHERE r.rank >= w.first_rank
+          ORDER BY r.rank ASC
+          LIMIT 10
+        `;
+
+        const mine = rankWindow.find((row) => Boolean((row as { isYou?: unknown }).isYou));
+        personalRank = Number((mine as { rank?: unknown } | undefined)?.rank ?? 0);
+      } else if (personalRank > 0) {
         rankWindow = await sql`
           WITH player_bests AS (
             SELECT DISTINCT ON (player_id)
