@@ -16,7 +16,7 @@ func _ready() -> void:
 func _load_selection() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(SAVE_PATH) == OK:
-		selected_index = clampi(int(cfg.get_value("boats", "selected", 0)), 0, BOATS.size()-1)
+		selected_index = clampi(int(cfg.get_value("boats", "selected", 0)), 0, BOATS.size() - 1)
 
 func _save_selection() -> void:
 	var cfg := ConfigFile.new()
@@ -33,7 +33,7 @@ func get_selected_color() -> Color:
 	return COLORS[selected_index]
 
 func _on_node_added(node: Node) -> void:
-	if node.name == "PlayButton":
+	if node.name == "PlayButton" or node.name == "GameTitle":
 		call_deferred("_find_menu")
 
 func _find_menu() -> void:
@@ -43,10 +43,11 @@ func _find_menu() -> void:
 	var play := scene.find_child("PlayButton", true, false) as Button
 	if play == null:
 		return
+	# PlayButton is created directly by main_menu.gd, so its parent IS the full-screen menu root.
 	menu = play.get_parent() as Control
 	if menu == null:
 		return
-	if menu.get_node_or_null("CollectiblesButton") != null:
+	if trophy_button != null and is_instance_valid(trophy_button):
 		return
 	_create_trophy_button()
 
@@ -57,22 +58,24 @@ func _create_trophy_button() -> void:
 	trophy_button.tooltip_text = "Boat Collectibles"
 	trophy_button.focus_mode = Control.FOCUS_NONE
 	trophy_button.mouse_filter = Control.MOUSE_FILTER_STOP
-	trophy_button.z_index = 1000
+	trophy_button.z_index = 10000
 	trophy_button.add_theme_font_size_override("font_size", 25)
 	trophy_button.add_theme_color_override("font_color", Color("f6c53d"))
 	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.03, 0.16, 0.20, 0.90)
+	normal.bg_color = Color(0.03, 0.16, 0.20, 0.94)
 	normal.border_color = Color("f6c53d")
 	normal.set_border_width_all(2)
 	normal.set_corner_radius_all(12)
 	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = Color(0.02, 0.10, 0.13, 0.98)
+	pressed.bg_color = Color(0.02, 0.10, 0.13, 1.0)
 	trophy_button.add_theme_stylebox_override("normal", normal)
 	trophy_button.add_theme_stylebox_override("hover", normal)
 	trophy_button.add_theme_stylebox_override("pressed", pressed)
 	menu.add_child(trophy_button)
-	trophy_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	trophy_button.position = Vector2(-60, 18)
+	# Use explicit viewport coordinates. Anchoring to the right and then assigning position
+	# was placing the control outside the visible menu on some layouts.
+	trophy_button.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	trophy_button.position = Vector2(328, 18)
 	trophy_button.size = Vector2(46, 46)
 	trophy_button.pressed.connect(_open_panel)
 	trophy_button.move_to_front()
@@ -86,11 +89,10 @@ func _open_panel() -> void:
 		return
 	panel = Panel.new()
 	panel.name = "CollectiblesPanel"
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.position = Vector2(-177, -280)
+	panel.position = Vector2(18, 150)
 	panel.size = Vector2(354, 560)
 	panel.mouse_filter = Control.MOUSE_FILTER_STOP
-	panel.z_index = 2000
+	panel.z_index = 20000
 	var box := StyleBoxFlat.new()
 	box.bg_color = Color("082e3c")
 	box.border_color = Color("f6c53d")
