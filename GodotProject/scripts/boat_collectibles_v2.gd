@@ -14,185 +14,161 @@ var selected := 0
 var preview := 0
 var textures: Array[Texture2D] = []
 var menu: Control
-var panel: Panel
+var overlay: Control
 var hero: TextureRect
 var name_label: Label
 var sub_label: Label
-var equip: Button
+var equip_hitbox: Button
+var selected_badge: Label
 
-func _ready():
-	var c=ConfigFile.new()
-	if c.load(SAVE)==OK:
-		selected=clampi(int(c.get_value("boats","selected",0)),0,7)
-	preview=selected
+func _ready() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(SAVE) == OK:
+		selected = clampi(int(cfg.get_value("boats", "selected", 0)), 0, 7)
+	preview = selected
 	textures.resize(FILES.size())
-	get_tree().node_added.connect(func(n):
-		if n.name=="PlayButton": call_deferred("_attach"))
-	call_deferred("_attach")
 
-func get_selected_index()->int: return selected
-func get_selected_name()->String: return NAMES[selected]
-func get_selected_color()->Color: return COLORS[selected]
+func get_selected_index() -> int:
+	return selected
 
-func _ship_texture(index:int)->Texture2D:
-	if index<0 or index>=FILES.size(): return null
-	if textures[index]==null: textures[index]=_read_ship(index)
+func get_selected_name() -> String:
+	return NAMES[selected]
+
+func get_selected_color() -> Color:
+	return COLORS[selected]
+
+func _ship_texture(index: int) -> Texture2D:
+	if index < 0 or index >= FILES.size():
+		return null
+	if textures[index] == null:
+		textures[index] = _read_ship(index)
 	return textures[index]
 
-func _read_ship(index:int)->Texture2D:
-	var source=load("res://assets/ships/%s.svg" % FILES[index]) as Texture2D
-	if source==null: return null
-	# Inferno and Sea Serpent are already tightly framed native SVGs.
-	# Show the full asset so no sails/hull are clipped by an AtlasTexture crop.
-	if index==5 or index==6:
+func _read_ship(index: int) -> Texture2D:
+	var source := load("res://assets/ships/%s.svg" % FILES[index]) as Texture2D
+	if source == null:
+		return null
+	if index == 5 or index == 6:
 		return source
-	var atlas=AtlasTexture.new()
-	atlas.atlas=source
-	atlas.region=CROP_RECTS[index]
+	var atlas := AtlasTexture.new()
+	atlas.atlas = source
+	atlas.region = CROP_RECTS[index]
 	return atlas
 
-func _attach():
-	var scene=get_tree().current_scene
-	if not scene:return
-	var play=scene.find_child("PlayButton",true,false) as Button
-	if not play:return
-	menu=play.get_parent() as Control
-	if menu.get_node_or_null("CollectiblesButton"):return
-	var b=Button.new()
-	b.name="CollectiblesButton"
-	b.text="🏆"
-	b.position=Vector2(328,18)
-	b.size=Vector2(46,46)
-	b.z_index=10000
-	b.focus_mode=Control.FOCUS_NONE
-	b.mouse_filter=Control.MOUSE_FILTER_STOP
-	b.add_theme_font_size_override("font_size",25)
-	b.pressed.connect(_open)
-	menu.add_child(b)
-	b.move_to_front()
-
-func _open():
-	preview=selected
-	if panel:
-		panel.visible=true
-		panel.move_to_front()
+func open_from_menu(menu_control: Control) -> void:
+	menu = menu_control
+	preview = selected
+	if overlay != null and is_instance_valid(overlay):
+		overlay.visible = true
+		overlay.move_to_front()
 		_refresh()
 		return
-	_build()
-
-func _build():
-	panel=Panel.new()
-	panel.position=Vector2(12,120)
-	panel.size=Vector2(366,535)
-	panel.z_index=20000
-	panel.mouse_filter=Control.MOUSE_FILTER_STOP
-	var bg=StyleBoxFlat.new()
-	bg.bg_color=Color("081b25")
-	bg.border_color=Color("8b5b2d")
-	bg.set_border_width_all(4)
-	bg.set_corner_radius_all(18)
-	panel.add_theme_stylebox_override("panel",bg)
-	menu.add_child(panel)
-
-	panel.add_child(_label("COLLECTIBLES",Vector2(18,10),Vector2(330,44),27,Color("f6d18a")))
-	var tab=Button.new()
-	tab.text="SHIPS"
-	tab.disabled=true
-	tab.position=Vector2(20,58)
-	tab.size=Vector2(326,40)
-	tab.add_theme_font_size_override("font_size",18)
-	tab.add_theme_color_override("font_disabled_color",Color.WHITE)
-	var tab_style=StyleBoxFlat.new()
-	tab_style.bg_color=Color("1266a4")
-	tab_style.border_color=Color("4ec9ff")
-	tab_style.set_border_width_all(2)
-	tab_style.set_corner_radius_all(10)
-	tab.add_theme_stylebox_override("disabled",tab_style)
-	panel.add_child(tab)
-
-	name_label=_label("",Vector2(25,105),Vector2(316,34),23,Color("f6d18a"))
-	panel.add_child(name_label)
-	sub_label=_label("",Vector2(25,138),Vector2(316,24),13,Color("d9f4fb"))
-	panel.add_child(sub_label)
-
-	var frame=Panel.new()
-	frame.position=Vector2(55,168)
-	frame.size=Vector2(256,205)
-	var fs=StyleBoxFlat.new()
-	fs.bg_color=Color("ffffff")
-	fs.border_color=Color("d8e0e4")
-	fs.set_border_width_all(2)
-	fs.set_corner_radius_all(18)
-	frame.add_theme_stylebox_override("panel",fs)
-	panel.add_child(frame)
-
-	hero=TextureRect.new()
-	hero.position=Vector2(38,6)
-	hero.size=Vector2(180,193)
-	hero.expand_mode=TextureRect.EXPAND_IGNORE_SIZE
-	hero.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	hero.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	frame.add_child(hero)
-
-	for d in [["<",12,-1],[">",316,1]]:
-		var a=Button.new()
-		a.text=d[0]
-		a.position=Vector2(d[1],238)
-		a.size=Vector2(38,64)
-		a.focus_mode=Control.FOCUS_NONE
-		a.add_theme_font_size_override("font_size",24)
-		a.pressed.connect(_cycle.bind(d[2]))
-		panel.add_child(a)
-
-	equip=Button.new()
-	equip.position=Vector2(96,390)
-	equip.size=Vector2(174,48)
-	equip.focus_mode=Control.FOCUS_NONE
-	equip.add_theme_font_size_override("font_size",17)
-	equip.pressed.connect(_equip)
-	panel.add_child(equip)
-	panel.add_child(_label("Use the arrows to browse ships",Vector2(45,444),Vector2(276,24),12,Color("9ec6d2")))
-
-	var back=Button.new()
-	back.text="BACK"
-	back.position=Vector2(108,480)
-	back.size=Vector2(150,42)
-	back.focus_mode=Control.FOCUS_NONE
-	back.pressed.connect(func():panel.visible=false)
-	panel.add_child(back)
+	_build_overlay()
 	_refresh()
 
-func _label(text:String,pos:Vector2,size:Vector2,font_size:int,color:Color)->Label:
-	var l=Label.new()
-	l.text=text
-	l.position=pos
-	l.size=size
-	l.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
-	l.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
-	l.add_theme_font_size_override("font_size",font_size)
-	l.add_theme_color_override("font_color",color)
-	l.mouse_filter=Control.MOUSE_FILTER_IGNORE
-	return l
+func _build_overlay() -> void:
+	overlay = Control.new()
+	overlay.name = "ExactCollectibles"
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.z_index = 30000
+	menu.add_child(overlay)
+	overlay.move_to_front()
 
-func _cycle(d:int):
-	preview=wrapi(preview+d,0,8)
+	var bg := TextureRect.new()
+	bg.texture = load("res://assets/ui/collectibles_exact.jpg")
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_SCALE
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(bg)
+
+	var hero_cover := ColorRect.new()
+	hero_cover.color = Color(0.025, 0.10, 0.15, 0.98)
+	hero_cover.position = Vector2(85, 203)
+	hero_cover.size = Vector2(220, 292)
+	hero_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(hero_cover)
+
+	name_label = Label.new()
+	name_label.position = Vector2(55, 205)
+	name_label.size = Vector2(280, 40)
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.add_theme_font_size_override("font_size", 25)
+	name_label.add_theme_color_override("font_color", Color("f6d9a3"))
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(name_label)
+
+	sub_label = Label.new()
+	sub_label.position = Vector2(75, 242)
+	sub_label.size = Vector2(240, 24)
+	sub_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub_label.add_theme_font_size_override("font_size", 14)
+	sub_label.add_theme_color_override("font_color", Color.WHITE)
+	sub_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(sub_label)
+
+	hero = TextureRect.new()
+	hero.position = Vector2(128, 270)
+	hero.size = Vector2(134, 188)
+	hero.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	hero.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(hero)
+
+	selected_badge = Label.new()
+	selected_badge.position = Vector2(106, 479)
+	selected_badge.size = Vector2(178, 50)
+	selected_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	selected_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	selected_badge.add_theme_font_size_override("font_size", 20)
+	selected_badge.add_theme_color_override("font_color", Color("17461f"))
+	selected_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(selected_badge)
+
+	_add_hitbox(Rect2(338, 20, 40, 48), _close)
+	_add_hitbox(Rect2(62, 355, 42, 64), func(): _cycle(-1))
+	_add_hitbox(Rect2(284, 355, 42, 64), func(): _cycle(1))
+	equip_hitbox = _add_hitbox(Rect2(104, 476, 182, 58), _equip)
+
+func _add_hitbox(r: Rect2, callback: Callable) -> Button:
+	var b := Button.new()
+	b.text = ""
+	b.flat = true
+	b.modulate = Color(1, 1, 1, 0.01)
+	b.focus_mode = Control.FOCUS_NONE
+	b.mouse_filter = Control.MOUSE_FILTER_STOP
+	b.position = r.position
+	b.size = r.size
+	b.pressed.connect(callback)
+	overlay.add_child(b)
+	b.move_to_front()
+	return b
+
+func _cycle(delta: int) -> void:
+	preview = wrapi(preview + delta, 0, 8)
 	_refresh()
 
-func _equip():
-	selected=preview
-	var c=ConfigFile.new()
-	c.set_value("boats","selected",selected)
-	c.save(SAVE)
+func _equip() -> void:
+	selected = preview
+	var cfg := ConfigFile.new()
+	cfg.set_value("boats", "selected", selected)
+	cfg.save(SAVE)
 	_refresh()
 
-func _refresh():
-	if name_label:name_label.text=NAMES[preview].to_upper()
-	if sub_label:sub_label.text=SUBS[preview]
+func _refresh() -> void:
+	if name_label:
+		name_label.text = NAMES[preview].to_upper()
+	if sub_label:
+		sub_label.text = SUBS[preview]
 	if hero:
-		hero.texture=_ship_texture(preview)
-		# Keep the original SVG colors. The previous Sea Serpent tint was washing
-		# the detailed teal/gold artwork out against the white showcase card.
-		hero.modulate=Color.WHITE
-	if equip:
-		equip.text="EQUIPPED" if preview==selected else "SELECT SHIP"
-		equip.disabled=preview==selected
+		hero.texture = _ship_texture(preview)
+		hero.modulate = Color.WHITE
+	if selected_badge:
+		selected_badge.text = "EQUIPPED" if preview == selected else "SELECT SHIP"
+	if equip_hitbox:
+		equip_hitbox.disabled = preview == selected
+
+func _close() -> void:
+	if overlay != null and is_instance_valid(overlay):
+		overlay.visible = false
