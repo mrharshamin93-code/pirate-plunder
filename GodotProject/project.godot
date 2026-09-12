@@ -19,6 +19,7 @@ BoatCollectibles="*res://scripts/boat_collectibles_score_only.gd"
 LeaderboardMainMenuDebug="*res://scripts/leaderboard_main_menu_debug.gd"
 PlayerProfileSettings="*res://scripts/player_profile_settings_layout.gd"
 SettingsInputGuard="*res://scripts/settings_input_guard.gd"
+SkullPenaltyFeature="*res://scripts/skull_penalty_feature.gd"
 
 [display]
 window/size/viewport_width=390
