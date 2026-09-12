@@ -55,6 +55,46 @@ func _draw_whirlpool(w: Dictionary) -> void:
 	draw_arc(p, 20.0, spin * 0.2, spin * 0.2 + 4.7, 22, Color(0.43, 0.82, 0.88, 0.27), 1.5, true)
 	draw_arc(p, 11.0, -spin * 0.18, -spin * 0.18 + 4.9, 18, Color(0.72, 0.94, 0.97, 0.23), 1.1, true)
 
+# Clean gold spark burst for coin pickups. No expanding rings or circular halo.
+func _draw_pickup_burst(burst: Dictionary) -> void:
+	var life: float = float(burst.get("life", 0.0))
+	var progress: float = 1.0 - clampf(life / PICKUP_BURST_LIFE, 0.0, 1.0)
+	var fade: float = pow(1.0 - progress, 1.35)
+	var p: Vector2 = burst.get("pos", Vector2.ZERO)
+	var tier: int = clampi(int(burst.get("tier", 0)), 0, 6)
+	var strength: float = 1.0 + float(tier) * 0.055
+
+	# Immediate sharp flash made from rays only, avoiding the old circular flash.
+	var flash: float = clampf(1.0 - progress / 0.22, 0.0, 1.0)
+	if flash > 0.0:
+		for ray in range(8):
+			var a: float = float(ray) / 8.0 * TAU + 0.12
+			var inner: float = 3.0 + progress * 5.0
+			var outer: float = (15.0 + float(ray % 2) * 6.0) * strength * (1.0 + progress * 0.8)
+			var dir := Vector2(cos(a), sin(a))
+			draw_line(p + dir * inner, p + dir * outer, Color(1.0, 0.91, 0.42, 0.92 * flash), 1.5, true)
+
+	# Fast outward gold particles with a few bright star-shaped sparkles.
+	var particle_count: int = 12 + tier
+	for i in range(particle_count):
+		var a: float = float(i) / float(particle_count) * TAU + float(i % 3) * 0.09
+		var speed: float = 0.78 + float(i % 4) * 0.10
+		var dist: float = lerpf(4.0, 42.0 * strength * speed, progress)
+		var pos: Vector2 = p + Vector2(cos(a), sin(a)) * dist
+		var alpha: float = fade * (0.78 + float(i % 3) * 0.08)
+		var radius: float = maxf(0.55, (2.15 - progress * 1.45) * (0.85 + float(i % 2) * 0.18))
+		draw_circle(pos, radius, Color(1.0, 0.67, 0.03, alpha))
+		if i % 3 == 0:
+			_draw_star(pos, (2.7 + float(i % 2) * 1.0) * fade + 0.35, Color(1.0, 0.96, 0.62, 1.0), alpha)
+
+	# A few delayed glints make the tail feel crisp instead of forming a ring.
+	for i in range(4):
+		var a: float = float(i) / 4.0 * TAU + 0.43
+		var dist: float = lerpf(8.0, 30.0 * strength, progress)
+		var glint_pos: Vector2 = p + Vector2(cos(a), sin(a)) * dist
+		var glint_alpha: float = clampf((1.0 - abs(progress - 0.48) * 2.4), 0.0, 1.0) * fade
+		_draw_star(glint_pos, 3.4 * fade + 0.5, Color(1.0, 0.88, 0.22, 1.0), glint_alpha)
+
 func _draw_boat(p: Vector2, a: float) -> void:
 	var idx: int = BoatCollectibles.get_selected_index()
 	if idx == 0:
