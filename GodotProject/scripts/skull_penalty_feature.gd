@@ -1,21 +1,19 @@
 extends Node2D
 
-# Coin-sized skull penalty obstacle.
-# It is intentionally independent of whirlpool physics, so whirlpools never move or consume it.
+# Persistent coin-sized skull penalty hazards. Each skull behaves independently and
+# remains in play until the boat hits it or a whirlpool pulls it into the core.
 const SKULL_RADIUS := 17.0
-const SKULL_LIFE := 30.0
 const SKULL_GRACE := 1.0
 const SKULL_PENALTY := 500
-# The 500-point coin has weight 3 out of 100. The skull should appear twice as often,
-# so use a 6% spawn chance per collected coin.
+# The 500-point coin has weight 3 out of 100. Skull spawn chance is twice that rate.
 const SKULL_SPAWN_CHANCE := 0.06
 const POPUP_LIFE := 0.90
 const BURST_LIFE := 0.55
 
-var skull: Dictionary = {"active": false}
+var skulls: Array[Dictionary] = []
 var last_coins_collected := 0
-var popup: Dictionary = {}
-var burst: Dictionary = {}
+var popups: Array[Dictionary] = []
+var bursts: Array[Dictionary] = []
 var damage_player: AudioStreamPlayer
 var damage_stream: AudioStreamWAV
 
@@ -30,9 +28,9 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	var g = get_tree().current_scene
 	if g == null or not ("game_started" in g) or not bool(g.game_started):
-		skull = {"active": false}
-		popup.clear()
-		burst.clear()
+		skulls.clear()
+		popups.clear()
+		bursts.clear()
 		last_coins_collected = 0
 		queue_redraw()
 		return
@@ -42,33 +40,49 @@ func _process(delta: float) -> void:
 
 	var collected: int = int(g.coins_collected)
 	if collected < last_coins_collected:
-		skull = {"active": false}
-		popup.clear()
-		burst.clear()
+		skulls.clear()
+		popups.clear()
+		bursts.clear()
 	if collected > last_coins_collected:
 		for _i in range(collected - last_coins_collected):
-			if not bool(skull.get("active", false)) and randf() < SKULL_SPAWN_CHANCE:
+			if randf() < SKULL_SPAWN_CHANCE:
 				_spawn_skull(g)
 	last_coins_collected = collected
 
-	if bool(skull.get("active", false)):
+	# Update each skull independently. They persist indefinitely unless collected or swallowed.
+	for i in range(skulls.size() - 1, -1, -1):
+		var skull: Dictionary = skulls[i]
 		skull["age"] = float(skull.get("age", 0.0)) + delta
-		skull["life"] = float(skull.get("life", SKULL_LIFE)) - delta
-		if float(skull.life) <= 0.0:
-			skull["active"] = false
-		elif float(skull.age) >= SKULL_GRACE:
-			var p: Vector2 = skull.get("pos", Vector2.ZERO)
+		var p: Vector2 = skull.get("pos", Vector2.ZERO) as Vector2
+
+		# Whirlpool interaction mirrors the game's pull concept: skulls begin moving from
+		# across the field, accelerate strongly near the whirlpool, and disappear in its core.
+		if bool(g.whirlpool.get("active", false)):
+			var wpos: Vector2 = g.whirlpool.get("pos", Vector2.ZERO) as Vector2
+			var offset: Vector2 = wpos - p
+			var dist: float = maxf(0.01, offset.length())
+			if dist < float(g.WHIRLPOOL_CORE) + SKULL_RADIUS * 0.35:
+				skulls.remove_at(i)
+				continue
+			var field_range: float = maxf(1.0, get_viewport_rect().size.length())
+			var proximity: float = clampf(1.0 - dist / field_range, 0.04, 1.0)
+			var pull_speed: float = 14.0 + 180.0 * proximity * proximity
+			p += offset / dist * pull_speed * delta
+			skull["pos"] = p
+
+		if float(skull.get("age", 0.0)) >= SKULL_GRACE:
 			if g.boat_pos.distance_to(p) < float(g.BOAT_RADIUS) + SKULL_RADIUS:
 				_hit_skull(g, p)
+				skulls.remove_at(i)
 
-	if not popup.is_empty():
-		popup["life"] = float(popup.get("life", 0.0)) - delta
-		if float(popup.life) <= 0.0:
-			popup.clear()
-	if not burst.is_empty():
-		burst["life"] = float(burst.get("life", 0.0)) - delta
-		if float(burst.life) <= 0.0:
-			burst.clear()
+	for i in range(popups.size() - 1, -1, -1):
+		popups[i]["life"] = float(popups[i].get("life", 0.0)) - delta
+		if float(popups[i].get("life", 0.0)) <= 0.0:
+			popups.remove_at(i)
+	for i in range(bursts.size() - 1, -1, -1):
+		bursts[i]["life"] = float(bursts[i].get("life", 0.0)) - delta
+		if float(bursts[i].get("life", 0.0)) <= 0.0:
+			bursts.remove_at(i)
 	queue_redraw()
 
 func _spawn_skull(g: Node) -> void:
@@ -77,24 +91,23 @@ func _spawn_skull(g: Node) -> void:
 		randf_range(float(g.FIELD_INSET_SIDE) + 28.0, size.x - float(g.FIELD_INSET_SIDE) - 28.0),
 		randf_range(float(g.FIELD_INSET_TOP) + 28.0, size.y - float(g.FIELD_INSET_BOTTOM) - 28.0)
 	)
-	skull = {"active": true, "pos": p, "age": 0.0, "life": SKULL_LIFE}
+	skulls.append({"pos": p, "age": 0.0})
 
 func _hit_skull(g: Node, p: Vector2) -> void:
-	skull["active"] = false
 	g.score = maxi(0, int(g.score) - SKULL_PENALTY)
 	if g.has_method("_refresh_hud"):
 		g.call("_refresh_hud")
-	popup = {"pos": p, "life": POPUP_LIFE}
-	burst = {"pos": p, "life": BURST_LIFE}
+	popups.append({"pos": p, "life": POPUP_LIFE})
+	bursts.append({"pos": p, "life": BURST_LIFE})
 	damage_player.stop()
 	damage_player.play()
 
 func _draw() -> void:
-	if bool(skull.get("active", false)):
+	for skull in skulls:
 		_draw_skull(skull.get("pos", Vector2.ZERO))
-	if not burst.is_empty():
+	for burst in bursts:
 		_draw_bad_burst(burst)
-	if not popup.is_empty():
+	for popup in popups:
 		_draw_penalty_popup(popup)
 
 func _draw_skull(p: Vector2) -> void:
@@ -107,33 +120,23 @@ func _draw_skull(p: Vector2) -> void:
 	var socket := Color("333941")
 	var nose_shadow := Color("8e969e")
 
-	# Soft offset shadow makes the skull read as raised from the water.
 	draw_circle(p + Vector2(2.4, 1.6), 14.3, deep_shadow)
 	draw_rect(Rect2(p + Vector2(-5.5, 9.0), Vector2(14.0, 6.0)), deep_shadow, true)
-
-	# Cranium: dark outer rim, grey lower-right bevel, white face and bright highlight.
 	draw_circle(p + Vector2(0, -2), 14.0, outline)
 	draw_circle(p + Vector2(0.8, -1.0), 12.0, rim_shadow)
 	draw_circle(p + Vector2(-0.8, -2.8), 11.2, white)
 	draw_circle(p + Vector2(-4.2, -6.0), 6.0, highlight)
-
-	# Jaw with the same raised/bevel treatment.
 	draw_rect(Rect2(p + Vector2(-8, 7), Vector2(16, 7)), outline, true)
 	draw_rect(Rect2(p + Vector2(-6.5, 7.7), Vector2(13, 5.2)), rim_shadow, true)
 	draw_rect(Rect2(p + Vector2(-6.0, 7.2), Vector2(11.5, 4.1)), white, true)
-
-	# Eye sockets sit slightly low/right to reinforce the lighting direction.
 	draw_circle(p + Vector2(-4.6, -1.6), 3.5, socket)
 	draw_circle(p + Vector2(5.2, -1.6), 3.5, socket)
 	draw_circle(p + Vector2(-5.4, -2.4), 1.0, Color(0.10, 0.12, 0.14, 0.9))
 	draw_circle(p + Vector2(4.4, -2.4), 1.0, Color(0.10, 0.12, 0.14, 0.9))
-
-	# Nose and teeth.
 	var nose := PackedVector2Array([p + Vector2(0, 1), p + Vector2(-2.3, 5), p + Vector2(2.3, 5)])
 	draw_colored_polygon(nose, nose_shadow)
 	for x in [-4.0, 0.0, 4.0]:
 		draw_line(p + Vector2(x, 8), p + Vector2(x, 12), outline, 1.0, true)
-	# Small cheek highlight gives a final bit of curvature without making it glossy.
 	draw_arc(p + Vector2(-1.5, 0.0), 8.5, PI * 1.03, PI * 1.55, 8, Color(1, 1, 1, 0.72), 1.1, true)
 
 func _draw_bad_burst(b: Dictionary) -> void:
@@ -164,7 +167,6 @@ func _draw_penalty_popup(v: Dictionary) -> void:
 	draw_string(font, p + Vector2(-width * 0.5, 0), text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs, Color(1.0, 0.08, 0.05, alpha))
 
 func _make_damage_sound() -> AudioStreamWAV:
-	# Original heavy retro damage cue (the approved Sound C direction), generated in-engine.
 	var rate := 44100
 	var duration := 0.48
 	var frames := int(rate * duration)
