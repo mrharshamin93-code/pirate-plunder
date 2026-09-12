@@ -1,56 +1,70 @@
 extends Node
 
-var hit_button: Button = null
-var bound_page_id: int = 0
+# This deliberately handles the tap before Godot's Control GUI dispatch.
+# The leaderboard is an overlay inside MainMenu, so hiding that overlay is
+# all that is required to return immediately to the existing main menu.
 
-func _process(_delta: float) -> void:
-	var scene: Node = get_tree().current_scene
-	if scene == null:
+func _ready() -> void:
+	set_process_input(true)
+
+func _input(event: InputEvent) -> void:
+	var page: Control = _get_board_page()
+	if page == null or not page.visible:
 		return
 
-	var page: Control = scene.find_child("FreshLeaderboardPage", true, false) as Control
-	if page == null:
-		hit_button = null
-		bound_page_id = 0
+	var pressed: bool = false
+	var pos: Vector2 = Vector2.ZERO
+	if event is InputEventScreenTouch:
+		var touch: InputEventScreenTouch = event as InputEventScreenTouch
+		pressed = touch.pressed
+		pos = touch.position
+	elif event is InputEventMouseButton:
+		var mouse: InputEventMouseButton = event as InputEventMouseButton
+		pressed = mouse.pressed and mouse.button_index == MOUSE_BUTTON_LEFT
+		pos = mouse.position
+	else:
 		return
 
-	var page_id: int = page.get_instance_id()
-	if hit_button == null or not is_instance_valid(hit_button) or bound_page_id != page_id:
-		_install_hit_button(page)
-
-func _install_hit_button(page: Control) -> void:
-	var visible_button: Button = page.find_child("LeaderboardBackButton", true, false) as Button
-	if visible_button == null:
+	if not pressed:
 		return
 
-	var hit := Button.new()
-	hit.name = "LeaderboardMainMenuDirectHit"
-	hit.text = ""
-	hit.flat = true
-	hit.focus_mode = Control.FOCUS_NONE
-	hit.mouse_filter = Control.MOUSE_FILTER_STOP
-	hit.position = visible_button.position - Vector2(12.0, 10.0)
-	hit.size = visible_button.size + Vector2(24.0, 20.0)
-	hit.z_index = 1000000
+	# First use the real visible MAIN MENU button rect.
+	var back: Button = page.find_child("LeaderboardBackButton", true, false) as Button
+	var hit: bool = false
+	if back != null and is_instance_valid(back):
+		hit = back.get_global_rect().grow(18.0).has_point(pos)
 
-	var empty := StyleBoxEmpty.new()
-	hit.add_theme_stylebox_override("normal", empty)
-	hit.add_theme_stylebox_override("hover", empty)
-	hit.add_theme_stylebox_override("pressed", empty)
-	hit.add_theme_stylebox_override("focus", empty)
-	hit.add_theme_stylebox_override("disabled", empty)
+	# Resolution-independent fallback. The MAIN MENU button occupies the lower
+	# centre of the leaderboard screen. This catches the tap even if a platform
+	# reports pointer coordinates in a different stretched-canvas space.
+	if not hit:
+		var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+		if viewport_size.x > 0.0 and viewport_size.y > 0.0:
+			var nx: float = pos.x / viewport_size.x
+			var ny: float = pos.y / viewport_size.y
+			hit = nx >= 0.18 and nx <= 0.82 and ny >= 0.82 and ny <= 0.98
 
-	page.add_child(hit)
-	hit.move_to_front()
-	hit.button_down.connect(func() -> void: _go_to_main_menu(page))
-
-	hit_button = hit
-	bound_page_id = page.get_instance_id()
+	if hit:
+		# Consume the press before it can reach the Leaderboard hitbox underneath.
+		get_viewport().set_input_as_handled()
+		_go_to_main_menu(page)
 
 func _go_to_main_menu(page: Control) -> void:
-	# Immediate transition: the leaderboard is only an overlay on the main menu.
-	# Hiding it exposes the existing main-menu screen underneath, exactly like
-	# the Collectibles page's working BACK button.
-	get_viewport().set_input_as_handled()
-	if is_instance_valid(page):
-		page.visible = false
+	if page == null or not is_instance_valid(page):
+		return
+
+	# FreshLeaderboardPage is created directly under the actual MainMenu node.
+	# This mirrors the working Collectibles BACK behavior: close only the overlay.
+	var menu: Control = page.get_parent() as Control
+	page.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	page.visible = false
+
+	if menu != null and is_instance_valid(menu):
+		menu.visible = true
+		menu.mouse_filter = Control.MOUSE_FILTER_STOP
+
+func _get_board_page() -> Control:
+	var scene: Node = get_tree().current_scene
+	if scene == null:
+		return null
+	return scene.find_child("FreshLeaderboardPage", true, false) as Control
