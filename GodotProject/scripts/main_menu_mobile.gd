@@ -2,7 +2,7 @@ extends "res://scripts/main_menu.gd"
 
 const DESIGN_SIZE: Vector2 = Vector2(853.0, 1844.0)
 const API_URL: String = "https://pirate-plunder.vercel.app/api/leaderboard"
-const SAVE_PATH: String = "user://leaderboard.cfg"
+const MENU_SAVE_PATH: String = "user://leaderboard.cfg"
 
 const PLAY_RECT: Rect2 = Rect2(168, 900, 495, 145)
 const LEADERBOARD_RECT: Rect2 = Rect2(168, 1063, 495, 130)
@@ -250,7 +250,7 @@ func _request_board_data() -> void:
 	var local_best: int = 0
 	var player_name: String = ""
 	var cfg := ConfigFile.new()
-	if cfg.load(SAVE_PATH) == OK:
+	if cfg.load(MENU_SAVE_PATH) == OK:
 		player_id = String(cfg.get_value("player", "id", ""))
 		local_best = int(cfg.get_value("player", "personal_best", 0))
 		player_name = String(cfg.get_value("player", "name", "")).strip_edges()
