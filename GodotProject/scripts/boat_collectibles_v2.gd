@@ -5,6 +5,12 @@ const NAMES := ["Plunderer","Crimson Raider","Black Pearl","Royal Fortune","Ghos
 const SUBS := ["Default Ship","Raider Variant","Shadow Variant","Royal Variant","Spectral Variant","Infernal Variant","Serpent Variant","Legendary Variant"]
 const FILES := ["plunderer","crimson_raider","black_pearl","royal_fortune","ghost_ship","inferno","sea_serpent","golden_galleon"]
 const COLORS := [Color("9a6231"),Color("c8322f"),Color("20242b"),Color("f2e5c2"),Color("7fa7a1"),Color("e64a19"),Color("159b91"),Color("d6a51e")]
+# Exact safe crop windows for the eight 160x160 ship SVGs. We only remove empty
+# horizontal canvas; the full 0..160 height is retained so no mast, flag, bow or stern can be cut off.
+const CROP_RECTS := [
+	Rect2(40,0,84,160), Rect2(42,0,82,160), Rect2(43,0,78,160), Rect2(43,0,80,160),
+	Rect2(41,0,84,160), Rect2(42,0,84,160), Rect2(42,0,82,160), Rect2(40,0,82,160)
+]
 var selected := 0
 var preview := 0
 var textures: Array[Texture2D] = []
@@ -19,7 +25,7 @@ func _ready():
 	var c=ConfigFile.new()
 	if c.load(SAVE)==OK: selected=clampi(int(c.get_value("boats","selected",0)),0,7)
 	preview=selected
-	for f in FILES: textures.append(_read_ship("res://assets/ships/%s.svg"%f))
+	for i in range(FILES.size()): textures.append(_read_ship(i))
 	get_tree().node_added.connect(func(n):
 		if n.name=="PlayButton": call_deferred("_attach"))
 	call_deferred("_attach")
@@ -28,37 +34,15 @@ func get_selected_index()->int: return selected
 func get_selected_name()->String: return NAMES[selected]
 func get_selected_color()->Color: return COLORS[selected]
 
-func _read_ship(path:String)->Texture2D:
-	var f=FileAccess.open(path,FileAccess.READ)
-	if f:
-		var s=f.get_as_text(); var p=s.find("base64,")
-		if p>=0:
-			p+=7; var e=s.find("\"",p)
-			if e>p:
-				var im=Image.new()
-				if im.load_png_from_buffer(Marshalls.base64_to_raw(s.substr(p,e-p)))==OK:
-					return ImageTexture.create_from_image(_normalize(im))
-	return load(path) as Texture2D
-
-func _normalize(im:Image)->Image:
-	# Threshold alpha so faint resampling pixels cannot make the crop equal the whole square.
-	var x0=im.get_width(); var y0=im.get_height(); var x1=-1; var y1=-1
-	for y in range(im.get_height()):
-		for x in range(im.get_width()):
-			if im.get_pixel(x,y).a>0.12:
-				x0=mini(x0,x); y0=mini(y0,y); x1=maxi(x1,x); y1=maxi(y1,y)
-	if x1<x0: return im
-	var w=x1-x0+1; var h=y1-y0+1
-	var pad=maxi(4,int(maxf(w,h)*0.04))
-	x0=maxi(0,x0-pad); y0=maxi(0,y0-pad); x1=mini(im.get_width()-1,x1+pad); y1=mini(im.get_height()-1,y1+pad)
-	var art=im.get_region(Rect2i(x0,y0,x1-x0+1,y1-y0+1))
-	# Same portrait canvas for all eight. 12% breathing room guarantees the whole ship is visible.
-	var out=Image.create(192,256,false,Image.FORMAT_RGBA8); out.fill(Color(0,0,0,0))
-	var scale=minf(158.0/art.get_width(),220.0/art.get_height())
-	var tw=maxi(1,int(art.get_width()*scale)); var th=maxi(1,int(art.get_height()*scale))
-	art.resize(tw,th,Image.INTERPOLATE_LANCZOS)
-	out.blit_rect(art,Rect2i(0,0,tw,th),Vector2i((192-tw)/2,(256-th)/2))
-	return out
+func _read_ship(index:int)->Texture2D:
+	# Use Godot's SVG renderer directly. AtlasTexture then gives every ship a deterministic
+	# portrait crop. This avoids alpha scanning and stray antialias pixels entirely.
+	var source=load("res://assets/ships/%s.svg" % FILES[index]) as Texture2D
+	if source==null: return null
+	var atlas=AtlasTexture.new()
+	atlas.atlas=source
+	atlas.region=CROP_RECTS[index]
+	return atlas
 
 func _attach():
 	var scene=get_tree().current_scene
@@ -84,15 +68,15 @@ func _build():
 	name_label=_label("",Vector2(25,103),Vector2(316,34),23,Color("f6d18a")); panel.add_child(name_label)
 	sub_label=_label("",Vector2(25,137),Vector2(316,24),13,Color("d9f4fb")); panel.add_child(sub_label)
 	var frame=Panel.new(); frame.position=Vector2(55,165); frame.size=Vector2(256,205); var fs=StyleBoxFlat.new(); fs.bg_color=Color("102a35"); fs.border_color=Color("28718e"); fs.set_border_width_all(2); fs.set_corner_radius_all(18); frame.add_theme_stylebox_override("panel",fs); panel.add_child(frame)
-	hero=TextureRect.new(); hero.position=Vector2(45,8); hero.size=Vector2(166,189); hero.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; hero.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; hero.mouse_filter=Control.MOUSE_FILTER_IGNORE; frame.add_child(hero)
+	hero=TextureRect.new(); hero.position=Vector2(38,6); hero.size=Vector2(180,193); hero.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; hero.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; hero.mouse_filter=Control.MOUSE_FILTER_IGNORE; frame.add_child(hero)
 	for d in [["<",12,-1],[">",316,1]]:
 		var a=Button.new(); a.text=d[0]; a.position=Vector2(d[1],230); a.size=Vector2(38,64); a.pressed.connect(_cycle.bind(d[2])); panel.add_child(a)
 	equip=Button.new(); equip.position=Vector2(96,378); equip.size=Vector2(174,44); equip.pressed.connect(_equip); panel.add_child(equip)
 	var board=Panel.new(); board.position=Vector2(16,432); board.size=Vector2(334,224); board.clip_contents=true; var bs=StyleBoxFlat.new(); bs.bg_color=Color("ead4a1"); bs.set_corner_radius_all(10); board.add_theme_stylebox_override("panel",bs); panel.add_child(board)
 	for i in range(8):
 		var card=Button.new(); card.name="ShipCard%d"%i; card.position=Vector2(8+(i%4)*81,7+int(i/4)*105); card.size=Vector2(74,100); card.clip_contents=true; card.pressed.connect(_choose.bind(i)); board.add_child(card)
-		var t=TextureRect.new(); t.texture=textures[i]; t.position=Vector2(10,3); t.size=Vector2(54,70); t.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; t.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; t.mouse_filter=Control.MOUSE_FILTER_IGNORE; card.add_child(t)
-		var l=_label(NAMES[i],Vector2(3,76),Vector2(68,20),8,Color("2b1a0c")); l.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS; card.add_child(l)
+		var t=TextureRect.new(); t.texture=textures[i]; t.position=Vector2(8,2); t.size=Vector2(58,74); t.expand_mode=TextureRect.EXPAND_IGNORE_SIZE; t.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED; t.mouse_filter=Control.MOUSE_FILTER_IGNORE; card.add_child(t)
+		var l=_label(NAMES[i],Vector2(3,77),Vector2(68,19),8,Color("2b1a0c")); l.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS; card.add_child(l)
 	var back=Button.new(); back.text="BACK"; back.position=Vector2(108,670); back.size=Vector2(150,42); back.pressed.connect(func():panel.visible=false); panel.add_child(back)
 	_refresh()
 
