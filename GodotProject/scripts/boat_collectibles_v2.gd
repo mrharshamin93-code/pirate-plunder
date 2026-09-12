@@ -18,8 +18,9 @@ var overlay: Control
 var hero: TextureRect
 var name_label: Label
 var sub_label: Label
-var equip_hitbox: Button
-var selected_badge: Label
+var equip_button: Button
+var left_button: Button
+var right_button: Button
 
 func _ready() -> void:
 	var cfg := ConfigFile.new()
@@ -75,6 +76,7 @@ func _build_overlay() -> void:
 	menu.add_child(overlay)
 	overlay.move_to_front()
 
+	# Keep the approved artwork as the frame/background.
 	var bg := TextureRect.new()
 	bg.texture = load("res://assets/ui/collectibles_exact.jpg")
 	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -83,70 +85,146 @@ func _build_overlay() -> void:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(bg)
 
-	var hero_cover := ColorRect.new()
-	hero_cover.color = Color(0.025, 0.10, 0.15, 0.98)
-	hero_cover.position = Vector2(85, 203)
-	hero_cover.size = Vector2(220, 292)
-	hero_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.add_child(hero_cover)
+	# Cover the baked-in static showcase so the middle of the screen is genuinely dynamic.
+	var showcase_cover := Panel.new()
+	showcase_cover.position = Vector2(22, 190)
+	showcase_cover.size = Vector2(346, 350)
+	showcase_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var cover_style := StyleBoxFlat.new()
+	cover_style.bg_color = Color("071925")
+	cover_style.border_color = Color("2a5668")
+	cover_style.set_border_width_all(2)
+	cover_style.set_corner_radius_all(8)
+	showcase_cover.add_theme_stylebox_override("panel", cover_style)
+	overlay.add_child(showcase_cover)
 
 	name_label = Label.new()
-	name_label.position = Vector2(55, 205)
-	name_label.size = Vector2(280, 40)
+	name_label.position = Vector2(48, 204)
+	name_label.size = Vector2(294, 38)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.add_theme_font_size_override("font_size", 25)
 	name_label.add_theme_color_override("font_color", Color("f6d9a3"))
+	name_label.add_theme_color_override("font_shadow_color", Color(0,0,0,0.7))
+	name_label.add_theme_constant_override("shadow_offset_x", 2)
+	name_label.add_theme_constant_override("shadow_offset_y", 2)
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(name_label)
 
 	sub_label = Label.new()
-	sub_label.position = Vector2(75, 242)
-	sub_label.size = Vector2(240, 24)
+	sub_label.position = Vector2(70, 240)
+	sub_label.size = Vector2(250, 24)
 	sub_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub_label.add_theme_font_size_override("font_size", 14)
 	sub_label.add_theme_color_override("font_color", Color.WHITE)
 	sub_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(sub_label)
 
+	# Large live ship preview. This texture is replaced every time an arrow is pressed.
 	hero = TextureRect.new()
-	hero.position = Vector2(128, 270)
-	hero.size = Vector2(134, 188)
+	hero.position = Vector2(118, 270)
+	hero.size = Vector2(154, 190)
 	hero.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	hero.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	hero.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(hero)
 
-	selected_badge = Label.new()
-	selected_badge.position = Vector2(106, 479)
-	selected_badge.size = Vector2(178, 50)
-	selected_badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	selected_badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	selected_badge.add_theme_font_size_override("font_size", 20)
-	selected_badge.add_theme_color_override("font_color", Color("17461f"))
-	selected_badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.add_child(selected_badge)
+	# Use visible arrow controls over the same locations as the artwork so clicks are unmistakable.
+	left_button = Button.new()
+	left_button.text = "‹"
+	left_button.position = Vector2(52, 342)
+	left_button.size = Vector2(50, 74)
+	left_button.focus_mode = Control.FOCUS_NONE
+	left_button.add_theme_font_size_override("font_size", 38)
+	left_button.add_theme_color_override("font_color", Color("ffc35b"))
+	left_button.add_theme_stylebox_override("normal", _transparent_box())
+	left_button.add_theme_stylebox_override("hover", _transparent_box())
+	left_button.add_theme_stylebox_override("pressed", _transparent_box())
+	left_button.pressed.connect(func(): _cycle(-1))
+	overlay.add_child(left_button)
 
-	_add_hitbox(Rect2(338, 20, 40, 48), _close)
-	_add_hitbox(Rect2(62, 355, 42, 64), func(): _cycle(-1))
-	_add_hitbox(Rect2(284, 355, 42, 64), func(): _cycle(1))
-	equip_hitbox = _add_hitbox(Rect2(104, 476, 182, 58), _equip)
+	right_button = Button.new()
+	right_button.text = "›"
+	right_button.position = Vector2(260, 342)
+	right_button.size = Vector2(50, 74)
+	right_button.focus_mode = Control.FOCUS_NONE
+	right_button.add_theme_font_size_override("font_size", 38)
+	right_button.add_theme_color_override("font_color", Color("ffc35b"))
+	right_button.add_theme_stylebox_override("normal", _transparent_box())
+	right_button.add_theme_stylebox_override("hover", _transparent_box())
+	right_button.add_theme_stylebox_override("pressed", _transparent_box())
+	right_button.pressed.connect(func(): _cycle(1))
+	overlay.add_child(right_button)
 
-func _add_hitbox(r: Rect2, callback: Callable) -> Button:
-	var b := Button.new()
-	b.text = ""
-	b.flat = true
-	b.modulate = Color(1, 1, 1, 0.01)
-	b.focus_mode = Control.FOCUS_NONE
-	b.mouse_filter = Control.MOUSE_FILTER_STOP
-	b.position = r.position
-	b.size = r.size
-	b.pressed.connect(callback)
-	overlay.add_child(b)
-	b.move_to_front()
-	return b
+	equip_button = Button.new()
+	equip_button.position = Vector2(108, 472)
+	equip_button.size = Vector2(174, 52)
+	equip_button.focus_mode = Control.FOCUS_NONE
+	equip_button.add_theme_font_size_override("font_size", 20)
+	equip_button.add_theme_color_override("font_color", Color("17461f"))
+	var equip_style := StyleBoxFlat.new()
+	equip_style.bg_color = Color("ead9a4")
+	equip_style.border_color = Color("8a6a34")
+	equip_style.set_border_width_all(2)
+	equip_style.set_corner_radius_all(8)
+	equip_button.add_theme_stylebox_override("normal", equip_style)
+	equip_button.add_theme_stylebox_override("hover", equip_style)
+	equip_button.add_theme_stylebox_override("pressed", equip_style)
+	equip_button.add_theme_stylebox_override("disabled", equip_style)
+	equip_button.pressed.connect(_equip)
+	overlay.add_child(equip_button)
+
+	# The artwork's thumbnail strip is intentionally covered so it no longer looks like a frozen selector.
+	var bottom_cover := Panel.new()
+	bottom_cover.position = Vector2(0, 540)
+	bottom_cover.size = Vector2(390, 232)
+	bottom_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var bottom_style := StyleBoxFlat.new()
+	bottom_style.bg_color = Color("071925")
+	bottom_style.border_color = Color("6f4725")
+	bottom_style.set_border_width_all(2)
+	bottom_cover.add_theme_stylebox_override("panel", bottom_style)
+	overlay.add_child(bottom_cover)
+
+	var hint := Label.new()
+	hint.text = "Use the arrows to browse ships"
+	hint.position = Vector2(55, 585)
+	hint.size = Vector2(280, 30)
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 14)
+	hint.add_theme_color_override("font_color", Color("d9f4fb"))
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(hint)
+
+	var back := Button.new()
+	back.text = "BACK"
+	back.position = Vector2(120, 640)
+	back.size = Vector2(150, 46)
+	back.focus_mode = Control.FOCUS_NONE
+	back.pressed.connect(_close)
+	overlay.add_child(back)
+
+	# Exact close-button area in the upper-right artwork.
+	var close_hit := Button.new()
+	close_hit.text = ""
+	close_hit.flat = true
+	close_hit.modulate = Color(1,1,1,0.01)
+	close_hit.position = Vector2(338, 18)
+	close_hit.size = Vector2(42, 54)
+	close_hit.focus_mode = Control.FOCUS_NONE
+	close_hit.pressed.connect(_close)
+	overlay.add_child(close_hit)
+
+func _transparent_box() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color(0,0,0,0)
+	s.border_width_left = 0
+	s.border_width_right = 0
+	s.border_width_top = 0
+	s.border_width_bottom = 0
+	return s
 
 func _cycle(delta: int) -> void:
-	preview = wrapi(preview + delta, 0, 8)
+	preview = wrapi(preview + delta, 0, NAMES.size())
 	_refresh()
 
 func _equip() -> void:
@@ -164,10 +242,9 @@ func _refresh() -> void:
 	if hero:
 		hero.texture = _ship_texture(preview)
 		hero.modulate = Color.WHITE
-	if selected_badge:
-		selected_badge.text = "EQUIPPED" if preview == selected else "SELECT SHIP"
-	if equip_hitbox:
-		equip_hitbox.disabled = preview == selected
+	if equip_button:
+		equip_button.text = "EQUIPPED" if preview == selected else "SELECT SHIP"
+		equip_button.disabled = preview == selected
 
 func _close() -> void:
 	if overlay != null and is_instance_valid(overlay):
