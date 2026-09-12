@@ -7,6 +7,7 @@ var exact_bg: TextureRect
 var leaderboard_button: Button
 var how_to_play_button: Button
 var trophy_button: Button
+var button_visuals: Dictionary = {}
 
 func _ready() -> void:
 	super._ready()
@@ -24,27 +25,27 @@ func _ready() -> void:
 	exact_bg.move_to_front()
 
 	play_button.visible = true
-	_make_invisible_hitbox(play_button, Rect2(77, 399, 230, 90))
+	_make_live_button(play_button, Rect2(77, 399, 230, 90))
 	play_button.move_to_front()
 
 	leaderboard_button = Button.new()
 	leaderboard_button.name = "LeaderboardButton"
 	add_child(leaderboard_button)
-	_make_invisible_hitbox(leaderboard_button, Rect2(80, 504, 228, 69))
+	_make_live_button(leaderboard_button, Rect2(80, 504, 228, 69))
 	leaderboard_button.pressed.connect(_show_leaderboard_info)
 	leaderboard_button.move_to_front()
 
 	how_to_play_button = Button.new()
 	how_to_play_button.name = "HowToPlayButton"
 	add_child(how_to_play_button)
-	_make_invisible_hitbox(how_to_play_button, Rect2(81, 585, 229, 69))
+	_make_live_button(how_to_play_button, Rect2(81, 585, 229, 69))
 	how_to_play_button.pressed.connect(_show_how_to_play)
 	how_to_play_button.move_to_front()
 
 	trophy_button = Button.new()
 	trophy_button.name = "CollectiblesButton"
 	add_child(trophy_button)
-	_make_invisible_hitbox(trophy_button, Rect2(319, 8, 55, 86))
+	_make_live_button(trophy_button, Rect2(319, 8, 55, 86))
 	trophy_button.pressed.connect(_open_collectibles)
 	trophy_button.move_to_front()
 
@@ -58,13 +59,53 @@ func _layout_ui() -> void:
 	if exact_bg != null:
 		_layout_exact()
 
-func _make_invisible_hitbox(button: Button, base_rect: Rect2) -> void:
+func _make_live_button(button: Button, base_rect: Rect2) -> void:
 	button.text = ""
 	button.flat = true
 	button.focus_mode = Control.FOCUS_NONE
 	button.mouse_filter = Control.MOUSE_FILTER_STOP
 	button.modulate = Color(1, 1, 1, 0.01)
 	button.set_meta("exact_rect", base_rect)
+
+	# Put a real visual layer over the baked-in button artwork. It uses the exact
+	# crop from the approved mockup, but can now animate independently when tapped.
+	var art := TextureRect.new()
+	art.name = "%sArt" % button.name
+	var atlas := AtlasTexture.new()
+	atlas.atlas = exact_bg.texture
+	atlas.region = base_rect
+	art.texture = atlas
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_SCALE
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	art.set_meta("exact_rect", base_rect)
+	add_child(art)
+	button_visuals[button] = art
+
+	button.button_down.connect(_press_visual.bind(button))
+	button.button_up.connect(_release_visual.bind(button))
+	button.mouse_entered.connect(_hover_visual.bind(button, true))
+	button.mouse_exited.connect(_hover_visual.bind(button, false))
+
+func _press_visual(button: Button) -> void:
+	var art := button_visuals.get(button) as TextureRect
+	if art == null:
+		return
+	art.modulate = Color(0.82, 0.82, 0.82, 1.0)
+	art.scale = Vector2(0.965, 0.965)
+
+func _release_visual(button: Button) -> void:
+	var art := button_visuals.get(button) as TextureRect
+	if art == null:
+		return
+	art.modulate = Color.WHITE
+	art.scale = Vector2.ONE
+
+func _hover_visual(button: Button, hovering: bool) -> void:
+	var art := button_visuals.get(button) as TextureRect
+	if art == null or button.button_pressed:
+		return
+	art.modulate = Color(1.06, 1.06, 1.06, 1.0) if hovering else Color.WHITE
 
 func _layout_exact() -> void:
 	if exact_bg == null:
@@ -78,6 +119,13 @@ func _layout_exact() -> void:
 			var r: Rect2 = button.get_meta("exact_rect")
 			button.position = Vector2(r.position.x * sx, r.position.y * sy)
 			button.size = Vector2(r.size.x * sx, r.size.y * sy)
+			var art := button_visuals.get(button) as TextureRect
+			if art != null:
+				art.position = button.position
+				art.size = button.size
+				art.pivot_offset = art.size * 0.5
+				art.move_to_front()
+				button.move_to_front()
 
 func _open_collectibles() -> void:
 	var collectibles := get_node_or_null("/root/BoatCollectibles")
