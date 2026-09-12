@@ -1,14 +1,19 @@
 extends Node
 
 const SAVE := "user://collectibles.cfg"
+const LEADERBOARD_SAVE := "user://leaderboard.cfg"
 const NAMES := ["Regular Ship","Crimson Raider","Black Pearl","Royal Fortune","Ghost Ship","Inferno","Sea Serpent","Golden Galleon"]
 const SUBS := ["Default Ship","Raider Variant","Shadow Variant","Royal Variant","Spectral Variant","Infernal Variant","Serpent Variant","Legendary Variant"]
 const FILES := ["plunderer","crimson_raider","black_pearl","royal_fortune","ghost_ship","inferno","sea_serpent","golden_galleon"]
 const COLORS := [Color("9a6231"),Color("c8322f"),Color("20242b"),Color("f2e5c2"),Color("7fa7a1"),Color("e64a19"),Color("159b91"),Color("d6a51e")]
+const SCORE_UNLOCKS := [0,500,1000,2000,3500,5000,7500,10000]
+const COIN_UNLOCKS := [0,25,75,150,300,500,750,1000]
 const CROP_RECTS := [Rect2(40,0,84,160),Rect2(42,0,82,160),Rect2(43,0,78,160),Rect2(43,0,80,160),Rect2(41,0,84,160),Rect2(0,0,160,160),Rect2(0,0,160,200),Rect2(40,0,82,160)]
 var selected:=0
 var preview:=0
 var active_tab:="ships"
+var lifetime_coins:int=0
+var last_run_coins:int=0
 var textures:Array[Texture2D]=[]
 var menu:Control
 var overlay:Control
@@ -23,11 +28,39 @@ var mines_tab:Button
 var mines_panel:Control
 func _ready()->void:
  var cfg:=ConfigFile.new()
- if cfg.load(SAVE)==OK:selected=clampi(int(cfg.get_value("boats","selected",0)),0,7)
+ if cfg.load(SAVE)==OK:
+  selected=clampi(int(cfg.get_value("boats","selected",0)),0,7)
+  lifetime_coins=maxi(0,int(cfg.get_value("progress","total_coins",0)))
  preview=selected;textures.resize(FILES.size())
+ if not _is_unlocked(selected):
+  selected=0;preview=0;_save_collectibles()
+func _process(_delta:float)->void:
+ var scene:Node=get_tree().current_scene
+ if scene==null:return
+ var current_value:Variant=scene.get("coins_collected")
+ if current_value==null:return
+ var current:int=maxi(0,int(current_value))
+ if current<last_run_coins:
+  last_run_coins=current
+  return
+ if current>last_run_coins:
+  lifetime_coins+=current-last_run_coins
+  last_run_coins=current
+  _save_collectibles()
+func _save_collectibles()->void:
+ var cfg:=ConfigFile.new();cfg.set_value("boats","selected",selected);cfg.set_value("progress","total_coins",lifetime_coins);cfg.save(SAVE)
+func _personal_best()->int:
+ var cfg:=ConfigFile.new()
+ if cfg.load(LEADERBOARD_SAVE)==OK:return maxi(0,int(cfg.get_value("player","personal_best",0)))
+ return 0
+func _is_unlocked(index:int)->bool:
+ if index<=0:return true
+ if index>=NAMES.size():return false
+ return _personal_best()>=int(SCORE_UNLOCKS[index]) or lifetime_coins>=int(COIN_UNLOCKS[index])
 func get_selected_index()->int:return selected
 func get_selected_name()->String:return NAMES[selected]
 func get_selected_color()->Color:return COLORS[selected]
+func get_total_coins()->int:return lifetime_coins
 func _ship_texture(index:int)->Texture2D:
  if index<0 or index>=FILES.size():return null
  if textures[index]==null:textures[index]=_read_ship(index)
@@ -51,8 +84,8 @@ func _build_overlay()->void:
  mines_tab=Button.new();mines_tab.text="MINES";mines_tab.position=Vector2(199,126);mines_tab.size=Vector2(151,46);mines_tab.focus_mode=Control.FOCUS_NONE;mines_tab.add_theme_font_size_override("font_size",18);mines_tab.pressed.connect(func()->void:_set_tab("mines"));overlay.add_child(mines_tab)
  var showcase:=Panel.new();showcase.position=Vector2(22,190);showcase.size=Vector2(346,350);showcase.mouse_filter=Control.MOUSE_FILTER_IGNORE;showcase.add_theme_stylebox_override("panel",_box(Color("071925"),Color("2a5668")));overlay.add_child(showcase)
  name_label=Label.new();name_label.position=Vector2(48,204);name_label.size=Vector2(294,38);name_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;name_label.add_theme_font_size_override("font_size",25);name_label.add_theme_color_override("font_color",Color("f6d9a3"));name_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;overlay.add_child(name_label)
- sub_label=Label.new();sub_label.position=Vector2(70,240);sub_label.size=Vector2(250,24);sub_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;sub_label.add_theme_font_size_override("font_size",14);sub_label.add_theme_color_override("font_color",Color.WHITE);sub_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;overlay.add_child(sub_label)
- hero=TextureRect.new();hero.position=Vector2(118,270);hero.size=Vector2(154,190);hero.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;hero.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;hero.mouse_filter=Control.MOUSE_FILTER_IGNORE;overlay.add_child(hero)
+ sub_label=Label.new();sub_label.position=Vector2(40,240);sub_label.size=Vector2(310,40);sub_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;sub_label.add_theme_font_size_override("font_size",14);sub_label.add_theme_color_override("font_color",Color.WHITE);sub_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;sub_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;overlay.add_child(sub_label)
+ hero=TextureRect.new();hero.position=Vector2(118,280);hero.size=Vector2(154,180);hero.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;hero.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;hero.mouse_filter=Control.MOUSE_FILTER_IGNORE;overlay.add_child(hero)
  left_button=Button.new();left_button.text="‹";left_button.position=Vector2(52,342);left_button.size=Vector2(50,74);left_button.focus_mode=Control.FOCUS_NONE;left_button.add_theme_font_size_override("font_size",38);left_button.add_theme_color_override("font_color",Color("ffc35b"));left_button.add_theme_stylebox_override("normal",_transparent_box());left_button.add_theme_stylebox_override("hover",_transparent_box());left_button.add_theme_stylebox_override("pressed",_transparent_box());left_button.pressed.connect(func():_cycle(-1));overlay.add_child(left_button)
  right_button=Button.new();right_button.text="›";right_button.position=Vector2(260,342);right_button.size=Vector2(50,74);right_button.focus_mode=Control.FOCUS_NONE;right_button.add_theme_font_size_override("font_size",38);right_button.add_theme_color_override("font_color",Color("ffc35b"));right_button.add_theme_stylebox_override("normal",_transparent_box());right_button.add_theme_stylebox_override("hover",_transparent_box());right_button.add_theme_stylebox_override("pressed",_transparent_box());right_button.pressed.connect(func():_cycle(1));overlay.add_child(right_button)
  equip_button=Button.new();equip_button.position=Vector2(108,472);equip_button.size=Vector2(174,52);equip_button.focus_mode=Control.FOCUS_NONE;equip_button.add_theme_font_size_override("font_size",20)
@@ -77,12 +110,28 @@ func _set_tab(tab_name:String)->void:active_tab=tab_name;_refresh_tabs()
 func _transparent_box()->StyleBoxFlat:
  var s:=StyleBoxFlat.new();s.bg_color=Color(0,0,0,0);return s
 func _cycle(delta:int)->void:preview=wrapi(preview+delta,0,NAMES.size());_refresh()
-func _equip()->void:selected=preview;var cfg:=ConfigFile.new();cfg.set_value("boats","selected",selected);cfg.save(SAVE);_refresh()
+func _equip()->void:
+ if not _is_unlocked(preview):return
+ selected=preview;_save_collectibles();_refresh()
 func _refresh()->void:
+ var unlocked:bool=_is_unlocked(preview)
  if name_label:name_label.text=NAMES[preview].to_upper()
- if sub_label:sub_label.text=SUBS[preview]
- if hero:hero.texture=_ship_texture(preview);hero.modulate=Color.WHITE
- if equip_button:equip_button.text="EQUIPPED" if preview==selected else "SELECT SHIP";equip_button.disabled=preview==selected
+ if sub_label:
+  if unlocked:
+   sub_label.text=SUBS[preview]
+  else:
+   sub_label.text="LOCKED — Reach score %s OR collect %s total coins"%[_comma(int(SCORE_UNLOCKS[preview])),_comma(int(COIN_UNLOCKS[preview]))]
+ if hero:
+  hero.texture=_ship_texture(preview);hero.modulate=Color.WHITE if unlocked else Color(0.38,0.38,0.38,1.0)
+ if equip_button:
+  if not unlocked:equip_button.text="LOCKED"
+  elif preview==selected:equip_button.text="EQUIPPED"
+  else:equip_button.text="SELECT SHIP"
+  equip_button.disabled=not unlocked or preview==selected
  _refresh_tabs()
+func _comma(value:int)->String:
+ var s:=str(value);var out:=""
+ while s.length()>3:out=","+s.substr(s.length()-3,3)+out;s=s.substr(0,s.length()-3)
+ return s+out
 func _close()->void:
  if overlay!=null and is_instance_valid(overlay):overlay.visible=false
