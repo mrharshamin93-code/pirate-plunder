@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/game.gd" id="1_game"]
 [ext_resource type="Script" path="res://scripts/semi_dynamic_joystick.gd" id="2_joy"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/sunk_screen.gd" id="6_sunk"]
 [ext_resource type="Script" path="res://scripts/procedural_music.gd" id="7_music"]
 [ext_resource type="Script" path="res://scripts/main_menu_picture_ui.gd" id="8_menu"]
+[ext_resource type="Script" path="res://scripts/sunk_main_menu_button.gd" id="9_sunk_menu"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
@@ -168,6 +169,15 @@ offset_right = 285.0
 offset_bottom = 540.0
 theme_override_font_sizes/font_size = 20
 text = "PLAY AGAIN"
+
+[node name="MainMenuButton" type="Button" parent="CanvasLayer/SunkPanel"]
+layout_mode = 0
+offset_left = 92.0
+offset_top = 798.0
+offset_right = 298.0
+offset_bottom = 838.0
+text = "MAIN MENU"
+script = ExtResource("9_sunk_menu")
 
 [node name="MainMenu" type="ColorRect" parent="CanvasLayer"]
 layout_mode = 3
