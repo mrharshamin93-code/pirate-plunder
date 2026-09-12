@@ -12,6 +12,7 @@ const CROP_RECTS := [
 
 var selected := 0
 var preview := 0
+var active_tab := "ships"
 var textures: Array[Texture2D] = []
 var menu: Control
 var overlay: Control
@@ -21,6 +22,9 @@ var sub_label: Label
 var equip_button: Button
 var left_button: Button
 var right_button: Button
+var ships_tab: Button
+var mines_tab: Button
+var mines_panel: Control
 
 func _ready() -> void:
 	var cfg := ConfigFile.new()
@@ -59,24 +63,26 @@ func _read_ship(index: int) -> Texture2D:
 func open_from_menu(menu_control: Control) -> void:
 	menu = menu_control
 	preview = selected
+	active_tab = "ships"
 	if overlay != null and is_instance_valid(overlay):
 		overlay.visible = true
 		overlay.move_to_front()
 		_refresh()
+		_refresh_tabs()
 		return
 	_build_overlay()
 	_refresh()
+	_refresh_tabs()
 
 func _build_overlay() -> void:
 	overlay = Control.new()
 	overlay.name = "ExactCollectibles"
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	overlay.z_index = 30000
+	overlay.z_index = 2500
 	menu.add_child(overlay)
 	overlay.move_to_front()
 
-	# Keep the approved artwork as the frame/background.
 	var bg := TextureRect.new()
 	bg.texture = load("res://assets/ui/collectibles_exact.jpg")
 	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -85,7 +91,37 @@ func _build_overlay() -> void:
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(bg)
 
-	# Cover the baked-in static showcase so the middle of the screen is genuinely dynamic.
+	# Replace the baked SHIPS / TRIALS strip with real clickable tabs.
+	var tab_cover := Panel.new()
+	tab_cover.position = Vector2(32, 120)
+	tab_cover.size = Vector2(326, 58)
+	tab_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var tab_cover_style := StyleBoxFlat.new()
+	tab_cover_style.bg_color = Color("071925")
+	tab_cover_style.border_color = Color("6f4725")
+	tab_cover_style.set_border_width_all(2)
+	tab_cover_style.set_corner_radius_all(8)
+	tab_cover.add_theme_stylebox_override("panel", tab_cover_style)
+	overlay.add_child(tab_cover)
+
+	ships_tab = Button.new()
+	ships_tab.text = "SHIPS"
+	ships_tab.position = Vector2(40, 126)
+	ships_tab.size = Vector2(151, 46)
+	ships_tab.focus_mode = Control.FOCUS_NONE
+	ships_tab.add_theme_font_size_override("font_size", 18)
+	ships_tab.pressed.connect(func() -> void: _set_tab("ships"))
+	overlay.add_child(ships_tab)
+
+	mines_tab = Button.new()
+	mines_tab.text = "MINES"
+	mines_tab.position = Vector2(199, 126)
+	mines_tab.size = Vector2(151, 46)
+	mines_tab.focus_mode = Control.FOCUS_NONE
+	mines_tab.add_theme_font_size_override("font_size", 18)
+	mines_tab.pressed.connect(func() -> void: _set_tab("mines"))
+	overlay.add_child(mines_tab)
+
 	var showcase_cover := Panel.new()
 	showcase_cover.position = Vector2(22, 190)
 	showcase_cover.size = Vector2(346, 350)
@@ -119,7 +155,6 @@ func _build_overlay() -> void:
 	sub_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(sub_label)
 
-	# Large live ship preview. This texture is replaced every time an arrow is pressed.
 	hero = TextureRect.new()
 	hero.position = Vector2(118, 270)
 	hero.size = Vector2(154, 190)
@@ -128,7 +163,6 @@ func _build_overlay() -> void:
 	hero.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(hero)
 
-	# Use visible arrow controls over the same locations as the artwork so clicks are unmistakable.
 	left_button = Button.new()
 	left_button.text = "‹"
 	left_button.position = Vector2(52, 342)
@@ -173,37 +207,64 @@ func _build_overlay() -> void:
 	equip_button.pressed.connect(_equip)
 	overlay.add_child(equip_button)
 
-	# The artwork's thumbnail strip is intentionally covered so it no longer looks like a frozen selector.
-	var bottom_cover := Panel.new()
-	bottom_cover.position = Vector2(0, 540)
-	bottom_cover.size = Vector2(390, 232)
-	bottom_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var bottom_style := StyleBoxFlat.new()
-	bottom_style.bg_color = Color("071925")
-	bottom_style.border_color = Color("6f4725")
-	bottom_style.set_border_width_all(2)
-	bottom_cover.add_theme_stylebox_override("panel", bottom_style)
-	overlay.add_child(bottom_cover)
+	# Clickable MINES view. Mine collectible artwork can be populated here later.
+	mines_panel = Control.new()
+	mines_panel.position = Vector2(22, 190)
+	mines_panel.size = Vector2(346, 350)
+	mines_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	overlay.add_child(mines_panel)
+	var mines_title := Label.new()
+	mines_title.text = "MINES"
+	mines_title.position = Vector2(40, 82)
+	mines_title.size = Vector2(266, 42)
+	mines_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mines_title.add_theme_font_size_override("font_size", 28)
+	mines_title.add_theme_color_override("font_color", Color("f6d9a3"))
+	mines_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mines_panel.add_child(mines_title)
+	var mines_text := Label.new()
+	mines_text.text = "Mine collectibles coming soon"
+	mines_text.position = Vector2(38, 145)
+	mines_text.size = Vector2(270, 34)
+	mines_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mines_text.add_theme_font_size_override("font_size", 15)
+	mines_text.add_theme_color_override("font_color", Color("d9f4fb"))
+	mines_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mines_panel.add_child(mines_text)
 
-	var hint := Label.new()
-	hint.text = "Use the arrows to browse ships"
-	hint.position = Vector2(55, 585)
-	hint.size = Vector2(280, 30)
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint.add_theme_font_size_override("font_size", 14)
-	hint.add_theme_color_override("font_color", Color("d9f4fb"))
-	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.add_child(hint)
+	# Keep only a slim cover over the baked thumbnail strip.
+	var thumbnail_cover := Panel.new()
+	thumbnail_cover.position = Vector2(0, 540)
+	thumbnail_cover.size = Vector2(390, 60)
+	thumbnail_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var thumbnail_style := StyleBoxFlat.new()
+	thumbnail_style.bg_color = Color("071925")
+	thumbnail_style.border_color = Color("6f4725")
+	thumbnail_style.set_border_width_all(2)
+	thumbnail_cover.add_theme_stylebox_override("panel", thumbnail_style)
+	overlay.add_child(thumbnail_cover)
+
+	# Smaller footer box that only contains the Back button.
+	var footer := Panel.new()
+	footer.position = Vector2(78, 612)
+	footer.size = Vector2(234, 84)
+	footer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var footer_style := StyleBoxFlat.new()
+	footer_style.bg_color = Color("071925")
+	footer_style.border_color = Color("6f4725")
+	footer_style.set_border_width_all(2)
+	footer_style.set_corner_radius_all(10)
+	footer.add_theme_stylebox_override("panel", footer_style)
+	overlay.add_child(footer)
 
 	var back := Button.new()
 	back.text = "BACK"
-	back.position = Vector2(120, 640)
+	back.position = Vector2(120, 630)
 	back.size = Vector2(150, 46)
 	back.focus_mode = Control.FOCUS_NONE
 	back.pressed.connect(_close)
 	overlay.add_child(back)
 
-	# Exact close-button area in the upper-right artwork.
 	var close_hit := Button.new()
 	close_hit.text = ""
 	close_hit.flat = true
@@ -213,6 +274,38 @@ func _build_overlay() -> void:
 	close_hit.focus_mode = Control.FOCUS_NONE
 	close_hit.pressed.connect(_close)
 	overlay.add_child(close_hit)
+
+func _tab_box(fill: Color, border: Color) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = fill
+	s.border_color = border
+	s.set_border_width_all(2)
+	s.set_corner_radius_all(8)
+	return s
+
+func _refresh_tabs() -> void:
+	var ships_active: bool = active_tab == "ships"
+	if ships_tab:
+		ships_tab.add_theme_color_override("font_color", Color("fff1bd") if ships_active else Color("24160f"))
+		ships_tab.add_theme_stylebox_override("normal", _tab_box(Color("8d1718") if ships_active else Color("e8c989"), Color("f4c64d") if ships_active else Color("9b5c16")))
+		ships_tab.add_theme_stylebox_override("hover", _tab_box(Color("a51e1f") if ships_active else Color("f2dba9"), Color("f4c64d")))
+		ships_tab.add_theme_stylebox_override("pressed", _tab_box(Color("671011") if ships_active else Color("d8bd82"), Color("9b5c16")))
+	if mines_tab:
+		var mines_active: bool = not ships_active
+		mines_tab.add_theme_color_override("font_color", Color("fff1bd") if mines_active else Color("24160f"))
+		mines_tab.add_theme_stylebox_override("normal", _tab_box(Color("8d1718") if mines_active else Color("e8c989"), Color("f4c64d") if mines_active else Color("9b5c16")))
+		mines_tab.add_theme_stylebox_override("hover", _tab_box(Color("a51e1f") if mines_active else Color("f2dba9"), Color("f4c64d")))
+		mines_tab.add_theme_stylebox_override("pressed", _tab_box(Color("671011") if mines_active else Color("d8bd82"), Color("9b5c16")))
+
+	for ship_control: Control in [name_label, sub_label, hero, equip_button, left_button, right_button]:
+		if ship_control != null:
+			ship_control.visible = ships_active
+	if mines_panel != null:
+		mines_panel.visible = not ships_active
+
+func _set_tab(tab_name: String) -> void:
+	active_tab = tab_name
+	_refresh_tabs()
 
 func _transparent_box() -> StyleBoxFlat:
 	var s := StyleBoxFlat.new()
@@ -245,6 +338,7 @@ func _refresh() -> void:
 	if equip_button:
 		equip_button.text = "EQUIPPED" if preview == selected else "SELECT SHIP"
 		equip_button.disabled = preview == selected
+	_refresh_tabs()
 
 func _close() -> void:
 	if overlay != null and is_instance_valid(overlay):
