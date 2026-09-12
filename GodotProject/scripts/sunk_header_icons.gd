@@ -1,6 +1,6 @@
 extends Node
 
-const ICON: Texture2D = preload("res://assets/sunk-skull-double-outline.svg")
+const ICON: Texture2D = preload("res://assets/sunk-skull.svg")
 var title: Label
 var left: TextureRect
 var right: TextureRect
@@ -30,6 +30,12 @@ func _attach(found: Label) -> void:
 	var parent := title.get_parent() as Control
 	if parent == null:
 		return
+	var old_left := parent.get_node_or_null("HeaderIconLeft")
+	if old_left != null:
+		old_left.queue_free()
+	var old_right := parent.get_node_or_null("HeaderIconRight")
+	if old_right != null:
+		old_right.queue_free()
 	left = _new_icon("HeaderIconLeft")
 	right = _new_icon("HeaderIconRight")
 	parent.add_child(left)
@@ -55,12 +61,12 @@ func _layout() -> void:
 	if parent == null:
 		return
 	var sx := parent.size.x / 390.0 if parent.size.x > 0.0 else 1.0
-	var icon_size := Vector2(58.0 * sx, 51.0)
+	var icon_size := Vector2(48.0 * sx, 41.0)
 	var center_x := title.position.x + title.size.x * 0.5
 	var font := title.get_theme_font("font")
 	var font_size := title.get_theme_font_size("font_size")
 	var text_w := font.get_string_size("SUNK!", HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
-	var gap := 12.0 * sx
+	var gap := 9.0 * sx
 	var y := title.position.y + (title.size.y - icon_size.y) * 0.5
 	left.position = Vector2(center_x - text_w * 0.5 - gap - icon_size.x, y)
 	left.size = icon_size
