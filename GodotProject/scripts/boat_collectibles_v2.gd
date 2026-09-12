@@ -230,10 +230,10 @@ func _build_overlay() -> void:
 	mines_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	mines_panel.add_child(mines_text)
 
-	# Fully cover the baked thumbnail strip so ships are only shown in the main showcase.
+	# Cover the entire baked thumbnail/list area so none of the old ship strip can peek through.
 	var bottom_cover := Panel.new()
 	bottom_cover.position = Vector2(0, 540)
-	bottom_cover.size = Vector2(390, 170)
+	bottom_cover.size = Vector2(390, 260)
 	bottom_cover.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var bottom_style := StyleBoxFlat.new()
 	bottom_style.bg_color = Color("071925")
