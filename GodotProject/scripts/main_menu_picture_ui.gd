@@ -76,19 +76,30 @@ func _add_feedback(key: String, design_rect: Rect2) -> void:
 	picture_pressed[key] = false
 
 func _handle_picture_input(key: String, hit: Control, event: InputEvent) -> void:
+	# Only activate a picture button on release if that same hitbox received the
+	# corresponding press. This prevents a release from falling through a page
+	# that was just closed and immediately reopening Leaderboard underneath.
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
-		_set_picture_feedback(key, touch.pressed)
-		if not touch.pressed:
-			var action: Callable = hit.get_meta("action") as Callable
-			action.call()
+		if touch.pressed:
+			_set_picture_feedback(key, true)
+		else:
+			var was_pressed: bool = bool(picture_pressed.get(key, false))
+			_set_picture_feedback(key, false)
+			if was_pressed:
+				var action: Callable = hit.get_meta("action") as Callable
+				action.call()
 	elif event is InputEventMouseButton:
 		var mouse := event as InputEventMouseButton
 		if mouse.button_index == MOUSE_BUTTON_LEFT:
-			_set_picture_feedback(key, mouse.pressed)
-			if not mouse.pressed:
-				var action: Callable = hit.get_meta("action") as Callable
-				action.call()
+			if mouse.pressed:
+				_set_picture_feedback(key, true)
+			else:
+				var was_pressed: bool = bool(picture_pressed.get(key, false))
+				_set_picture_feedback(key, false)
+				if was_pressed:
+					var action: Callable = hit.get_meta("action") as Callable
+					action.call()
 
 func _set_picture_feedback(key: String, pressed: bool) -> void:
 	if not picture_feedback.has(key):
@@ -261,21 +272,21 @@ func _build_board_page() -> void:
 	board_status.add_theme_color_override("font_color", Color("fff1c4"))
 	outer.add_child(board_status)
 
-	# This is intentionally built the same simple way as the working
-	# Collectibles BACK button: a real Button directly on the overlay, with a
-	# direct close callback. button_down makes the return immediate on touch.
+	# Same interaction pattern as Collectibles: a normal Button that closes its
+	# overlay on release. The picture hitboxes now ignore release-only events, so
+	# this cannot reopen Leaderboard underneath on wide screens.
 	var back := Button.new()
 	back.name = "LeaderboardBackButton"
 	back.text = "MAIN MENU"
 	back.position = Vector2(111, 730)
 	back.size = Vector2(168, 48)
 	back.focus_mode = Control.FOCUS_NONE
+	back.mouse_filter = Control.MOUSE_FILTER_STOP
 	back.add_theme_font_size_override("font_size", 20)
 	back.add_theme_color_override("font_color", Color("fff1bd"))
 	back.add_theme_stylebox_override("normal", _board_box(MENU_RED, MENU_GOLD, 3, 10))
 	back.add_theme_stylebox_override("hover", _board_box(Color("a51e1f"), Color("ffd86a"), 3, 10))
 	back.add_theme_stylebox_override("pressed", _board_box(Color("671011"), MENU_GOLD_DARK, 3, 10))
-	back.button_down.connect(_close_board_page)
 	back.pressed.connect(_close_board_page)
 	board_page.add_child(back)
 	back.move_to_front()
