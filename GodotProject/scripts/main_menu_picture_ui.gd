@@ -207,7 +207,7 @@ func _build_board_page() -> void:
 	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	title.add_theme_font_size_override("font_size", 27)
 	title.add_theme_color_override("font_color", MENU_GOLD)
-	title.add_theme_color_override("font_shadow_color", Color(0,0,0,0.8))
+	title.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
 	title.add_theme_constant_override("shadow_offset_x", 2)
 	title.add_theme_constant_override("shadow_offset_y", 2)
 	outer.add_child(title)
@@ -261,19 +261,21 @@ func _build_board_page() -> void:
 	board_status.add_theme_color_override("font_color", Color("fff1c4"))
 	outer.add_child(board_status)
 
+	# This is intentionally built the same simple way as the working
+	# Collectibles BACK button: a real Button directly on the overlay, with a
+	# direct close callback. button_down makes the return immediate on touch.
 	var back := Button.new()
 	back.name = "LeaderboardBackButton"
 	back.text = "MAIN MENU"
 	back.position = Vector2(111, 730)
 	back.size = Vector2(168, 48)
 	back.focus_mode = Control.FOCUS_NONE
-	back.mouse_filter = Control.MOUSE_FILTER_STOP
-	back.z_index = 100
 	back.add_theme_font_size_override("font_size", 20)
 	back.add_theme_color_override("font_color", Color("fff1bd"))
 	back.add_theme_stylebox_override("normal", _board_box(MENU_RED, MENU_GOLD, 3, 10))
 	back.add_theme_stylebox_override("hover", _board_box(Color("a51e1f"), Color("ffd86a"), 3, 10))
 	back.add_theme_stylebox_override("pressed", _board_box(Color("671011"), MENU_GOLD_DARK, 3, 10))
+	back.button_down.connect(_close_board_page)
 	back.pressed.connect(_close_board_page)
 	board_page.add_child(back)
 	back.move_to_front()
@@ -285,10 +287,8 @@ func _build_board_page() -> void:
 	_refresh_board_view()
 
 func _close_board_page() -> void:
-	# Same behavior as the working Collectibles BACK button: simply hide the
-	# overlay and immediately reveal the already-active main menu underneath.
 	if board_page != null and is_instance_valid(board_page):
-		board_page.visible = false
+		board_page.hide()
 
 func _refresh_board_view() -> void:
 	if board_rows == null or board_status == null:
@@ -336,7 +336,4 @@ func _add_score_row(rank_value: int, entry: Dictionary, highlight: bool) -> void
 	score_label.add_theme_color_override("font_color", MENU_RED if highlight else MENU_INK)
 	row.add_child(score_label)
 
-	if highlight:
-		for label: Label in [rank_label, name_label, score_label]:
-			label.add_theme_color_override("font_color", Color("8d1718"))
 	board_rows.add_child(row)
