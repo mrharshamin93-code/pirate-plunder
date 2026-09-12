@@ -6,6 +6,7 @@ const COLORS := [Color("9a6231"), Color("c8322f"), Color("20242b"), Color("f2e5c
 var selected_index: int = 0
 var panel: Panel = null
 var menu: Control = null
+var trophy_button: Button = null
 
 func _ready() -> void:
 	_load_selection()
@@ -37,32 +38,59 @@ func _on_node_added(node: Node) -> void:
 
 func _find_menu() -> void:
 	var scene := get_tree().current_scene
-	if scene == null: return
+	if scene == null:
+		return
 	var play := scene.find_child("PlayButton", true, false) as Button
-	if play == null: return
+	if play == null:
+		return
 	menu = play.get_parent() as Control
-	if menu == null or menu.get_node_or_null("CollectiblesButton") != null: return
-	var b := Button.new()
-	b.name = "CollectiblesButton"
-	b.text = "COLLECTIBLES"
-	b.focus_mode = Control.FOCUS_NONE
-	b.add_theme_font_size_override("font_size", 15)
-	b.add_theme_color_override("font_color", Color("f6c53d"))
-	b.position = Vector2(112, 750)
-	b.size = Vector2(166, 38)
-	b.pressed.connect(_open_panel)
-	menu.add_child(b)
-	b.move_to_front()
+	if menu == null:
+		return
+	if menu.get_node_or_null("CollectiblesButton") != null:
+		return
+	_create_trophy_button()
+
+func _create_trophy_button() -> void:
+	trophy_button = Button.new()
+	trophy_button.name = "CollectiblesButton"
+	trophy_button.text = "🏆"
+	trophy_button.tooltip_text = "Boat Collectibles"
+	trophy_button.focus_mode = Control.FOCUS_NONE
+	trophy_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	trophy_button.z_index = 1000
+	trophy_button.add_theme_font_size_override("font_size", 25)
+	trophy_button.add_theme_color_override("font_color", Color("f6c53d"))
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.03, 0.16, 0.20, 0.90)
+	normal.border_color = Color("f6c53d")
+	normal.set_border_width_all(2)
+	normal.set_corner_radius_all(12)
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color(0.02, 0.10, 0.13, 0.98)
+	trophy_button.add_theme_stylebox_override("normal", normal)
+	trophy_button.add_theme_stylebox_override("hover", normal)
+	trophy_button.add_theme_stylebox_override("pressed", pressed)
+	menu.add_child(trophy_button)
+	trophy_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	trophy_button.position = Vector2(-60, 18)
+	trophy_button.size = Vector2(46, 46)
+	trophy_button.pressed.connect(_open_panel)
+	trophy_button.move_to_front()
 
 func _open_panel() -> void:
+	if menu == null or not is_instance_valid(menu):
+		return
 	if panel != null and is_instance_valid(panel):
 		panel.visible = true
+		panel.move_to_front()
 		return
 	panel = Panel.new()
 	panel.name = "CollectiblesPanel"
-	panel.position = Vector2(18, 160)
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.position = Vector2(-177, -280)
 	panel.size = Vector2(354, 560)
-	panel.z_index = 500
+	panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	panel.z_index = 2000
 	var box := StyleBoxFlat.new()
 	box.bg_color = Color("082e3c")
 	box.border_color = Color("f6c53d")
@@ -73,7 +101,8 @@ func _open_panel() -> void:
 	var title := Label.new()
 	title.text = "BOAT COLLECTIBLES"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.position = Vector2(20, 16); title.size = Vector2(314, 38)
+	title.position = Vector2(20, 16)
+	title.size = Vector2(314, 38)
 	title.add_theme_font_size_override("font_size", 23)
 	title.add_theme_color_override("font_color", Color("f6c53d"))
 	panel.add_child(title)
@@ -81,15 +110,18 @@ func _open_panel() -> void:
 	sub.name = "SelectedBoat"
 	sub.text = "Equipped: %s" % get_selected_name()
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.position = Vector2(20, 52); sub.size = Vector2(314, 26)
+	sub.position = Vector2(20, 52)
+	sub.size = Vector2(314, 26)
 	sub.add_theme_color_override("font_color", Color("d9f4fb"))
 	panel.add_child(sub)
 	for i in range(BOATS.size()):
 		var button := Button.new()
 		button.name = "Boat%d" % i
 		button.text = BOATS[i]
-		button.position = Vector2(24 + (i%2)*157, 92 + (i/2)*92)
+		button.position = Vector2(24 + (i % 2) * 157, 92 + (i / 2) * 92)
 		button.size = Vector2(148, 72)
+		button.focus_mode = Control.FOCUS_NONE
+		button.mouse_filter = Control.MOUSE_FILTER_STOP
 		button.add_theme_font_size_override("font_size", 13)
 		button.add_theme_color_override("font_color", Color("ffffff"))
 		var sb := StyleBoxFlat.new()
@@ -102,18 +134,29 @@ func _open_panel() -> void:
 		panel.add_child(button)
 	var close := Button.new()
 	close.text = "BACK"
-	close.position = Vector2(102, 478); close.size = Vector2(150, 48)
-	close.pressed.connect(func(): panel.visible = false)
+	close.focus_mode = Control.FOCUS_NONE
+	close.mouse_filter = Control.MOUSE_FILTER_STOP
+	close.position = Vector2(102, 478)
+	close.size = Vector2(150, 48)
+	close.pressed.connect(_close_panel)
 	panel.add_child(close)
 	panel.move_to_front()
+
+func _close_panel() -> void:
+	if panel != null and is_instance_valid(panel):
+		panel.visible = false
 
 func _select_boat(index: int) -> void:
 	selected_index = index
 	_save_selection()
+	if panel == null or not is_instance_valid(panel):
+		return
 	var label := panel.get_node_or_null("SelectedBoat") as Label
-	if label: label.text = "Equipped: %s" % get_selected_name()
+	if label:
+		label.text = "Equipped: %s" % get_selected_name()
 	for i in range(BOATS.size()):
 		var b := panel.get_node_or_null("Boat%d" % i) as Button
 		if b:
 			var sb := b.get_theme_stylebox("normal") as StyleBoxFlat
-			if sb: sb.border_color = Color("f6c53d") if i == selected_index else Color("315b66")
+			if sb:
+				sb.border_color = Color("f6c53d") if i == selected_index else Color("315b66")
