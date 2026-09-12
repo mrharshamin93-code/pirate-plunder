@@ -56,35 +56,46 @@ func _draw_whirlpool(w: Dictionary) -> void:
 	draw_arc(p, 11.0, -spin * 0.18, -spin * 0.18 + 4.9, 18, Color(0.72, 0.94, 0.97, 0.23), 1.1, true)
 
 # Bright candy-style burst: glossy rainbow sparks, confetti and star glints.
-# Still avoids the old expanding circular ring/halo.
+# 500 and 1000-point coins get progressively bigger jackpot-style hits.
 func _draw_pickup_burst(burst: Dictionary) -> void:
 	var life: float = float(burst.get("life", 0.0))
 	var progress: float = 1.0 - clampf(life / PICKUP_BURST_LIFE, 0.0, 1.0)
 	var fade: float = pow(1.0 - progress, 1.12)
 	var p: Vector2 = burst.get("pos", Vector2.ZERO)
 	var tier: int = clampi(int(burst.get("tier", 0)), 0, 6)
-	var strength: float = 1.0 + float(tier) * 0.06
+	var amount: int = int(burst.get("amount", 0))
+	var premium_scale: float = 1.0
+	if amount >= 1000:
+		premium_scale = 1.65
+	elif amount >= 500:
+		premium_scale = 1.32
+	var strength: float = (1.0 + float(tier) * 0.06) * premium_scale
 	var candy_colors: Array[Color] = [
 		Color("ff4f9a"), Color("55c8ff"), Color("8f5cff"),
 		Color("45e6a8"), Color("ffd84a"), Color("ff7b35"), Color("ff5f66")
 	]
 
-	# Fast white/gold impact flash plus alternating candy-colored rays.
-	var flash: float = clampf(1.0 - progress / 0.28, 0.0, 1.0)
+	# Fast white/color impact rays.
+	var flash: float = clampf(1.0 - progress / (0.34 if amount >= 500 else 0.28), 0.0, 1.0)
 	if flash > 0.0:
-		for ray in range(14):
-			var a: float = float(ray) / 14.0 * TAU + 0.08
+		var ray_count: int = 14
+		if amount >= 500: ray_count = 20
+		if amount >= 1000: ray_count = 26
+		for ray in range(ray_count):
+			var a: float = float(ray) / float(ray_count) * TAU + 0.08
 			var dir := Vector2(cos(a), sin(a))
 			var inner: float = 2.0 + progress * 5.5
 			var outer: float = (18.0 + float(ray % 4) * 6.0) * strength * (1.0 + progress * 0.72)
 			var ray_color: Color = candy_colors[(ray + tier) % candy_colors.size()]
-			ray_color.a = 0.94 * flash
-			draw_line(p + dir * inner, p + dir * outer, ray_color, 1.5 + float(ray % 2) * 0.55, true)
+			ray_color.a = 0.96 * flash
+			draw_line(p + dir * inner, p + dir * outer, ray_color, (1.5 + float(ray % 2) * 0.55) * minf(premium_scale, 1.35), true)
 			if ray % 3 == 0:
-				draw_line(p + dir * (inner + 1.0), p + dir * (outer * 0.72), Color(1.0,1.0,1.0,0.72*flash), 0.9, true)
+				draw_line(p + dir * (inner + 1.0), p + dir * (outer * 0.72), Color(1.0,1.0,1.0,0.78*flash), 1.0, true)
 
-	# Main burst: saturated round candy-like particles with bright white highlights.
+	# Main glossy candy burst.
 	var particle_count: int = 22 + tier * 2
+	if amount >= 500: particle_count += 12
+	if amount >= 1000: particle_count += 18
 	for i in range(particle_count):
 		var a: float = float(i) / float(particle_count) * TAU + float(i % 5) * 0.06
 		var speed: float = 0.70 + float(i % 6) * 0.075
@@ -94,40 +105,65 @@ func _draw_pickup_burst(burst: Dictionary) -> void:
 		var alpha: float = fade * (0.82 + float(i % 3) * 0.06)
 		var c: Color = candy_colors[(i + tier * 2) % candy_colors.size()]
 		c.a = alpha
-		var radius: float = maxf(0.6, (2.8 - progress * 1.65) * (0.86 + float(i % 3) * 0.14))
+		var radius: float = maxf(0.6, (2.8 - progress * 1.65) * (0.86 + float(i % 3) * 0.14) * minf(premium_scale, 1.30))
 		draw_circle(pos, radius, c)
 		if i % 2 == 0:
 			draw_circle(pos + Vector2(-radius*0.25,-radius*0.25), maxf(0.35,radius*0.32), Color(1.0,1.0,1.0,alpha*0.78))
 		if i % 3 == 0:
 			var tail_color: Color = c
-			tail_color.a *= 0.52
-			draw_line(pos - dir * (5.0 + float(i % 4) * 1.6) * fade, pos, tail_color, 1.15, true)
+			tail_color.a *= 0.58
+			draw_line(pos - dir * (5.0 + float(i % 4) * 1.6) * fade * premium_scale, pos, tail_color, 1.15, true)
 		if i % 5 == 0:
-			_draw_star(pos, (3.0 + float(i % 3) * 0.75) * fade + 0.45, Color(1.0,1.0,1.0,1.0), alpha)
+			_draw_star(pos, (3.0 + float(i % 3) * 0.75) * fade * minf(premium_scale, 1.35) + 0.45, Color(1.0,1.0,1.0,1.0), alpha)
 
-	# Tiny square/diamond confetti gives the playful match-game feel.
+	# Color confetti.
 	var confetti_progress: float = clampf((progress - 0.04) / 0.96, 0.0, 1.0)
 	var confetti_fade: float = pow(1.0 - confetti_progress, 1.30)
-	for i in range(12):
-		var a: float = float(i) / 12.0 * TAU + 0.31
+	var confetti_count: int = 12
+	if amount >= 500: confetti_count = 20
+	if amount >= 1000: confetti_count = 30
+	for i in range(confetti_count):
+		var a: float = float(i) / float(confetti_count) * TAU + 0.31
 		var dist: float = lerpf(6.0, (28.0 + float(i % 4) * 7.0) * strength, confetti_progress)
 		var cp: Vector2 = p + Vector2(cos(a), sin(a)) * dist
 		var c: Color = candy_colors[(i + 3) % candy_colors.size()]
-		c.a = 0.90 * confetti_fade
-		var s: float = 1.7 + float(i % 3) * 0.55
+		c.a = 0.94 * confetti_fade
+		var s: float = (1.7 + float(i % 3) * 0.55) * minf(premium_scale, 1.28)
 		draw_colored_polygon(PackedVector2Array([
 			cp + Vector2(0,-s), cp + Vector2(s,0), cp + Vector2(0,s), cp + Vector2(-s,0)
 		]), c)
 
-	# Delayed large white/color glints keep the pickup feeling juicy and premium.
-	for i in range(7):
-		var a: float = float(i) / 7.0 * TAU + 0.47
+	# Delayed glints.
+	var glint_count: int = 7
+	if amount >= 500: glint_count = 12
+	if amount >= 1000: glint_count = 18
+	for i in range(glint_count):
+		var a: float = float(i) / float(glint_count) * TAU + 0.47
 		var dist: float = lerpf(10.0, 38.0 * strength, progress)
 		var glint_pos: Vector2 = p + Vector2(cos(a), sin(a)) * dist
 		var glint_alpha: float = clampf(1.0 - abs(progress - (0.38 + float(i % 3) * 0.055)) * 2.6, 0.0, 1.0) * fade
 		var glint_color: Color = candy_colors[(i + tier) % candy_colors.size()]
-		_draw_star(glint_pos, (4.0 + float(i % 2) * 1.2) * fade + 0.55, glint_color, glint_alpha)
-		_draw_star(glint_pos, (2.0 + float(i % 2) * 0.6) * fade + 0.35, Color(1.0,1.0,1.0,1.0), glint_alpha*0.90)
+		_draw_star(glint_pos, (4.0 + float(i % 2) * 1.2) * fade * minf(premium_scale, 1.42) + 0.55, glint_color, glint_alpha)
+		_draw_star(glint_pos, (2.0 + float(i % 2) * 0.6) * fade + 0.35, Color(1.0,1.0,1.0,1.0), glint_alpha*0.94)
+
+	# Premium jackpot accents: 500 gets a second punch; 1000 gets a huge white/rainbow starburst.
+	if amount >= 500:
+		var punch: float = clampf(1.0 - abs(progress - 0.16) / 0.16, 0.0, 1.0)
+		for i in range(8 if amount < 1000 else 12):
+			var a: float = float(i) / float(8 if amount < 1000 else 12) * TAU + 0.19
+			var dir := Vector2(cos(a), sin(a))
+			var d1: float = 10.0 * premium_scale
+			var d2: float = (42.0 if amount < 1000 else 62.0) * premium_scale
+			var cc: Color = candy_colors[(i + 1) % candy_colors.size()]
+			cc.a = 0.82 * punch
+			draw_line(p + dir*d1, p + dir*d2, cc, 2.0 if amount < 1000 else 2.6, true)
+	if amount >= 1000:
+		var jackpot: float = clampf(1.0 - progress / 0.42, 0.0, 1.0)
+		_draw_star(p, 18.0 + (1.0-jackpot)*10.0, Color(1.0,1.0,1.0,1.0), jackpot)
+		for i in range(10):
+			var a: float = float(i) / 10.0 * TAU + 0.27
+			var jp: Vector2 = p + Vector2(cos(a), sin(a)) * lerpf(18.0, 72.0, progress)
+			_draw_star(jp, 6.0 * fade + 1.0, candy_colors[i % candy_colors.size()], fade)
 
 func _draw_boat(p: Vector2, a: float) -> void:
 	var idx: int = BoatCollectibles.get_selected_index()
