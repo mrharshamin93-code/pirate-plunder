@@ -7,7 +7,7 @@ const FILES := ["plunderer","crimson_raider","black_pearl","royal_fortune","ghos
 const COLORS := [Color("9a6231"),Color("c8322f"),Color("20242b"),Color("f2e5c2"),Color("7fa7a1"),Color("e64a19"),Color("159b91"),Color("d6a51e")]
 const CROP_RECTS := [
 	Rect2(40,0,84,160), Rect2(42,0,82,160), Rect2(43,0,78,160), Rect2(43,0,80,160),
-	Rect2(41,0,84,160), Rect2(0,0,160,160), Rect2(34,0,92,160), Rect2(40,0,82,160)
+	Rect2(41,0,84,160), Rect2(0,0,160,160), Rect2(0,0,160,160), Rect2(40,0,82,160)
 ]
 
 var selected := 0
@@ -42,9 +42,9 @@ func _ship_texture(index:int)->Texture2D:
 func _read_ship(index:int)->Texture2D:
 	var source=load("res://assets/ships/%s.svg" % FILES[index]) as Texture2D
 	if source==null: return null
-	# Inferno's source already fills its 160x160 canvas; using the old narrow atlas crop
-	# clipped away the visible art. Return the full texture for this ship.
-	if index==5:
+	# Inferno and Sea Serpent are already tightly framed native SVGs.
+	# Show the full asset so no sails/hull are clipped by an AtlasTexture crop.
+	if index==5 or index==6:
 		return source
 	var atlas=AtlasTexture.new()
 	atlas.atlas=source
@@ -190,9 +190,9 @@ func _refresh():
 	if sub_label:sub_label.text=SUBS[preview]
 	if hero:
 		hero.texture=_ship_texture(preview)
-		# Sea Serpent contains very pale mint/white pixels. Darken the artwork itself
-		# slightly on the white card so its hull, sails and serpent details stay legible.
-		hero.modulate=Color("5fae9f") if preview==6 else Color.WHITE
+		# Keep the original SVG colors. The previous Sea Serpent tint was washing
+		# the detailed teal/gold artwork out against the white showcase card.
+		hero.modulate=Color.WHITE
 	if equip:
 		equip.text="EQUIPPED" if preview==selected else "SELECT SHIP"
 		equip.disabled=preview==selected
