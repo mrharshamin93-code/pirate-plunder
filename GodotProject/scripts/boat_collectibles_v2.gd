@@ -1,7 +1,7 @@
 extends Node
 
 const SAVE := "user://collectibles.cfg"
-const NAMES := ["Plunderer","Crimson Raider","Black Pearl","Royal Fortune","Ghost Ship","Inferno","Sea Serpent","Golden Galleon"]
+const NAMES := ["Regular Ship","Crimson Raider","Black Pearl","Royal Fortune","Ghost Ship","Inferno","Sea Serpent","Golden Galleon"]
 const SUBS := ["Default Ship","Raider Variant","Shadow Variant","Royal Variant","Spectral Variant","Infernal Variant","Serpent Variant","Legendary Variant"]
 const FILES := ["plunderer","crimson_raider","black_pearl","royal_fortune","ghost_ship","inferno","sea_serpent","golden_galleon"]
 const COLORS := [Color("9a6231"),Color("c8322f"),Color("20242b"),Color("f2e5c2"),Color("7fa7a1"),Color("e64a19"),Color("159b91"),Color("d6a51e")]
@@ -62,7 +62,6 @@ func _build_overlay()->void:
  var mt:=Label.new();mt.text="MINES";mt.position=Vector2(40,82);mt.size=Vector2(266,42);mt.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;mt.add_theme_font_size_override("font_size",28);mt.add_theme_color_override("font_color",Color("f6d9a3"));mines_panel.add_child(mt)
  var mx:=Label.new();mx.text="Mine collectibles coming soon";mx.position=Vector2(38,145);mx.size=Vector2(270,34);mx.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;mx.add_theme_font_size_override("font_size",15);mx.add_theme_color_override("font_color",Color("d9f4fb"));mines_panel.add_child(mx)
  var bottom:=Panel.new();bottom.position=Vector2(0,540);bottom.size=Vector2(390,304);bottom.mouse_filter=Control.MOUSE_FILTER_IGNORE;bottom.add_theme_stylebox_override("panel",_box(Color("071925"),Color("6f4725"),0));overlay.add_child(bottom)
- # Footer aligned exactly to the showcase: x=22, width=346.
  var footer:=Panel.new();footer.position=Vector2(22,552);footer.size=Vector2(346,82);footer.mouse_filter=Control.MOUSE_FILTER_IGNORE;footer.add_theme_stylebox_override("panel",_box(Color("071925"),Color("6f4725"),10));overlay.add_child(footer)
  var back:=Button.new();back.text="BACK";back.position=Vector2(72,568);back.size=Vector2(246,50);back.focus_mode=Control.FOCUS_NONE;back.pressed.connect(_close);overlay.add_child(back)
  var close_hit:=Button.new();close_hit.text="";close_hit.flat=true;close_hit.modulate=Color(1,1,1,0.01);close_hit.position=Vector2(338,18);close_hit.size=Vector2(42,54);close_hit.focus_mode=Control.FOCUS_NONE;close_hit.pressed.connect(_close);overlay.add_child(close_hit)
