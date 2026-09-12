@@ -1,5 +1,12 @@
 extends "res://scripts/main_menu_mobile.gd"
 
+const MENU_GOLD: Color = Color("f4c64d")
+const MENU_GOLD_DARK: Color = Color("9b5c16")
+const MENU_PARCHMENT: Color = Color("e8c989")
+const MENU_WOOD: Color = Color("3a2115")
+const MENU_RED: Color = Color("8d1718")
+const MENU_INK: Color = Color("24160f")
+
 var picture_hitboxes: Dictionary = {}
 var picture_feedback: Dictionary = {}
 var picture_pressed: Dictionary = {}
@@ -97,11 +104,12 @@ func _apply_feedback_state(key: String) -> void:
 	var base_size: Vector2 = feedback.get_meta("base_size") as Vector2
 	var pressed: bool = bool(picture_pressed.get(key, false))
 	if pressed:
-		var press_scale: float = 0.965
+		var press_scale: float = 0.97
 		var shrink_offset: Vector2 = base_size * (1.0 - press_scale) * 0.5
 		feedback.position = base_position + shrink_offset + Vector2(0.0, 2.0)
 		feedback.size = base_size * press_scale
-		feedback.modulate = Color(0.78, 0.78, 0.78, 1.0)
+		# Warm highlight only. Never turn the Leaderboard button grey/black.
+		feedback.modulate = Color(1.06, 1.02, 0.90, 1.0)
 	else:
 		feedback.position = base_position
 		feedback.size = base_size
@@ -148,3 +156,133 @@ func _layout_ui() -> void:
 		board_page.size = size
 	if menu_popup != null and is_instance_valid(menu_popup):
 		menu_popup.size = size
+
+func _board_box(fill: Color, border: Color, width: int = 3, radius: int = 8) -> StyleBoxFlat:
+	var box := StyleBoxFlat.new()
+	box.bg_color = fill
+	box.border_color = border
+	box.set_border_width_all(width)
+	box.set_corner_radius_all(radius)
+	return box
+
+func _style_board_tab(button: Button, selected: bool) -> void:
+	button.disabled = false
+	button.add_theme_font_size_override("font_size", 16)
+	button.add_theme_color_override("font_color", Color("fff1bd") if selected else MENU_INK)
+	if selected:
+		button.add_theme_stylebox_override("normal", _board_box(MENU_RED, MENU_GOLD, 3, 8))
+		button.add_theme_stylebox_override("hover", _board_box(Color("a51e1f"), Color("ffd86a"), 3, 8))
+		button.add_theme_stylebox_override("pressed", _board_box(Color("671011"), MENU_GOLD_DARK, 3, 8))
+	else:
+		button.add_theme_stylebox_override("normal", _board_box(Color("f4dfb2"), Color("b78645"), 2, 8))
+		button.add_theme_stylebox_override("hover", _board_box(Color("f8e8c4"), MENU_GOLD, 2, 8))
+		button.add_theme_stylebox_override("pressed", _board_box(Color("d8bd82"), MENU_GOLD_DARK, 2, 8))
+
+func _build_board_page() -> void:
+	board_page = Control.new()
+	board_page.name = "FreshLeaderboardPage"
+	board_page.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	board_page.mouse_filter = Control.MOUSE_FILTER_STOP
+	board_page.z_index = 50000
+	add_child(board_page)
+
+	var background := ColorRect.new()
+	background.color = Color("0b3340")
+	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	board_page.add_child(background)
+
+	var outer := Panel.new()
+	outer.position = Vector2(18, 38)
+	outer.size = Vector2(354, 754)
+	outer.add_theme_stylebox_override("panel", _board_box(MENU_WOOD, MENU_GOLD_DARK, 3, 16))
+	board_page.add_child(outer)
+
+	var title := Label.new()
+	title.text = "☠  LEADERBOARD"
+	title.position = Vector2(20, 20)
+	title.size = Vector2(314, 48)
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 27)
+	title.add_theme_color_override("font_color", MENU_GOLD)
+	title.add_theme_color_override("font_shadow_color", Color(0,0,0,0.8))
+	title.add_theme_constant_override("shadow_offset_x", 2)
+	title.add_theme_constant_override("shadow_offset_y", 2)
+	outer.add_child(title)
+
+	var tabs := HBoxContainer.new()
+	tabs.position = Vector2(24, 82)
+	tabs.size = Vector2(306, 46)
+	tabs.add_theme_constant_override("separation", 8)
+	outer.add_child(tabs)
+
+	leaderboard_tab = Button.new()
+	leaderboard_tab.text = "LEADERBOARD"
+	leaderboard_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	leaderboard_tab.focus_mode = Control.FOCUS_NONE
+	leaderboard_tab.pressed.connect(func() -> void:
+		active_tab = "leaderboard"
+		_refresh_board_view()
+	)
+	tabs.add_child(leaderboard_tab)
+
+	rank_tab = Button.new()
+	rank_tab.text = "RANK"
+	rank_tab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rank_tab.focus_mode = Control.FOCUS_NONE
+	rank_tab.pressed.connect(func() -> void:
+		active_tab = "rank"
+		_refresh_board_view()
+	)
+	tabs.add_child(rank_tab)
+
+	var parchment := Panel.new()
+	parchment.position = Vector2(20, 146)
+	parchment.size = Vector2(314, 500)
+	parchment.add_theme_stylebox_override("panel", _board_box(MENU_PARCHMENT, Color("b78645"), 3, 12))
+	outer.add_child(parchment)
+
+	board_rows = VBoxContainer.new()
+	board_rows.position = Vector2(12, 14)
+	board_rows.size = Vector2(290, 456)
+	board_rows.add_theme_constant_override("separation", 4)
+	parchment.add_child(board_rows)
+
+	board_status = Label.new()
+	board_status.position = Vector2(24, 656)
+	board_status.size = Vector2(306, 24)
+	board_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	board_status.add_theme_font_size_override("font_size", 12)
+	board_status.add_theme_color_override("font_color", Color("fff1c4"))
+	outer.add_child(board_status)
+
+	var back := Button.new()
+	back.text = "BACK"
+	back.position = Vector2(93, 692)
+	back.size = Vector2(168, 48)
+	back.focus_mode = Control.FOCUS_NONE
+	back.add_theme_font_size_override("font_size", 20)
+	back.add_theme_color_override("font_color", Color("fff1bd"))
+	back.add_theme_stylebox_override("normal", _board_box(MENU_RED, MENU_GOLD, 3, 10))
+	back.add_theme_stylebox_override("hover", _board_box(Color("a51e1f"), Color("ffd86a"), 3, 10))
+	back.add_theme_stylebox_override("pressed", _board_box(Color("671011"), MENU_GOLD_DARK, 3, 10))
+	back.pressed.connect(func() -> void: board_page.visible = false)
+	outer.add_child(back)
+
+	board_http = HTTPRequest.new()
+	board_http.name = "FreshLeaderboardRequest"
+	board_page.add_child(board_http)
+	board_http.request_completed.connect(_on_board_loaded)
+	_refresh_board_view()
+
+func _refresh_board_view() -> void:
+	if board_rows == null or board_status == null:
+		return
+	_clear_board_rows()
+	if leaderboard_tab != null:
+		_style_board_tab(leaderboard_tab, active_tab == "leaderboard")
+	if rank_tab != null:
+		_style_board_tab(rank_tab, active_tab == "rank")
+	if active_tab == "rank":
+		_build_rank_rows()
+	else:
+		_build_top_rows()
