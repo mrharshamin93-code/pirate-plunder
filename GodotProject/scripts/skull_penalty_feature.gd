@@ -6,8 +6,9 @@ const SKULL_RADIUS := 17.0
 const SKULL_LIFE := 30.0
 const SKULL_GRACE := 1.0
 const SKULL_PENALTY := 500
-# COIN_WEIGHTS totals 100 and the 500-point coin has weight 3, so this is exactly the same 3% rarity.
-const SKULL_SPAWN_CHANCE := 0.03
+# The 500-point coin has weight 3 out of 100. The skull should appear twice as often,
+# so use a 6% spawn chance per collected coin.
+const SKULL_SPAWN_CHANCE := 0.06
 const POPUP_LIFE := 0.90
 const BURST_LIFE := 0.55
 
@@ -98,21 +99,22 @@ func _draw() -> void:
 
 func _draw_skull(p: Vector2) -> void:
 	# Approximately the same 34px footprint as a gameplay coin, with no crossed bones.
-	var outline := Color("4d160f")
-	var gold := Color("f2a22c")
-	var light := Color("ffd05a")
-	var dark := Color("9e451b")
+	# White skull with a dark outline for readability against the ocean.
+	var outline := Color("2b3138")
+	var white := Color("f7f7f2")
+	var highlight := Color("ffffff")
+	var shadow := Color("c9ced3")
 	draw_circle(p + Vector2(0, -2), 14.0, outline)
-	draw_circle(p + Vector2(0, -2), 12.0, gold)
-	draw_circle(p + Vector2(-3, -5), 8.0, light)
+	draw_circle(p + Vector2(0, -2), 12.0, white)
+	draw_circle(p + Vector2(-3, -5), 8.0, highlight)
 	# Jaw
 	draw_rect(Rect2(p + Vector2(-8, 7), Vector2(16, 7)), outline, true)
-	draw_rect(Rect2(p + Vector2(-6, 7), Vector2(12, 5)), gold, true)
+	draw_rect(Rect2(p + Vector2(-6, 7), Vector2(12, 5)), white, true)
 	# Eye sockets and nose
 	draw_circle(p + Vector2(-5, -2), 3.4, outline)
 	draw_circle(p + Vector2(5, -2), 3.4, outline)
 	var nose := PackedVector2Array([p + Vector2(0, 1), p + Vector2(-2.2, 5), p + Vector2(2.2, 5)])
-	draw_colored_polygon(nose, dark)
+	draw_colored_polygon(nose, shadow)
 	# Teeth divisions
 	for x in [-4.0, 0.0, 4.0]:
 		draw_line(p + Vector2(x, 8), p + Vector2(x, 12), outline, 1.0, true)
