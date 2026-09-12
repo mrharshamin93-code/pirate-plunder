@@ -15,6 +15,49 @@ func _draw_mine(m: Dictionary) -> void:
 	else:
 		super._draw_mine(m)
 
+# Same whirlpool look, but roughly half the per-frame geometry.
+# The old version rebuilt hundreds of anti-aliased points every frame, which was
+# the main rendering spike once mines, wakes and pickup effects were also active.
+func _draw_whirlpool(w: Dictionary) -> void:
+	var p: Vector2 = w.get("pos", Vector2.ZERO)
+	var spin: float = float(w.get("spin", 0.0))
+	var pulse: float = 1.0 + sin(spin * 1.7) * 0.035
+	draw_circle(p, 50.0 * pulse, Color(0.04, 0.31, 0.37, 0.22))
+	draw_circle(p, 38.0 * pulse, Color(0.025, 0.23, 0.29, 0.34))
+	draw_circle(p, 27.0 * pulse, Color(0.018, 0.15, 0.20, 0.52))
+	draw_circle(p, 17.0 * pulse, Color(0.008, 0.075, 0.105, 0.76))
+	draw_circle(p, 8.0, Color(0.0, 0.012, 0.02, 0.98))
+
+	for arm in range(6):
+		var pts := PackedVector2Array()
+		for step in range(20):
+			var t: float = float(step) / 19.0
+			var radius: float = lerpf(51.0, 7.0, t)
+			var angle: float = spin * 0.9 + float(arm) * TAU / 6.0 + t * 5.7
+			pts.append(p + Vector2(cos(angle), sin(angle)) * radius)
+		var arm_alpha: float = 0.23 + float(arm % 2) * 0.08
+		draw_polyline(pts, Color(0.78, 0.95, 0.98, arm_alpha), 1.9 + float(arm % 2) * 0.45, true)
+
+	for band in range(3):
+		var radius: float = 29.0 + float(band) * 9.0
+		for seg in range(5):
+			var a0: float = spin * 0.48 + float(seg) * TAU / 5.0 + float(band) * 0.31
+			var pts := PackedVector2Array()
+			for k in range(5):
+				var a: float = a0 + float(k) / 4.0 * 0.56
+				var wobble: float = sin(a * 5.0 + spin) * 1.1
+				pts.append(p + Vector2(cos(a), sin(a)) * (radius + wobble))
+			draw_polyline(pts, Color(0.90, 0.985, 1.0, 0.23 - float(band) * 0.035), 1.35, true)
+
+	for i in range(6):
+		var a: float = spin * 0.7 + float(i) / 6.0 * TAU
+		var r: float = 40.0 + sin(float(i) * 1.65 + spin) * 6.0
+		var bubble: Vector2 = p + Vector2(cos(a), sin(a)) * r
+		draw_circle(bubble, 1.1 + float(i % 3) * 0.42, Color(0.87, 0.98, 1.0, 0.40))
+
+	draw_arc(p, 20.0, spin * 0.2, spin * 0.2 + 4.7, 22, Color(0.43, 0.82, 0.88, 0.27), 1.5, true)
+	draw_arc(p, 11.0, -spin * 0.18, -spin * 0.18 + 4.9, 18, Color(0.72, 0.94, 0.97, 0.23), 1.1, true)
+
 func _draw_boat(p: Vector2, a: float) -> void:
 	var idx: int = BoatCollectibles.get_selected_index()
 	if idx == 0:
@@ -29,7 +72,6 @@ func _draw_boat(p: Vector2, a: float) -> void:
 		hull.append(_rot(v,a,p,s))
 	draw_colored_polygon(hull, hull_colors[idx])
 	draw_polyline(PackedVector2Array([hull[0],hull[1],hull[2],hull[3],hull[4],hull[5],hull[6],hull[7],hull[0]]), Color("07151b"), 2.0, true)
-	# Mast and two top-down sails make each collectible read as a pirate ship while staying the same gameplay size.
 	draw_line(_rot(Vector2(-10,0),a,p,s), _rot(Vector2(20,0),a,p,s), Color("5b351c"), 2.2, true)
 	var sail1 := PackedVector2Array([_rot(Vector2(11,-2),a,p,s),_rot(Vector2(7,-12),a,p,s),_rot(Vector2(-8,-10),a,p,s),_rot(Vector2(-10,-2),a,p,s)])
 	var sail2 := PackedVector2Array([_rot(Vector2(11,2),a,p,s),_rot(Vector2(7,12),a,p,s),_rot(Vector2(-8,10),a,p,s),_rot(Vector2(-10,2),a,p,s)])
@@ -38,10 +80,9 @@ func _draw_boat(p: Vector2, a: float) -> void:
 	draw_polyline(PackedVector2Array([sail1[0],sail1[1],sail1[2],sail1[3],sail1[0]]), Color("07151b"), 1.2, true)
 	draw_polyline(PackedVector2Array([sail2[0],sail2[1],sail2[2],sail2[3],sail2[0]]), Color("07151b"), 1.2, true)
 	draw_circle(_rot(Vector2(-18,0),a,p,s), 3.2, accent_colors[idx])
-	# Distinctive rare-skin accent.
 	if idx == 4:
-		draw_arc(p, 18.0, 0.0, TAU, 24, Color(0.45,1.0,0.9,0.35), 1.5, true)
+		draw_arc(p, 18.0, 0.0, TAU, 18, Color(0.45,1.0,0.9,0.35), 1.5, true)
 	elif idx == 5:
 		draw_circle(_rot(Vector2(25,0),a,p,s), 2.5, Color("ffb126"))
 	elif idx == 7:
-		draw_arc(p, 17.0, 0.0, TAU, 24, Color(1.0,0.82,0.2,0.28), 1.5, true)
+		draw_arc(p, 17.0, 0.0, TAU, 18, Color(1.0,0.82,0.2,0.28), 1.5, true)
