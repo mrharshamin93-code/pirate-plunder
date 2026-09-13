@@ -7,6 +7,7 @@ func _process(_delta: float) -> void:
 func _save_collectibles() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("boats", "selected", selected)
+	cfg.set_value("mines", "selected", selected_mine)
 	cfg.save(SAVE)
 
 func _is_unlocked(index: int) -> bool:
@@ -21,5 +22,5 @@ func get_total_coins() -> int:
 
 func _refresh() -> void:
 	super._refresh()
-	if sub_label != null and not _is_unlocked(preview):
+	if active_tab == "ships" and sub_label != null and not _is_unlocked(preview):
 		sub_label.text = "LOCKED — Reach high score %s" % _comma(int(SCORE_UNLOCKS[preview]))
