@@ -16,9 +16,6 @@
       <stop offset="0.7" stop-color="#ffc20f"/>
       <stop offset="1" stop-color="#f28a00"/>
     </radialGradient>
-    <filter id="warmGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="2.4"/>
-    </filter>
   </defs>
   <g transform="translate(32 32)" fill="url(#spike)" stroke="#071116" stroke-width="2" stroke-linejoin="round">
     <polygon points="0,-29 -5,-17 5,-17"/>
@@ -30,7 +27,8 @@
     <polygon points="0,-29 -5,-17 5,-17" transform="rotate(270)"/>
     <polygon points="0,-29 -5,-17 5,-17" transform="rotate(315)"/>
   </g>
-  <ellipse cx="32" cy="49" rx="16" ry="6" fill="#ff5a16" opacity="0.30" filter="url(#warmGlow)"/>
+  <ellipse cx="32" cy="49" rx="16" ry="6" fill="#ff5a16" opacity="0.18"/>
+  <ellipse cx="32" cy="48" rx="12" ry="4" fill="#ff8a24" opacity="0.16"/>
   <circle cx="32" cy="32" r="18" fill="url(#body)" stroke="#071116" stroke-width="2.4"/>
   <ellipse cx="25.2" cy="23.7" rx="5.2" ry="3.3" transform="rotate(-28 25.2 23.7)" fill="#dce2c4" opacity="0.8"/>
   <circle cx="32" cy="32" r="7.1" fill="#10161b" stroke="#050b0e" stroke-width="1.8"/>
