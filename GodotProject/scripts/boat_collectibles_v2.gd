@@ -13,6 +13,7 @@ const CROP_RECTS := [Rect2(40,0,84,160),Rect2(42,0,82,160),Rect2(43,0,78,160),Re
 const MINE_NAMES := ["Standard","Rusty","Camo","Danger","Ice","Gold","Skull","Electric","Lava","Void"]
 const MINE_SUBS := ["Current / Default","Weathered Variant","Camo Variant","Red Glow","Frozen Variant","Rare Variant","Skull Variant","Charged Variant","Molten Variant","Special Variant"]
 const MINE_FILES := ["standard","rusty","camo","danger","ice","gold","skull","electric","lava","void"]
+const MINE_SCORE_UNLOCKS := [0,500,1000,1500,2000,3000,4000,5000,7500,10000]
 
 var selected := 0
 var preview := 0
@@ -48,6 +49,10 @@ func _ready() -> void:
   selected = 0
   preview = 0
   _save_collectibles()
+ if not _is_mine_unlocked(selected_mine):
+  selected_mine = 0
+  preview_mine = 0
+  _save_collectibles()
 
 func _process(_delta:float) -> void:
  var scene:Node = get_tree().current_scene
@@ -79,6 +84,11 @@ func _is_unlocked(index:int) -> bool:
  if index <= 0:return true
  if index >= NAMES.size():return false
  return _personal_best() >= int(SCORE_UNLOCKS[index]) or lifetime_coins >= int(COIN_UNLOCKS[index])
+
+func _is_mine_unlocked(index:int) -> bool:
+ if index <= 0:return true
+ if index >= MINE_NAMES.size():return false
+ return _personal_best() >= int(MINE_SCORE_UNLOCKS[index])
 
 func get_selected_index() -> int:return selected
 func get_selected_name() -> String:return NAMES[selected]
@@ -325,6 +335,7 @@ func _equip() -> void:
   if not _is_unlocked(preview):return
   selected = preview
  else:
+  if not _is_mine_unlocked(preview_mine):return
   selected_mine = preview_mine
  _save_collectibles()
  _refresh()
@@ -344,14 +355,18 @@ func _refresh() -> void:
    else:equip_button.text = "SELECT SHIP"
    equip_button.disabled = not unlocked or preview == selected
  else:
+  var mine_unlocked := _is_mine_unlocked(preview_mine)
   if name_label:name_label.text = MINE_NAMES[preview_mine].to_upper()
-  if sub_label:sub_label.text = MINE_SUBS[preview_mine]
+  if sub_label:
+   sub_label.text = MINE_SUBS[preview_mine] if mine_unlocked else "LOCKED — Reach high score %s" % _comma(int(MINE_SCORE_UNLOCKS[preview_mine]))
   if hero:
    hero.texture = _mine_texture(preview_mine)
-   hero.modulate = Color.WHITE
+   hero.modulate = Color.WHITE if mine_unlocked else Color(0.38,0.38,0.38,1.0)
   if equip_button:
-   equip_button.text = "EQUIPPED" if preview_mine == selected_mine else "SELECT MINE"
-   equip_button.disabled = preview_mine == selected_mine
+   if not mine_unlocked:equip_button.text = "LOCKED"
+   elif preview_mine == selected_mine:equip_button.text = "EQUIPPED"
+   else:equip_button.text = "SELECT MINE"
+   equip_button.disabled = not mine_unlocked or preview_mine == selected_mine
  _refresh_tabs()
 
 func _comma(value:int) -> String:
