@@ -1,16 +1,19 @@
 extends "res://scripts/optimized_game_visuals.gd"
 
-const MINE_FILES := ["standard","rusty","camo","danger","ice","gold","skull","electric","lava","void"]
+var selected_mine_texture: Texture2D
+var selected_mine_index := -1
 
-func _ready() -> void:
-	super._ready()
-	_apply_selected_mine_texture()
+func _refresh_selected_mine_texture() -> void:
+	var idx := BoatCollectibles.get_selected_mine_index()
+	if idx != selected_mine_index or selected_mine_texture == null:
+		selected_mine_index = idx
+		selected_mine_texture = BoatCollectibles.get_selected_mine_texture()
 
-func _apply_selected_mine_texture() -> void:
-	var index := 0
-	if BoatCollectibles != null:
-		index = clampi(int(BoatCollectibles.selected_mine), 0, MINE_FILES.size() - 1)
-	var selected_path := "res://assets/mines/%s.svg" % MINE_FILES[index]
-	var selected_texture := load(selected_path) as Texture2D
-	if selected_texture != null:
-		mine_texture = selected_texture
+func _draw_mine(m: Dictionary) -> void:
+	_refresh_selected_mine_texture()
+	var p: Vector2 = m.get("pos", Vector2.ZERO)
+	if selected_mine_texture != null:
+		var draw_size := Vector2(40.0, 40.0)
+		draw_texture_rect(selected_mine_texture, Rect2(p - draw_size * 0.5, draw_size), false)
+	else:
+		super._draw_mine(m)
