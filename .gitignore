@@ -55,6 +55,7 @@ GodotProject/**/*.uid
 GodotProject/assets/android-main-fit.png
 GodotProject/assets/android-adaptive-foreground-fit.png
 GodotProject/assets/android-system-splash-fit.png
+GodotProject/android/build/google-services.json
 
 # Bun
 bun.lock
