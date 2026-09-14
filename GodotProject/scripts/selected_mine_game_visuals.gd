@@ -5,9 +5,9 @@ var selected_mine_index := -1
 
 # Short-lived world-space wake points for each mine. These stay where they were
 # created, so the water effect forms a small path instead of following the mine.
-const MINE_WAKE_LIFE := 0.70
-const MINE_WAKE_SPACING := 7.0
-const MINE_WAKE_MAX_POINTS := 7
+const MINE_WAKE_LIFE := 0.95
+const MINE_WAKE_SPACING := 6.0
+const MINE_WAKE_MAX_POINTS := 10
 var mine_wakes: Array = []
 var mine_last_positions: Array[Vector2] = []
 
@@ -33,7 +33,6 @@ func _update_mine_wakes(delta: float) -> void:
 		var mine: Dictionary = g.mines[i]
 		var trail: Array = mine_wakes[i]
 
-		# Age existing wake marks in place.
 		for mark in trail:
 			mark["life"] = float(mark.get("life", 0.0)) - delta
 		for j in range(trail.size() - 1, -1, -1):
@@ -50,8 +49,6 @@ func _update_mine_wakes(delta: float) -> void:
 			mine_last_positions[i] = p
 			continue
 
-		# Drop a wake mark only after the mine has moved enough. The mark stays at
-		# the old position and fades, creating a small water path behind the mine.
 		if p.distance_to(previous) >= MINE_WAKE_SPACING:
 			var travel: Vector2 = p - previous
 			trail.append({
@@ -97,25 +94,23 @@ func _draw_mine_wake_path(index: int) -> void:
 		var side := Vector2(-dir.y, dir.x)
 		var age: float = 1.0 - life_ratio
 
-		# Two soft wake shoulders left behind by the mine. They expand slightly
-		# as they fade, which reads like a gentle disturbance in the water.
-		var spread: float = 5.0 + age * 4.0
-		var length: float = 9.0 + age * 5.0
-		var alpha: float = 0.22 * life_ratio
+		# Longer, slightly stronger wake shoulders. They remain world-space marks,
+		# so the result is a visible trail behind the moving mine, not a halo.
+		var spread: float = 5.5 + age * 5.0
+		var length: float = 13.0 + age * 7.0
+		var alpha: float = 0.30 * life_ratio
 		for side_sign in [-1.0, 1.0]:
 			var center: Vector2 = p + side * spread * side_sign
-			var a0: Vector2 = center - dir * length * 0.45
-			var a1: Vector2 = center + dir * length * 0.45
-			draw_line(a0, a1, Color(0.86, 0.97, 1.0, alpha), 1.15, true)
+			var a0: Vector2 = center - dir * length * 0.52
+			var a1: Vector2 = center + dir * length * 0.48
+			draw_line(a0, a1, Color(0.86, 0.97, 1.0, alpha), 1.35, true)
 
-		# A tiny broken foam fleck in the center keeps the wake organic without
-		# looking like a circle around the mine.
-		if age < 0.72:
-			var foam_alpha: float = 0.14 * life_ratio
+		if age < 0.78:
+			var foam_alpha: float = 0.19 * life_ratio
 			draw_line(
-				p - dir * 2.0,
-				p + dir * 3.5,
+				p - dir * 3.0,
+				p + dir * 5.0,
 				Color(0.94, 0.99, 1.0, foam_alpha),
-				0.9,
+				1.0,
 				true
 			)
