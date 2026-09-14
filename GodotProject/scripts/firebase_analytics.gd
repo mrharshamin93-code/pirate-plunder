@@ -28,7 +28,9 @@ func _process(_delta: float) -> void:
 	_track_game_state()
 	_track_collectibles_state()
 
-func is_connected() -> bool:
+# Deliberately not named is_connected(): Node already defines
+# is_connected(StringName, Callable), and Godot 4.7 rejects a mismatched override.
+func analytics_is_connected() -> bool:
 	return _ready_for_events
 
 func log_event(event_name: String, params: Dictionary = {}) -> void:
