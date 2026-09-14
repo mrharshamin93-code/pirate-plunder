@@ -19,33 +19,28 @@ func _draw_mine(m: Dictionary) -> void:
 	else:
 		super._draw_mine(m)
 
-# Gentle animated surface ripples around each moving mine. These are deliberately
-# low-alpha and narrow so they read as water displacement rather than an effect ring.
+# Gentle but clearly visible animated water displacement around moving mines.
+# Broken arcs keep it looking like natural waves instead of a UI ring.
 func _draw_mine_water_waves(m: Dictionary, p: Vector2) -> void:
 	var phase: float = float(m.get("phase", 0.0))
 	var arm: float = float(m.get("arm", 0.0))
-	var movement_strength: float = 0.55 if arm > 0.5 else 1.0
+	var movement_strength: float = 0.62 if arm > 0.5 else 1.0
 
-	# Two soft expanding ripple bands, offset so the water always feels alive.
-	for band in range(2):
-		var cycle: float = fposmod(phase * 0.18 + float(band) * 0.5, 1.0)
-		var radius: float = lerpf(18.0, 29.0, cycle)
-		var fade: float = (1.0 - cycle) * movement_strength
-		var wave_color := Color(0.82, 0.96, 1.0, 0.11 * fade)
-		draw_arc(p, radius, 0.15, TAU - 0.35, 30, wave_color, 1.15, true)
+	# Three expanding bands with staggered timing so there is always a visible ripple.
+	for band in range(3):
+		var cycle: float = fposmod(phase * 0.16 + float(band) / 3.0, 1.0)
+		var radius: float = lerpf(18.0, 36.0, cycle)
+		var fade: float = pow(1.0 - cycle, 0.8) * movement_strength
+		var alpha: float = 0.22 * fade
+		for segment in range(4):
+			var start_angle: float = phase * 0.055 + float(segment) * TAU / 4.0 + float(band) * 0.16
+			var end_angle: float = start_angle + 0.92
+			draw_arc(p, radius, start_angle, end_angle, 10, Color(0.82, 0.96, 1.0, alpha), 1.35, true)
 
-	# Small broken highlights close to the mine keep the ripple organic and subtle.
-	var shimmer: float = 0.5 + 0.5 * sin(phase * 1.35)
-	var highlight_alpha: float = (0.055 + shimmer * 0.035) * movement_strength
-	for segment in range(3):
-		var start_angle: float = phase * 0.12 + float(segment) * TAU / 3.0
-		draw_arc(
-			p,
-			16.5 + shimmer * 1.2,
-			start_angle,
-			start_angle + 0.72,
-			8,
-			Color(0.92, 0.985, 1.0, highlight_alpha),
-			1.0,
-			true
-		)
+	# A soft near-mine disturbance makes movement readable even between outer ripples.
+	var shimmer: float = 0.5 + 0.5 * sin(phase * 1.45)
+	for i in range(3):
+		var a: float = phase * 0.10 + float(i) * TAU / 3.0
+		var offset := Vector2(cos(a), sin(a)) * (14.0 + shimmer * 1.5)
+		var center := p + offset
+		draw_arc(center, 5.0 + shimmer, a - 1.0, a + 0.85, 7, Color(0.90, 0.985, 1.0, 0.15 * movement_strength), 1.15, true)
