@@ -13,28 +13,6 @@ func _ready() -> void:
 	add_theme_stylebox_override("hover", _box(Color("4a2b19"), Color("ffd86a")))
 	add_theme_stylebox_override("pressed", _box(Color("24150e"), Color("9b5c16")))
 	pressed.connect(_go_to_main_menu)
-	set_process_input(true)
-
-func _input(event: InputEvent) -> void:
-	if navigating or not visible:
-		return
-	var released: bool = false
-	var pos: Vector2 = Vector2.ZERO
-	if event is InputEventMouseButton:
-		var mouse := event as InputEventMouseButton
-		if mouse.button_index != MOUSE_BUTTON_LEFT:
-			return
-		released = not mouse.pressed
-		pos = mouse.position
-	elif event is InputEventScreenTouch:
-		var touch := event as InputEventScreenTouch
-		released = not touch.pressed
-		pos = touch.position
-	else:
-		return
-	if released and get_global_rect().has_point(pos):
-		_go_to_main_menu()
-		get_viewport().set_input_as_handled()
 
 func _box(fill: Color, border: Color) -> StyleBoxFlat:
 	var box := StyleBoxFlat.new()
