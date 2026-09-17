@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "525487780435",
+    "project_id": "pirate-s-plunder-98456",
+    "storage_bucket": "pirate-s-plunder-98456.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:525487780435:android:24379b8f261a84dda1cca6",
+        "android_client_info": {
+          "package_name": "com.harshamin.piratesplunder"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDrKO7qUVqowKhkMVH9BRl0-HH-xlgBK-w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
