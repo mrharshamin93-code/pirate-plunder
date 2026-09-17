@@ -1,0 +1,12 @@
+[config]
+
+name="GodotFirebaseAnalytics"
+binary_type="local"
+binary="GodotFirebaseAnalytics.23.2.0.release.aar"
+
+[dependencies]
+
+remote=[
+	"com.google.firebase:firebase-analytics",
+	]
+custom_maven_repos=[]
