@@ -7,6 +7,10 @@ extends Node
 const FIREBASE_PROJECT_ID := "pirate-s-plunder-98456"
 const FIREBASE_PROJECT_NUMBER := "525487780435"
 const SCORE_MILESTONES := [100, 250, 500, 1000, 2500, 5000, 10000]
+const SHIP_NAMES := ["Regular Ship", "Crimson Raider", "Black Pearl", "Royal Fortune", "Ghost Ship", "Inferno", "Sea Serpent", "Golden Galleon"]
+const SHIP_UNLOCKS := [0, 500, 1000, 2000, 3500, 5000, 7500, 10000]
+const MINE_NAMES := ["Standard", "Rusty", "Camo", "Danger", "Ice", "Gold", "Skull", "Electric", "Lava", "Void"]
+const MINE_UNLOCKS := [0, 500, 1000, 1500, 2000, 3000, 4000, 5000, 7500, 10000]
 
 var _analytics: Object = null
 var _ready_for_events := false
@@ -18,10 +22,15 @@ var _last_score := 0
 var _game_started_at_ms := 0
 var _games_started := 0
 var _milestones_sent: Dictionary = {}
+var _previous_personal_best := 0
+var _last_share_msec_seen := 0
+var _leaderboard_submit_pending := false
+var _leaderboard_submit_score := 0
 
 func _ready() -> void:
 	_analytics = _find_analytics_singleton()
 	_ready_for_events = _analytics != null
+	_previous_personal_best = _read_personal_best()
 	if _ready_for_events:
 		print("[ANALYTICS] Firebase Analytics bridge connected")
 		log_event("app_open", {"source": "godot"})
@@ -32,6 +41,7 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	_track_game_state()
 	_track_collectibles_state()
+	_track_sunk_actions()
 
 func analytics_is_connected() -> bool:
 	return _ready_for_events
@@ -81,6 +91,7 @@ func _track_game_state() -> void:
 		_game_started_at_ms = Time.get_ticks_msec()
 		_last_score = 0
 		_milestones_sent.clear()
+		_previous_personal_best = _read_personal_best()
 		log_event("game_start", {"ship": _selected_ship_name(), "game_number": _games_started})
 		if _games_started > 1:
 			log_event("play_again", {"previous_game_completed": true})
@@ -99,6 +110,7 @@ func _track_game_state() -> void:
 			"duration_seconds": duration_seconds,
 			"ship": _selected_ship_name()
 		})
+		_track_new_unlocks(_previous_personal_best, current_score)
 
 	_last_score = current_score
 	_last_game_started = started
@@ -110,11 +122,26 @@ func _track_score_milestones(current_score: int) -> void:
 			_milestones_sent[milestone] = true
 			log_event("score_milestone", {"milestone": milestone, "score": current_score, "ship": _selected_ship_name()})
 
+func _track_new_unlocks(old_best: int, run_score: int) -> void:
+	var new_best := maxi(old_best, run_score)
+	if new_best <= old_best:
+		return
+	for i in range(1, SHIP_UNLOCKS.size()):
+		var requirement: int = SHIP_UNLOCKS[i]
+		if old_best < requirement and new_best >= requirement:
+			track_collectible_unlocked("ship", SHIP_NAMES[i], requirement)
+	for i in range(1, MINE_UNLOCKS.size()):
+		var requirement: int = MINE_UNLOCKS[i]
+		if old_best < requirement and new_best >= requirement:
+			track_collectible_unlocked("mine", MINE_NAMES[i], requirement)
+
 func _track_collectibles_state() -> void:
 	var scene := get_tree().current_scene
 	if scene == null:
 		return
 	var overlay := scene.find_child("ExactCollectibles", true, false)
+	if overlay == null:
+		overlay = scene.find_child("CollectiblesPanel", true, false)
 	var visible := overlay != null and overlay is CanvasItem and (overlay as CanvasItem).visible
 	if visible and not _last_collectibles_visible:
 		log_event("collectibles_open", {})
@@ -133,6 +160,36 @@ func _track_collectibles_state() -> void:
 		set_user_property("selected_ship", ship_name)
 		log_event("ship_equipped", {"ship": ship_name, "ship_index": selected})
 
+func _track_sunk_actions() -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var sunk := scene.find_child("SunkPanel", true, false)
+	if sunk == null:
+		return
+
+	var share_value: Variant = sunk.get("last_share_msec")
+	if share_value != null:
+		var share_msec := int(share_value)
+		if share_msec > 0 and share_msec != _last_share_msec_seen:
+			_last_share_msec_seen = share_msec
+			track_share("sunk_screen")
+
+	var pending_value: Variant = sunk.get("pending_action")
+	var submitted_score_value: Variant = sunk.get("submitted_score")
+	if pending_value == null:
+		return
+	var pending := String(pending_value)
+	if pending == "submit" and not _leaderboard_submit_pending:
+		_leaderboard_submit_pending = true
+		_leaderboard_submit_score = int(submitted_score_value) if submitted_score_value != null else 0
+	elif _leaderboard_submit_pending and pending != "submit":
+		var footer := sunk.find_child("Footer", true, false) as Label
+		var success := footer != null and footer.text.begins_with("Score submitted!")
+		track_leaderboard_submit(_leaderboard_submit_score, success)
+		_leaderboard_submit_pending = false
+		_leaderboard_submit_score = 0
+
 func track_share(source: String = "game") -> void:
 	log_event("share_clicked", {"source": source})
 
@@ -141,6 +198,12 @@ func track_leaderboard_submit(score: int, success: bool = true) -> void:
 
 func track_collectible_unlocked(item_type: String, item_name: String, requirement: int = 0) -> void:
 	log_event("collectible_unlocked", {"item_type": item_type, "item_name": item_name, "requirement": requirement})
+
+func _read_personal_best() -> int:
+	var cfg := ConfigFile.new()
+	if cfg.load("user://leaderboard.cfg") == OK:
+		return maxi(0, int(cfg.get_value("player", "personal_best", 0)))
+	return 0
 
 func _selected_ship_name() -> String:
 	var collectibles := get_node_or_null("/root/BoatCollectibles")
