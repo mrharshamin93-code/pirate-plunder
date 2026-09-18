@@ -67,16 +67,6 @@ func _input(event: InputEvent) -> void:
 	if play_button.get_global_rect().has_point(pos):
 		_restart_game()
 		get_viewport().set_input_as_handled()
-		return
-	# Android touch input can be consumed by this full-screen SunkPanel before the
-	# child MainMenuButton emits its normal pressed signal. Route only an actual
-	# fresh press inside the button to its navigation method. This deliberately
-	# uses press-down, not release, so the gameplay finger-release bug cannot recur.
-	var main_menu_button: Button = get_node_or_null("MainMenuButton") as Button
-	if main_menu_button != null and main_menu_button.visible and main_menu_button.get_global_rect().has_point(pos):
-		if main_menu_button.has_method("_go_to_main_menu"):
-			main_menu_button.call("_go_to_main_menu")
-		get_viewport().set_input_as_handled()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
@@ -389,71 +379,111 @@ func _share_android(message: String) -> String:
 	if activity == null:
 		push_error("Pirate's Plunder share: Android Activity unavailable")
 		return "Android Activity unavailable"
-	var intent_class: Variant = android_runtime.getClass("android.content.Intent")
-	if intent_class == null:
-		push_error("Pirate's Plunder share: Intent class unavailable")
-		return "Intent class unavailable"
-	var intent: Variant = intent_class.new("android.intent.action.SEND")
+	var Intent: Variant = JavaClassWrapper.wrap("android.content.Intent")
+	if Intent == null:
+		push_error("Pirate's Plunder share: Intent unavailable")
+		return "Intent unavailable"
+	var intent: Variant = Intent.Intent()
+	if intent == null:
+		push_error("Pirate's Plunder share: could not create Intent")
+		return "Could not create share Intent"
+	intent.setAction(Intent.ACTION_SEND)
+	intent.putExtra(Intent.EXTRA_TEXT, message)
 	intent.setType("text/plain")
-	intent.putExtra("android.intent.extra.TEXT", message)
-	var chooser: Variant = intent_class.createChooser(intent, "Share Pirate's Plunder")
-	activity.startActivity(chooser)
+	activity.startActivity(intent)
+	var exception: Variant = JavaClassWrapper.get_exception()
+	if exception != null:
+		push_error("Pirate's Plunder share failed: %s" % str(exception))
+		return "Android share failed"
 	return "ok"
 
+func _clear_leaderboard() -> void:
+	for child in leaderboard_box.get_children():
+		child.queue_free()
+
+func _display_name(value: String) -> String:
+	var clean: String = value.strip_edges()
+	if clean.length() <= 12:
+		return clean
+	return clean.substr(0, 11) + "…"
+
 func _build_leaderboard() -> void:
-	for c: Node in leaderboard_box.get_children():
-		c.queue_free()
-	for i: int in range(mini(10, leaderboard.size())):
-		var row_data: Dictionary = leaderboard[i]
-		var row: HBoxContainer = HBoxContainer.new()
+	_clear_leaderboard()
+	var limit: int = mini(10, leaderboard.size())
+	for i in range(limit):
+		var entry: Dictionary = leaderboard[i]
+		var is_you: bool = submitted_score >= 0 and String(entry.get("name", "")) == submitted_name and int(entry.get("score", -1)) == submitted_score
+		var row: PanelContainer = PanelContainer.new()
 		row.custom_minimum_size = Vector2(0, 25)
-		row.add_theme_constant_override("separation", 8)
+		if is_you:
+			row.add_theme_stylebox_override("panel", _button_box(Color(0.20,0.13,0.08,0.82), GOLD_DARK, 1, 4))
+		else:
+			row.add_theme_stylebox_override("panel", _button_box(Color(0,0,0,0), Color(0,0,0,0), 0, 0))
+		var h: HBoxContainer = HBoxContainer.new()
+		h.add_theme_constant_override("separation", 7)
+		row.add_child(h)
 		var rank: Label = Label.new()
-		rank.custom_minimum_size = Vector2(26, 0)
-		rank.text = "%d." % (i + 1)
+		rank.custom_minimum_size = Vector2(32, 0)
+		rank.text = str(i + 1)
+		rank.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		rank.add_theme_font_size_override("font_size", 15)
-		rank.add_theme_color_override("font_color", INK)
-		row.add_child(rank)
+		rank.add_theme_color_override("font_color", Color("fff3c8") if is_you else INK)
+		h.add_child(rank)
 		var nm: Label = Label.new()
 		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		nm.text = String(row_data.get("name", "Pirate"))
+		nm.text = _display_name(String(entry.get("name", "Pirate")))
 		nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		nm.add_theme_font_size_override("font_size", 15)
-		nm.add_theme_color_override("font_color", INK)
-		row.add_child(nm)
+		nm.add_theme_color_override("font_color", Color("fff3c8") if is_you else INK)
+		h.add_child(nm)
 		var sc: Label = Label.new()
-		sc.custom_minimum_size = Vector2(78, 0)
-		sc.text = "●  %s" % _comma(int(row_data.get("score", 0)))
+		sc.custom_minimum_size = Vector2(82, 0)
+		sc.text = "●  %s" % _comma(int(entry.get("score", 0)))
 		sc.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		sc.add_theme_font_size_override("font_size", 15)
-		sc.add_theme_color_override("font_color", INK)
-		row.add_child(sc)
+		sc.add_theme_color_override("font_color", GOLD if is_you else Color("6d3f10"))
+		h.add_child(sc)
 		leaderboard_box.add_child(row)
+
+func _button_box(fill: Color, border: Color, width: int, radius: int) -> StyleBoxFlat:
+	var box: StyleBoxFlat = StyleBoxFlat.new()
+	box.bg_color = fill
+	box.border_color = border
+	box.border_width_left = width
+	box.border_width_right = width
+	box.border_width_top = width
+	box.border_width_bottom = width
+	box.corner_radius_top_left = radius
+	box.corner_radius_top_right = radius
+	box.corner_radius_bottom_left = radius
+	box.corner_radius_bottom_right = radius
+	box.content_margin_left = 8.0
+	box.content_margin_right = 8.0
+	return box
 
 func _comma(value: int) -> String:
 	var s: String = str(value)
 	var out: String = ""
-	var count: int = 0
-	for i: int in range(s.length() - 1, -1, -1):
-		if count > 0 and count % 3 == 0:
-			out = "," + out
-		out = s[i] + out
-		count += 1
-	return out
-
-func _button_box(fill: Color, border: Color, border_width: int, radius: int) -> StyleBoxFlat:
-	var b: StyleBoxFlat = StyleBoxFlat.new()
-	b.bg_color = fill
-	b.border_color = border
-	b.set_border_width_all(border_width)
-	b.set_corner_radius_all(radius)
-	return b
+	while s.length() > 3:
+		out = "," + s.substr(s.length() - 3, 3) + out
+		s = s.substr(0, s.length() - 3)
+	return s + out
 
 func _draw() -> void:
 	var w: float = size.x
-	var sx: float = w / 390.0
-	var card: Rect2 = Rect2(24.0*sx, 28.0, w-48.0*sx, 780.0)
-	draw_style_box(_button_box(Color("d6b16c"), Color("8b5b2d"), 5, 18), card)
-	draw_style_box(_button_box(Color("efd79d"), Color("b78645"), 2, 14), Rect2(card.position+Vector2(8,8), card.size-Vector2(16,16)))
-	draw_line(Vector2(54.0*sx, 170.0), Vector2(w-54.0*sx, 170.0), GOLD_DARK, 2.0)
-	draw_line(Vector2(54.0*sx, 286.0), Vector2(w-54.0*sx, 286.0), GOLD_DARK, 2.0)
+	var h: float = size.y
+	draw_rect(Rect2(Vector2.ZERO, Vector2(w,h)), Color("052f43"))
+	for i in range(7):
+		var y: float = float(i) * h / 7.0
+		draw_circle(Vector2(35.0 + float(i%3)*155.0, y + 70.0), 5.0 + float(i%2)*3.0, Color(0.55,0.92,1.0,0.22))
+	var hero_rect: Rect2 = Rect2(28.0, 35.0, w-56.0, 115.0)
+	draw_style_box(_button_box(WOOD, GOLD_DARK, 4, 15), hero_rect)
+	for yy in [66.0, 95.0, 124.0]:
+		draw_line(Vector2(38.0,yy), Vector2(w-38.0,yy), Color(WOOD_LIGHT,0.45), 2.0)
+	var paper: Rect2 = Rect2(30.0, 164.0, w-60.0, 536.0)
+	draw_style_box(_button_box(PARCHMENT, PARCHMENT_DARK, 3, 18), paper)
+	var score_plaque: Rect2 = Rect2(70.0, 228.0, w-140.0, 62.0)
+	draw_style_box(_button_box(WOOD, GOLD_DARK, 2, 7), score_plaque)
+	for p in [Vector2(45,182),Vector2(w-45,182),Vector2(50,686),Vector2(w-50,686)]:
+		draw_circle(p, 6.0, GOLD)
+		draw_arc(p, 6.0, 0.0, TAU, 18, GOLD_DARK, 1.5, true)
