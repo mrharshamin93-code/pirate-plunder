@@ -67,6 +67,11 @@ func _input(event: InputEvent) -> void:
 	if play_button.get_global_rect().has_point(pos):
 		_restart_game()
 		get_viewport().set_input_as_handled()
+		return
+	var main_menu_button: Button = get_node_or_null("MainMenuButton") as Button
+	if main_menu_button != null and main_menu_button.visible and main_menu_button.get_global_rect().has_point(pos):
+		main_menu_button.call("_go_to_main_menu")
+		get_viewport().set_input_as_handled()
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
