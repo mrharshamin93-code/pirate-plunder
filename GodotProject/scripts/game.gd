@@ -24,7 +24,7 @@ const MINE_ARM_TIME: float = 1.0
 const MINE_SLOW_TIME: float = 0.5
 const MINE_UNARMED_SPEED: float = 12.0
 
-const WHIRLPOOL_CHANCE: float = 0.13
+const WHIRLPOOL_CHANCE: float = 0.05
 const WHIRLPOOL_CORE: float = 12.0
 const WHIRLPOOL_PULL: float = 500.0
 const WHIRLPOOL_BOAT_PULL: float = 650.0
