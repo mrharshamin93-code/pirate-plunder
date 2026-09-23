@@ -62,11 +62,11 @@ function New-ContainPng {
     }
 }
 
-# Launcher artwork is intentionally smaller than before so Android's adaptive
-# icon mask cannot crop the Pirate's Plunder artwork. Splash sizing stays exactly
-# as previously approved.
+# Size the adaptive foreground to fill the launcher icon more naturally while
+# retaining enough safe padding for Android circle/squircle masks. Splash sizing
+# stays exactly as previously approved.
 New-ContainPng -SourcePath $sourceIcon -OutputPath $mainIcon -CanvasSize 432 -MaxContentSize 300
-New-ContainPng -SourcePath $sourceIcon -OutputPath $adaptiveForeground -CanvasSize 432 -MaxContentSize 190
+New-ContainPng -SourcePath $sourceIcon -OutputPath $adaptiveForeground -CanvasSize 432 -MaxContentSize 280
 New-ContainPng -SourcePath $sourceIcon -OutputPath $systemSplash -CanvasSize 432 -MaxContentSize 210
 
 $content = Get-Content -Raw -LiteralPath $target
@@ -85,5 +85,5 @@ $content = [regex]::Replace($content, '(?m)^splash_screen/branding_image=.*$', '
 
 Set-Content -LiteralPath $target -Value $content -Encoding UTF8
 Write-Host "Android branding updated."
-Write-Host "Launcher icon scaled down for additional safe padding."
+Write-Host "Launcher adaptive foreground enlarged to 280px with safe mask padding."
 Write-Host "Splash screen sizing remains unchanged."
