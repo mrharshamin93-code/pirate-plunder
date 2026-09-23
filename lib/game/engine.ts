@@ -80,7 +80,7 @@ export const GAME = {
 
   /* --- whirlpools ------------------------------------------------------- */
   /** chance a coin pickup also summons a whirlpool */
-  whirlpoolChance: 0.13,
+  whirlpoolChance: 0.05,
   /**
    * Physics influence radius in px. This intentionally extends beyond the
    * visible whirlpool artwork; changing it does not change the visual size.
