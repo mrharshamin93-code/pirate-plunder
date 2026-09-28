@@ -52,5 +52,11 @@ try {
 	Copy-Item (Join-Path $aarRoot "AdmobPlugin-release.aar") (Join-Path $godotRoot "addons/AdmobPlugin/bin/release/AdmobPlugin-release.aar") -Force
 	Write-Host "Custom-size AdMob plugin AARs installed from SDK $AndroidSdkPath. Reopen the Godot project before exporting Android."
 } finally {
-	if (Test-Path $buildRoot) { Remove-Item $buildRoot -Recurse -Force }
+	if (Test-Path $buildRoot) {
+		try {
+			Remove-Item -LiteralPath $buildRoot -Recurse -Force -ErrorAction Stop
+		} catch {
+			Write-Warning "Build finished, but Windows could not fully remove temporary files at $buildRoot. You can delete that folder later."
+		}
+	}
 }
