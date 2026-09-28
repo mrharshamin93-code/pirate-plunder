@@ -2,5 +2,15 @@
   "framework": null,
   "installCommand": "true",
   "buildCommand": "mkdir -p dist && cp index.html privacy.html support.html app-ads.txt styles.css dist/ && cp -R images dist/",
-  "outputDirectory": "dist"
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/support",
+      "destination": "/support.html"
+    }
+  ]
 }
