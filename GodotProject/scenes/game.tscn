@@ -25,7 +25,7 @@ script = ExtResource("7_music")
 
 [node name="Admob" type="Node" parent="."]
 script = ExtResource("10_admob")
-is_real = false
+is_real = true
 banner_position = 0
 banner_size = 7
 custom_banner_width = 130
