@@ -29,7 +29,7 @@ Godot 4.x, using GDScript and the Compatibility renderer for broad desktop/mobil
 
 The Android AdMob plugin is included in `addons/AdmobPlugin` (version 5.1, MIT license). The scene is configured with the game's AdMob app ID and banner unit ID, but `is_real` is `false`, so development builds use Google's test app and banner IDs. The compact 130×50 dp banner is centered in the top gap between the score and coin/mine HUD. The music toggle has been removed from the HUD.
 
-Before exporting an Android build, run `scripts/build_admob_custom_banner.sh` from this directory. The stock AdMob 5.1 Android plugin does not support a custom banner size, so this script builds and installs the patched debug and release AARs. It requires Git, JDK 17, and the Android SDK configured for Gradle. After it finishes, reopen the project in Godot and export as usual.
+Before exporting an Android build, run `scripts/build_admob_custom_banner.ps1` from PowerShell in this directory (or `scripts/build_admob_custom_banner.sh` on macOS/Linux). The stock AdMob 5.1 Android plugin does not support a custom banner size, so the script builds and installs the patched debug and release AARs. It requires Git, JDK 17, and the Android SDK configured for Gradle. After it finishes, reopen the project in Godot and export as usual.
 
 Before a release build, select the `Admob` node in `scenes/game.tscn` and enable `is_real` to use the production ad unit. Keep it disabled for development and testing. Do not click live ads while testing.
 
