@@ -40,7 +40,11 @@ try {
 
 	$androidRoot = Join-Path $sourceRoot "android"
 	$gradleWrapper = Join-Path $androidRoot "gradlew.bat"
-	& $gradleWrapper --project-dir $androidRoot :admob:assembleDebug :admob:assembleRelease
+	$gradleProperties = Join-Path $androidRoot "gradle.properties"
+	$propertiesText = Get-Content $gradleProperties -Raw
+	$propertiesText = [regex]::Replace($propertiesText, '(?m)^org\.gradle\.jvmargs=.*$', 'org.gradle.jvmargs=-Xmx2g -Dfile.encoding=UTF-8')
+	Set-Content -Path $gradleProperties -Value $propertiesText -Encoding utf8
+	& $gradleWrapper --project-dir $androidRoot --no-daemon --max-workers=2 :admob:assembleDebug :admob:assembleRelease
 	if ($LASTEXITCODE -ne 0) { throw "The AdMob Android plugin build failed." }
 
 	$aarRoot = Join-Path $sourceRoot "android/admob/build/outputs/aar"
