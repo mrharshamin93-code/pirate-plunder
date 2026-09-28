@@ -27,11 +27,11 @@ Godot 4.x, using GDScript and the Compatibility renderer for broad desktop/mobil
 
 ## Android ads
 
-The Android AdMob plugin is included in `addons/AdmobPlugin` (version 5.1, MIT license). The scene is configured with the game's AdMob app ID and banner unit ID, but `is_real` is `false`, so development builds use Google's test app and banner IDs. The compact 130×50 dp banner is centered in the top gap between the score and coin/mine HUD. The music toggle has been removed from the HUD.
+The Android AdMob plugin is included in `addons/AdmobPlugin` (version 5.1, MIT license). The scene is configured with the game's AdMob app ID and banner unit ID, and `is_real` is `true`, so Android builds use the production app and banner IDs. The compact 130×50 dp banner is centered in the top gap between the score and coin/mine HUD. The music toggle has been removed from the HUD.
 
 Before exporting an Android build, run `scripts/build_admob_custom_banner.ps1` from PowerShell in this directory (or `scripts/build_admob_custom_banner.sh` on macOS/Linux). The stock AdMob 5.1 Android plugin does not support a custom banner size, so the script builds and installs the patched debug and release AARs. It requires Git, JDK 17, and the Android SDK. On Windows it checks `ANDROID_HOME`, `ANDROID_SDK_ROOT`, Godot's editor settings, and Android Studio's default SDK folder. If needed, pass the SDK folder explicitly with `-AndroidSdkPath "C:\path\to\Android\Sdk"`. After it finishes, reopen the project in Godot and export as usual.
 
-Before a release build, select the `Admob` node in `scenes/game.tscn` and enable `is_real` to use the production ad unit. Keep it disabled for development and testing. Do not click live ads while testing.
+The `Admob` node in `scenes/game.tscn` has `is_real` enabled for release builds. For development and testing, disable it locally to use Google's test IDs, then restore it before exporting a release. Do not click live ads while testing. Rebuild and install or publish a new Android build for this setting to take effect on devices.
 
 For Android export, install the Android export templates and SDK in Godot, enable **Gradle Build** in the Android export preset, and include the AdMob plugin. The repository does not include an export preset or a built APK.
 
