@@ -23,7 +23,8 @@ enum AdSize {
 	FULL_BANNER,
 	LEADERBOARD,
 	SKYSCRAPER,
-	FLUID
+	FLUID,
+	CUSTOM
 }
 
 const DATA_KEY_AD_UNIT_ID = "ad_unit_id"

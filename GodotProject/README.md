@@ -22,12 +22,14 @@ Godot 4.x, using GDScript and the Compatibility renderer for broad desktop/mobil
 - Current HUD structure
 - SUNK / restart screen scaffold
 - Procedural ocean, boat, coin, mine and whirlpool rendering so the first build does not depend on external sprite imports
-- Android AdMob banner integration, shown during active gameplay in the upper-right banner strip
+- Android AdMob banner integration, shown during active gameplay between the score and coin/mine HUD
 - Gameplay music toggle removed from the HUD; the music preference remains available in Settings
 
 ## Android ads
 
-The Android AdMob plugin is included in `addons/AdmobPlugin` (version 5.1, MIT license). The scene is configured with the game's AdMob app ID and banner unit ID, but `is_real` is `false`, so development builds use Google's test app and banner IDs. The banner is positioned at the top-right and appears only during an active run. The score and coin/mine HUD remain below it, and the playfield begins below the HUD.
+The Android AdMob plugin is included in `addons/AdmobPlugin` (version 5.1, MIT license). The scene is configured with the game's AdMob app ID and banner unit ID, but `is_real` is `false`, so development builds use Google's test app and banner IDs. The compact 130×50 dp banner is centered in the top gap between the score and coin/mine HUD. The music toggle has been removed from the HUD.
+
+Before exporting an Android build, run `scripts/build_admob_custom_banner.sh` from this directory. The stock AdMob 5.1 Android plugin does not support a custom banner size, so this script builds and installs the patched debug and release AARs. It requires Git, JDK 17, and the Android SDK configured for Gradle. After it finishes, reopen the project in Godot and export as usual.
 
 Before a release build, select the `Admob` node in `scenes/game.tscn` and enable `is_real` to use the production ad unit. Keep it disabled for development and testing. Do not click live ads while testing.
 

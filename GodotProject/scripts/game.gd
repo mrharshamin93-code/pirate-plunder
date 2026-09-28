@@ -35,7 +35,7 @@ const WHIRLPOOL_MINE_MAX_SPEED: float = 105.0
 const WHIRLPOOL_LIFE: float = 6.5
 const WHIRLPOOL_MIN_DISTANCE: float = 110.0
 
-const FIELD_INSET_TOP: float = 164.0
+const FIELD_INSET_TOP: float = 106.0
 const FIELD_INSET_BOTTOM: float = 158.0
 const FIELD_INSET_SIDE: float = 8.0
 const WAKE_LIFE: float = 0.72

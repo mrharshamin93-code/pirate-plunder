@@ -67,6 +67,9 @@ const PLUGIN_SINGLETON_NAME: String = "AdmobPlugin"
 @export_category("Banner")
 @export var banner_position: LoadAdRequest.AdPosition = LoadAdRequest.AdPosition.TOP: set = set_banner_position
 @export var banner_size: LoadAdRequest.AdSize = LoadAdRequest.AdSize.BANNER: set = set_banner_size
+@export_range(80, 320, 1) var custom_banner_width: int = 130
+@export_range(32, 100, 1) var custom_banner_height: int = 50
+@export_range(0, 48, 1) var custom_banner_top_offset: int = 16
 
 @export_category("Ad Unit IDs")
 @export_group("Debug IDs", "debug_")
@@ -274,12 +277,16 @@ func configure_ads() -> void:
 
 func load_banner_ad() -> void:
 	if _plugin_singleton != null:
-		_plugin_singleton.load_banner_ad(LoadAdRequest.new()
-					.set_ad_unit_id(_banner_id)
-					.set_ad_position(banner_position)
-					.set_ad_size(banner_size)
-					.set_request_agent(request_agent)
-					.get_raw_data())
+		var request: LoadAdRequest = LoadAdRequest.new()
+		request.set_ad_unit_id(_banner_id)
+		request.set_ad_position(banner_position)
+		request.set_ad_size(banner_size)
+		request.set_request_agent(request_agent)
+		if banner_size == LoadAdRequest.AdSize.CUSTOM:
+			request.get_raw_data()["ad_width"] = custom_banner_width
+			request.get_raw_data()["ad_height"] = custom_banner_height
+			request.get_raw_data()["ad_top_offset"] = custom_banner_top_offset
+		_plugin_singleton.load_banner_ad(request.get_raw_data())
 	else:
 		Admob.log_error("%s plugin not initialized" % PLUGIN_SINGLETON_NAME)
 

@@ -1,0 +1,82 @@
+--- a/android/admob/src/main/java/org/godotengine/plugin/android/admob/Banner.java
++++ b/android/admob/src/main/java/org/godotengine/plugin/android/admob/Banner.java
+@@ -39,8 +39,11 @@
+ 	private static final String CLASS_NAME = Banner.class.getSimpleName();
+ 	private static final String LOG_TAG = "godot::" + AdmobPlugin.CLASS_NAME + "::" + CLASS_NAME;
+ 
+-	private static final String AD_SIZE_PROPERTY = "ad_size";
+-	private static final String AD_POSITION_PROPERTY = "ad_position";
++	private static final String AD_SIZE_PROPERTY = "ad_size";
++	private static final String AD_POSITION_PROPERTY = "ad_position";
++	private static final String AD_WIDTH_PROPERTY = "ad_width";
++	private static final String AD_HEIGHT_PROPERTY = "ad_height";
++	private static final String AD_TOP_OFFSET_PROPERTY = "ad_top_offset";
+ 
+ 	enum BannerSize {
+ 		BANNER,
+@@ -49,7 +52,8 @@
+ 		FULL_BANNER,
+ 		LEADERBOARD,
+ 		SKYSCRAPER,
+-		FLUID
++		FLUID,
++		CUSTOM
+ 	}
+ 
+ 	enum AdPosition {
+@@ -69,7 +73,10 @@
+ 	private final AdRequest adRequest;
+ 	private final Activity activity;
+ 	private final FrameLayout layout;
+-	private final BannerSize bannerSize;
++	private final BannerSize bannerSize;
++	private final int customWidth;
++	private final int customHeight;
++	private final int customTopOffset;
+ 	private AdPosition adPosition;
+ 	private AdView adView; // Banner view
+ 	private FrameLayout.LayoutParams adParams;
+@@ -86,10 +93,13 @@
+ 		if (adData.containsKey(AD_SIZE_PROPERTY)) {
+ 			this.bannerSize = BannerSize.valueOf((String) adData.get(AD_SIZE_PROPERTY));
+ 		}
+-		else {
+-			this.bannerSize = BannerSize.BANNER;
+-			Log.e(LOG_TAG, "Error: Banner size is required!");
+-		}
++		else {
++			this.bannerSize = BannerSize.BANNER;
++			Log.e(LOG_TAG, "Error: Banner size is required!");
++		}
++		this.customWidth = adData.containsKey(AD_WIDTH_PROPERTY) ? ((Number) adData.get(AD_WIDTH_PROPERTY)).intValue() : 0;
++		this.customHeight = adData.containsKey(AD_HEIGHT_PROPERTY) ? ((Number) adData.get(AD_HEIGHT_PROPERTY)).intValue() : 0;
++		this.customTopOffset = adData.containsKey(AD_TOP_OFFSET_PROPERTY) ? ((Number) adData.get(AD_TOP_OFFSET_PROPERTY)).intValue() : 0;
+ 
+ 		if (adData.containsKey(AD_POSITION_PROPERTY)) {
+ 			this.adPosition = AdPosition.valueOf((String) adData.get(AD_POSITION_PROPERTY));
+@@ -202,7 +212,10 @@
+ 				FrameLayout.LayoutParams.WRAP_CONTENT,
+ 				FrameLayout.LayoutParams.WRAP_CONTENT
+ 		);
+-		adParams.gravity = gravity;
++		adParams.gravity = gravity;
++		if (bannerSize == BannerSize.CUSTOM && adPosition == AdPosition.TOP && customTopOffset > 0) {
++			adParams.topMargin = Math.round(customTopOffset * activity.getResources().getDisplayMetrics().density);
++		}
+ 
+ 		// Create new view & set old params
+ 		adView = new AdView(activity);
+@@ -251,9 +264,10 @@
+ 			case MEDIUM_RECTANGLE -> AdSize.MEDIUM_RECTANGLE;
+ 			case FULL_BANNER -> AdSize.FULL_BANNER;
+ 			case LEADERBOARD -> AdSize.LEADERBOARD;
+-			case SKYSCRAPER -> AdSize.WIDE_SKYSCRAPER;
+-			case FLUID -> AdSize.FLUID;
+-			default -> AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(activity, getAdWidth(activity));
++			case SKYSCRAPER -> AdSize.WIDE_SKYSCRAPER;
++			case FLUID -> AdSize.FLUID;
++			case CUSTOM -> new AdSize(customWidth, customHeight);
++			default -> AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(activity, getAdWidth(activity));
+ 		};
+ 		Log.d(LOG_TAG, String.format("getAdSize(): ad size [width: %d; height: %d].", result.getWidth(), result.getHeight()));
+ 		return result;
