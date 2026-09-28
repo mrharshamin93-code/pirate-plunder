@@ -27,8 +27,8 @@ func _draw() -> void:
 	if coin_sheet:
 		var sp: Vector3 = COIN_SPRITES[tier]
 		var src = Rect2(sp.x-sp.z*.5,sp.y-sp.z*.5,sp.z,sp.z)
-		draw_texture_rect_region(coin_sheet,Rect2(301,25,24,24),src)
-	_draw_mine(Vector2(313,73),29.0/56.0)
+		draw_texture_rect_region(coin_sheet,Rect2(301,81,24,24),src)
+	_draw_mine(Vector2(313,129),29.0/56.0)
 
 func _draw_mine(p: Vector2, scale: float) -> void:
 	var r = 13.0*scale

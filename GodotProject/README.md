@@ -22,6 +22,16 @@ Godot 4.x, using GDScript and the Compatibility renderer for broad desktop/mobil
 - Current HUD structure
 - SUNK / restart screen scaffold
 - Procedural ocean, boat, coin, mine and whirlpool rendering so the first build does not depend on external sprite imports
+- Android AdMob banner integration, shown during active gameplay in the upper-right banner strip
+- Gameplay music toggle removed from the HUD; the music preference remains available in Settings
+
+## Android ads
+
+The Android AdMob plugin is included in `addons/AdmobPlugin` (version 5.1, MIT license). The scene is configured with the game's AdMob app ID and banner unit ID, but `is_real` is `false`, so development builds use Google's test app and banner IDs. The banner is positioned at the top-right and appears only during an active run. The score and coin/mine HUD remain below it, and the playfield begins below the HUD.
+
+Before a release build, select the `Admob` node in `scenes/game.tscn` and enable `is_real` to use the production ad unit. Keep it disabled for development and testing. Do not click live ads while testing.
+
+For Android export, install the Android export templates and SDK in Godot, enable **Gradle Build** in the Android export preset, and include the AdMob plugin. The repository does not include an export preset or a built APK.
 
 ## Run
 
@@ -30,4 +40,4 @@ Godot 4.x, using GDScript and the Compatibility renderer for broad desktop/mobil
 3. Import `GodotProject/project.godot`.
 4. Press F6/F5 or the Play button.
 
-The first goal is gameplay parity. Once the core feel is approved, the current polished artwork, leaderboard UI, audio, haptics, Android export and ads can be wired in.
+The Godot project is configured for Godot 4.4 or newer. Android export and AdMob still need to be built and tested on the development machine.

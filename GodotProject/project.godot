@@ -22,6 +22,9 @@ SettingsInputGuard="*res://scripts/settings_input_guard.gd"
 SkullPenaltyFeature="*res://scripts/skull_penalty_feature.gd"
 FirebaseAnalytics="*res://scripts/firebase_analytics.gd"
 
+[editor_plugins]
+enabled=PackedStringArray("res://addons/AdmobPlugin/plugin.cfg")
+
 [display]
 window/size/viewport_width=390
 window/size/viewport_height=844

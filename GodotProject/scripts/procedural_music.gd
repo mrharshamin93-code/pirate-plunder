@@ -11,7 +11,6 @@ const BARS: int = 8
 const TOTAL_EIGHTHS: int = BARS * EIGHTHS_PER_BAR
 const LOOP_SAMPLES: int = int(round(TOTAL_EIGHTHS * EIGHTH * SAMPLE_RATE))
 const SAVE_PATH: String = "user://music.cfg"
-const MUSIC_TOGGLE_BUTTON = preload("res://scripts/music_toggle_button.gd")
 
 const MELODY: Array[Vector2i] = [
 	Vector2i(62,2), Vector2i(65,1), Vector2i(69,2), Vector2i(65,1),
@@ -43,7 +42,6 @@ const CHORDS: Array[Array] = [
 ]
 
 var player: AudioStreamPlayer
-var toggle_button: Button
 var music_enabled: bool = true
 var noise_state: int = 20250813
 
@@ -54,7 +52,6 @@ func _ready() -> void:
 	player.volume_db = -8.0
 	add_child(player)
 	player.stream = _build_stream()
-	_build_toggle()
 	_apply_enabled_state()
 	set_process(true)
 
@@ -71,25 +68,6 @@ func _save_setting() -> void:
 	cfg.set_value("audio", "music_enabled", music_enabled)
 	cfg.save(SAVE_PATH)
 
-func _build_toggle() -> void:
-	var game: Node = get_parent()
-	var canvas: CanvasLayer = game.get_node_or_null("CanvasLayer") as CanvasLayer
-	if canvas == null:
-		return
-	toggle_button = MUSIC_TOGGLE_BUTTON.new() as Button
-	toggle_button.name = "MusicToggle"
-	toggle_button.position = Vector2(178.0, 23.0)
-	toggle_button.size = Vector2(34.0, 34.0)
-	toggle_button.text = ""
-	toggle_button.pressed.connect(_toggle_music)
-	canvas.add_child(toggle_button)
-	_update_toggle_icon()
-
-func _toggle_music() -> void:
-	music_enabled = not music_enabled
-	_save_setting()
-	_apply_enabled_state()
-
 func _apply_enabled_state() -> void:
 	if player == null:
 		return
@@ -104,16 +82,6 @@ func _apply_enabled_state() -> void:
 	else:
 		if player.playing:
 			player.stop()
-	if toggle_button != null:
-		toggle_button.visible = game_started_now and not game_over_now
-	_update_toggle_icon()
-
-func _update_toggle_icon() -> void:
-	if toggle_button == null:
-		return
-	if toggle_button.has_method("set_music_enabled"):
-		toggle_button.call("set_music_enabled", music_enabled)
-	toggle_button.tooltip_text = "Music on" if music_enabled else "Music off"
 
 func _midi_to_freq(midi: int) -> float:
 	return 440.0 * pow(2.0, (float(midi) - 69.0) / 12.0)

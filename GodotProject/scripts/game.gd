@@ -35,7 +35,7 @@ const WHIRLPOOL_MINE_MAX_SPEED: float = 105.0
 const WHIRLPOOL_LIFE: float = 6.5
 const WHIRLPOOL_MIN_DISTANCE: float = 110.0
 
-const FIELD_INSET_TOP: float = 106.0
+const FIELD_INSET_TOP: float = 164.0
 const FIELD_INSET_BOTTOM: float = 158.0
 const FIELD_INSET_SIDE: float = 8.0
 const WAKE_LIFE: float = 0.72
@@ -53,6 +53,7 @@ const COIN_WEIGHTS: Array[int] = [38, 26, 17, 10, 5, 3, 1]
 @onready var sunk_score: Label = $CanvasLayer/SunkPanel/Score
 @onready var play_again: Button = $CanvasLayer/SunkPanel/PlayAgain
 @onready var coin_audio: Node = get_node("/root/CoinPickupAudio")
+@onready var admob: Admob = $Admob
 
 var boat_pos: Vector2 = Vector2.ZERO
 var boat_vel: Vector2 = Vector2.ZERO
@@ -68,12 +69,18 @@ var whirlpool: Dictionary = {}
 var wake_timer: float = 0.0
 var game_over: bool = false
 var game_started: bool = false
+var admob_initialized: bool = false
+var show_banner_when_ready: bool = false
 
 func _ready() -> void:
 	randomize()
 	joystick.connect("changed", Callable(self, "_on_joystick_changed"))
 	if not play_again.pressed.is_connected(_start_game):
 		play_again.pressed.connect(_start_game)
+	admob.initialization_completed.connect(_on_admob_initialized)
+	admob.banner_ad_loaded.connect(_on_banner_ad_loaded)
+	if OS.get_name() == "Android":
+		admob.initialize()
 	_prepare_idle_state()
 
 func _prepare_idle_state() -> void:
@@ -92,6 +99,7 @@ func _prepare_idle_state() -> void:
 	wake_timer = 0.0
 	game_over = false
 	game_started = false
+	_hide_gameplay_banner()
 	sunk_panel.visible = false
 	_refresh_hud()
 
@@ -111,6 +119,7 @@ func _start_game() -> void:
 	wake_timer = 0.0
 	game_over = false
 	game_started = true
+	_show_gameplay_banner()
 	sunk_panel.visible = false
 	_place_coin()
 	_refresh_hud()
@@ -365,12 +374,38 @@ func _end_game(panel_delay: float = 0.0) -> void:
 	if game_over:
 		return
 	game_over = true
+	_hide_gameplay_banner()
 	input_vector = Vector2.ZERO
 	sunk_score.text = "Score: %s" % _comma(score)
 	if panel_delay > 0.0:
 		await get_tree().create_timer(panel_delay).timeout
 	if game_over:
 		sunk_panel.visible = true
+
+func _on_admob_initialized(_status_data: InitializationStatus) -> void:
+	admob_initialized = true
+	if show_banner_when_ready and game_started and not game_over:
+		admob.load_banner_ad()
+
+func _on_banner_ad_loaded(ad_id: String) -> void:
+	if game_started and not game_over:
+		admob.show_banner_ad(ad_id)
+
+func _show_gameplay_banner() -> void:
+	if OS.get_name() != "Android":
+		return
+	if not admob_initialized:
+		show_banner_when_ready = true
+		return
+	if admob.is_banner_ad_loaded():
+		admob.show_banner_ad()
+	else:
+		admob.load_banner_ad()
+
+func _hide_gameplay_banner() -> void:
+	show_banner_when_ready = false
+	if OS.get_name() == "Android" and admob_initialized and admob.is_banner_ad_loaded():
+		admob.hide_banner_ad()
 
 func _refresh_hud() -> void:
 	score_label.text = _comma(score)
