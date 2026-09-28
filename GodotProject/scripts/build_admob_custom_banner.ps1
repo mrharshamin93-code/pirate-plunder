@@ -13,13 +13,10 @@ try {
 	& git -C $sourceRoot apply $patchFile
 	if ($LASTEXITCODE -ne 0) { throw "Could not apply the compact-banner patch." }
 
-	Push-Location (Join-Path $sourceRoot "android")
-	try {
-		& .\gradlew.bat :admob:assembleDebug :admob:assembleRelease
-		if ($LASTEXITCODE -ne 0) { throw "The AdMob Android plugin build failed." }
-	} finally {
-		Pop-Location
-	}
+	$androidRoot = Join-Path $sourceRoot "android"
+	$gradleWrapper = Join-Path $androidRoot "gradlew.bat"
+	& $gradleWrapper --project-dir $androidRoot :admob:assembleDebug :admob:assembleRelease
+	if ($LASTEXITCODE -ne 0) { throw "The AdMob Android plugin build failed." }
 
 	$aarRoot = Join-Path $sourceRoot "android/admob/build/outputs/aar"
 	Copy-Item (Join-Path $aarRoot "AdmobPlugin-debug.aar") (Join-Path $godotRoot "addons/AdmobPlugin/bin/debug/AdmobPlugin-debug.aar") -Force
