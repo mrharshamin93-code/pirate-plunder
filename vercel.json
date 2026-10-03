@@ -1,13 +1,16 @@
 {
-  "buildCommand": "npx expo export -p web",
-  "outputDirectory": "dist",
-  "devCommand": "npx expo start --web",
-  "cleanUrls": true,
   "framework": null,
+  "installCommand": "true",
+  "buildCommand": "mkdir -p dist/privacy dist/support && cp index.html privacy.html support.html app-ads.txt styles.css dist/ && cp privacy.html dist/privacy/index.html && cp support.html dist/support/index.html && cp -R images dist/",
+  "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/:path*",
-      "destination": "/"
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/support",
+      "destination": "/support.html"
     }
   ]
 }
